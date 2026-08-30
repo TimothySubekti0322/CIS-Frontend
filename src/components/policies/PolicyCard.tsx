@@ -3,25 +3,43 @@
 import { useRouter } from "next/navigation";
 import { CalendarClock, Download, FileText } from "lucide-react";
 import type { Policy } from "@/types/policy";
+import { ApiError } from "@/types/common";
 import { formatDate, formatMonthYear } from "@/lib/utils";
+import { isMockMode } from "@/lib/config";
 import { strings } from "@/lib/constants/strings";
 import { Card } from "@/components/ui/Card";
 import { IconButton } from "@/components/ui/IconButton";
 import { useToast } from "@/components/ui/Toast";
-import { useMatchmakingStatus } from "@/lib/hooks/usePolicies";
+import { useDownloadPolicyFile, usePolicyProcessing } from "@/lib/hooks/usePolicies";
 import { PolicyStatusPill } from "./PolicyStatusPill";
 import { ProcessingBadge } from "./ProcessingBadge";
 
-/** Policy card (PRD US37). Reused on the F2 list and "See all" pages. */
+/** Policy card, reused on the F2 list and "See all" pages. */
 export function PolicyCard({ policy }: { policy: Policy }) {
   const router = useRouter();
   const { toast } = useToast();
-  const isProcessing = policy.processing === "processing";
+  const download = useDownloadPolicyFile();
 
-  // Keep polling the matchmaking job while this card shows "Processing" (US42).
-  useMatchmakingStatus(policy.id, isProcessing);
+  // Keep polling while this card shows an in-flight matchmaking badge.
+  usePolicyProcessing(policy.id, policy.isProcessing);
 
   const href = `/policies/${policy.id}`;
+
+  async function onDownload(e: React.MouseEvent) {
+    e.stopPropagation();
+    if (isMockMode) {
+      toast(strings.policies.downloadMockUnavailable, "error");
+      return;
+    }
+    try {
+      await download.mutateAsync({ id: policy.id, fileName: policy.fileName });
+    } catch (err) {
+      toast(
+        err instanceof ApiError ? err.message : strings.policies.downloadFailed,
+        "error",
+      );
+    }
+  }
 
   return (
     <Card
@@ -36,7 +54,10 @@ export function PolicyCard({ policy }: { policy: Policy }) {
     >
       <div className="flex items-start justify-between gap-2">
         <FileText className="size-5 shrink-0 text-glaucous" aria-hidden />
-        {isProcessing ? <ProcessingBadge /> : <PolicyStatusPill status={policy.status} />}
+        <div className="flex flex-wrap items-center justify-end gap-1.5">
+          <ProcessingBadge status={policy.processingStatus} />
+          <PolicyStatusPill status={policy.status} />
+        </div>
       </div>
 
       <p className="line-clamp-2 flex-1 text-sm font-bold text-regal-navy">
@@ -44,26 +65,29 @@ export function PolicyCard({ policy }: { policy: Policy }) {
       </p>
 
       <div className="space-y-1 text-xs text-regal-navy/60">
-        <p>{formatMonthYear(policy.rolledOutDate)}</p>
-        <p className="inline-flex items-center gap-1">
-          <CalendarClock className="size-3.5" aria-hidden />
-          {strings.claims.created}: {formatDate(policy.createdAt)}
-        </p>
+        {/* `monthYear` is preformatted by the backend; fall back to the date. */}
+        <p>{policy.monthYear ?? formatMonthYear(policy.rolledOutDate)}</p>
+        {policy.createdAt && (
+          <p className="inline-flex items-center gap-1">
+            <CalendarClock className="size-3.5" aria-hidden />
+            {strings.claims.created}: {formatDate(policy.createdAt)}
+          </p>
+        )}
       </div>
 
       <div className="flex items-center justify-between border-t border-pale-sky pt-3">
         <span className="text-xs text-regal-navy/50">
-          {policy.linkedGenericCount + policy.linkedSyntheticCount} linked claims
+          {policy.linkedClaimCount.toLocaleString()} {strings.policies.linkedClaims}
         </span>
-        <IconButton
-          label={strings.common.download}
-          onClick={(e) => {
-            e.stopPropagation();
-            toast(`Downloading ${policy.fileName}`);
-          }}
-        >
-          <Download className="size-4" aria-hidden />
-        </IconButton>
+        {policy.fileName && (
+          <IconButton
+            label={strings.common.download}
+            onClick={onDownload}
+            disabled={download.isPending}
+          >
+            <Download className="size-4" aria-hidden />
+          </IconButton>
+        )}
       </div>
     </Card>
   );

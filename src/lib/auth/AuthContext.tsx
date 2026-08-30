@@ -11,16 +11,16 @@ import {
 } from "react";
 import { useRouter } from "next/navigation";
 import { useQueryClient } from "@tanstack/react-query";
-import type { Credentials, User } from "@/types/auth";
+import type { AuthSession, LoginCredentials, RegisterPayload, User } from "@/types/auth";
 import { authApi } from "@/lib/api/auth";
-import { clearToken, getToken, setToken } from "./token";
+import { clearSession, getToken, setSession } from "./token";
 
 interface AuthContextValue {
   user: User | null;
   isLoading: boolean;
-  login: (credentials: Credentials) => Promise<void>;
-  register: (credentials: Credentials) => Promise<void>;
-  logout: () => void;
+  login: (credentials: LoginCredentials) => Promise<void>;
+  register: (payload: RegisterPayload) => Promise<void>;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -33,35 +33,50 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Hydrate the session from the token cookie on mount.
   useEffect(() => {
-    const token = getToken();
-    if (!token) {
+    if (!getToken()) {
       setIsLoading(false);
       return;
     }
     authApi
-      .me(token)
+      .me()
       .then(setUser)
       .catch(() => {
-        clearToken();
+        // The api client already tried a refresh; a failure here is terminal.
+        clearSession();
         setUser(null);
       })
       .finally(() => setIsLoading(false));
   }, []);
 
-  const login = useCallback(async (credentials: Credentials) => {
-    const res = await authApi.login(credentials);
-    setToken(res.token);
-    setUser(res.user);
+  /** Store the new pair, then adopt the profile the auth response carried. */
+  const adopt = useCallback((session: AuthSession) => {
+    setSession(session.accessToken, session.refreshToken, session.expiresIn);
+    setUser(session.user);
   }, []);
 
-  const register = useCallback(async (credentials: Credentials) => {
-    const res = await authApi.register(credentials);
-    setToken(res.token);
-    setUser(res.user);
-  }, []);
+  const login = useCallback(
+    async (credentials: LoginCredentials) => {
+      adopt(await authApi.login(credentials));
+    },
+    [adopt],
+  );
 
-  const logout = useCallback(() => {
-    clearToken();
+  const register = useCallback(
+    async (payload: RegisterPayload) => {
+      adopt(await authApi.register(payload));
+    },
+    [adopt],
+  );
+
+  const logout = useCallback(async () => {
+    try {
+      // Revokes every refresh token server-side; the access token is stateless
+      // and stays valid until it expires, so the local copy must go too.
+      await authApi.logout();
+    } catch {
+      /* sign out locally even if the server call fails */
+    }
+    clearSession();
     setUser(null);
     queryClient.clear();
     router.replace("/login");

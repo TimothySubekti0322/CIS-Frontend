@@ -1,25 +1,75 @@
-/** PRD §8 US29 — derived by comparing FinalClaimScore to the global threshold. */
-export type ThresholdStatus = "over" | "under";
+import type { Granularity, ScorePoint, TopicRef } from "./claim";
+import type { PageParams } from "./common";
 
-/** A row in the F3 Alert watchlist table [C3] (PRD US29). */
+/**
+ * Derived at read time by comparing `finalClaimScore` to the F4 global
+ * threshold — changing the threshold flips these instantly, no recomputation.
+ * A `null` score is `under_threshold`: an unscored claim is never escalated
+ * on missing data.
+ */
+export type ThresholdStatus = "over_threshold" | "under_threshold";
+
+/** A row of the F3 watchlist table. */
 export interface WatchlistItem {
+  /** The claim id — the `:claimId` every other alert endpoint takes. */
   claimId: string;
-  statement: string;
-  claimCreatedAt: string;
-  finalClaimScore: number;
-  thresholdStatus: ThresholdStatus;
-  /** Timestamp the claim was appended via the F1 bell confirmation (PRD US30). */
+  /** The watchlist row's own id. */
+  alertId: string | null;
+  claimStatement: string;
+  topic: TopicRef | null;
   addedAt: string;
-  /** Historical FinalClaimScore series for the chart [C1] (PRD US27). */
-  history: ScorePoint[];
+  /** Server-persisted "Chart" checkbox in the watchlist table. */
+  chartVisible: boolean;
+  finalClaimScore: number | null;
+  thresholdStatus: ThresholdStatus;
+  /** The global threshold echoed back, so the row can explain itself. */
+  threshold: number | null;
+  isDormant: boolean;
 }
 
-export interface ScorePoint {
-  date: string;
-  score: number;
+/** One plotted claim in `GET /alerts/chart`. */
+export interface AlertChartSeries {
+  claimId: string;
+  claimStatement: string;
+  topic: TopicRef | null;
+  points: ScorePoint[];
 }
 
-export interface AdminSettings {
-  /** Global Over/Under threshold on the 0–100 scale (PRD US32). */
-  alertThreshold: number;
+/** `GET /alerts/chart` — only claims with `chartVisible: true` appear. */
+export interface AlertChart {
+  granularity: Granularity;
+  threshold: number | null;
+  /** Fixed 0–100 so the axis never rescales as claims come and go. */
+  yAxisMin: number;
+  yAxisMax: number;
+  series: AlertChartSeries[];
+}
+
+export interface WatchlistParams extends PageParams {
+  /** Search by claim statement. */
+  q?: string;
+}
+
+export interface AlertChartParams {
+  granularity?: Granularity;
+  from?: string;
+  to?: string;
+}
+
+/** `POST /alerts` result. Re-adding an already-watched claim is not an error. */
+export interface AlertSubscription {
+  claimId: string;
+  onWatchlist: boolean;
+  chartVisible: boolean;
+  addedAt: string | null;
+}
+
+/** One row of `GET /settings`. */
+export interface Setting {
+  key: string;
+  value: string;
+  valueType: string;
+  description: string | null;
+  updatedAt: string | null;
+  updatedBy: string | null;
 }

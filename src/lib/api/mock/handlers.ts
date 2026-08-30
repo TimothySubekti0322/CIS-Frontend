@@ -1,426 +1,1074 @@
-import type { ClaimStatus, GenericClaim, SyntheticClaim } from "@/types/claim";
-import type { Policy, PolicyDetail } from "@/types/policy";
-import type { WatchlistItem } from "@/types/alert";
-import type { AuthResponse } from "@/types/auth";
 import { ApiError } from "@/types/common";
-import { makeId, sleep } from "@/lib/utils";
+import { getToken } from "@/lib/auth/token";
+import { sleep } from "@/lib/utils";
+import type {
+  ClaimDto,
+  ClaimPolicyRefDto,
+  ScorePointDto,
+  StatementDto,
+  WatchlistItemDto,
+} from "../dto";
+import { ALERT_THRESHOLD_KEY, CLAIMS_LAST_FETCHED_KEY } from "../settings";
 import {
-  createGenericClaim,
-  createSyntheticForPolicy,
-  recomputePolicyRollups,
-  scoreHistory,
+  createGeneratedClaim,
+  createPredictedClaim,
+  historyFor,
+  MOCK_NOW,
+  type MockClaim,
+  type MockPolicy,
+  type Snapshot,
 } from "./data";
-import { getState, saveState } from "./store";
+import {
+  getSetting,
+  getState,
+  saveState,
+  setSetting,
+  type MockState,
+} from "./store";
 
 export interface MockContext {
   method: string;
   params: Record<string, string | number>;
   query: Record<string, unknown>;
   body: unknown;
+  form?: FormData;
 }
 
 type MockHandler = (ctx: MockContext) => Promise<unknown>;
 
 const LATENCY = 220;
 
-/* ----------------------------- helpers ----------------------------- */
+/* ------------------------------- envelope ------------------------------- */
 
-function asArray(value: unknown): string[] {
+function ok<T>(data: T, message: string, meta?: unknown) {
+  return meta ? { success: true, message, data, meta } : { success: true, message, data };
+}
+
+function fail(message: string, status: number, code: string): never {
+  throw new ApiError(message, status, code);
+}
+
+/* -------------------------------- helpers ------------------------------- */
+
+function qs(ctx: MockContext, key: string): string | undefined {
+  const value = ctx.query[key];
+  if (value === undefined || value === null || value === "") return undefined;
+  return String(value);
+}
+
+function qsList(ctx: MockContext, key: string): string[] {
+  const value = ctx.query[key];
   if (Array.isArray(value)) return value.map(String);
-  if (value === undefined || value === null || value === "") return [];
-  return [String(value)];
+  const raw = qs(ctx, key);
+  return raw ? raw.split(",").map((v) => v.trim()).filter(Boolean) : [];
 }
 
-function toGenericSummary(c: GenericClaim): GenericClaim {
-  const { id, type, statement, topicId, topicLabel, status, score, firstCaughtAt, positiveCount, negativeCount, onWatchlist } = c;
-  return { id, type, statement, topicId, topicLabel, status, score, firstCaughtAt, positiveCount, negativeCount, onWatchlist };
+function qsNum(ctx: MockContext, key: string, fallback: number): number {
+  const raw = qs(ctx, key);
+  const n = raw === undefined ? NaN : Number(raw);
+  return Number.isFinite(n) ? n : fallback;
 }
 
-function decodeToken(token: string | undefined): string | null {
-  if (!token || !token.startsWith("mock.")) return null;
+/** Backend behaviour: out-of-range paging is clamped, never rejected. */
+function paginate<T>(rows: T[], ctx: MockContext) {
+  const limit = Math.min(Math.max(Math.trunc(qsNum(ctx, "limit", 20)), 1), 200);
+  const page = Math.max(Math.trunc(qsNum(ctx, "page", 1)), 1);
+  const total = rows.length;
+  const totalPages = Math.max(Math.ceil(total / limit), 1);
+  const start = (page - 1) * limit;
+  return {
+    items: rows.slice(start, start + limit),
+    meta: { page, limit, total, total_pages: totalPages },
+  };
+}
+
+function body<T extends object>(ctx: MockContext): Partial<T> {
+  return (ctx.body ?? {}) as Partial<T>;
+}
+
+function threshold(s: MockState): number {
+  const raw = getSetting(s, ALERT_THRESHOLD_KEY)?.value;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : 70;
+}
+
+function isWatched(s: MockState, claimId: string): boolean {
+  return s.watchlist.some((w) => w.claim_id === claimId);
+}
+
+/** List-row DTO. A Non-Existing claim carries no score, counts or bell state. */
+function summaryOf(s: MockState, claim: MockClaim): ClaimDto {
+  const base: ClaimDto = {
+    id: claim.id,
+    claim_type: claim.claim_type,
+    claim_statement: claim.claim_statement,
+    topic: claim.topic,
+    review_status: claim.review_status,
+    created_at: claim.created_at,
+  };
+  if (claim.claim_type !== "existing") return base;
+  return {
+    ...base,
+    final_claim_score: claim.score_breakdown?.final_claim_score ?? null,
+    is_dormant: claim.is_dormant ?? false,
+    is_on_alert: isWatched(s, claim.id),
+    positive_statement_count: claim.positive_statement_count ?? 0,
+    negative_statement_count: claim.negative_statement_count ?? 0,
+  };
+}
+
+function policyRefsFor(s: MockState, claim: MockClaim): ClaimPolicyRefDto[] {
+  return claim.policy_ids
+    .map((pid) => s.policies.find((p) => p.id === pid))
+    .filter((p): p is MockPolicy => Boolean(p))
+    .map((p) => ({
+      id: p.id,
+      name: p.name,
+      source: "cis",
+      status: p.status,
+      rolled_out_date: p.rolled_out_date,
+      has_document: Boolean(p.file_name),
+    }));
+}
+
+function detailOf(s: MockState, claim: MockClaim) {
+  const summary = summaryOf(s, claim);
+  const detail: Record<string, unknown> = {
+    ...summary,
+    activity: claim.activity,
+    policies: policyRefsFor(s, claim),
+  };
+  if (claim.claim_type === "existing") {
+    detail.score_breakdown = claim.score_breakdown;
+    detail.top_accounts = claim.top_accounts;
+  }
+  return detail;
+}
+
+function findClaim(s: MockState, id: string): MockClaim {
+  const claim = s.claims.find((c) => c.id === id);
+  if (!claim) fail("claim not found", 404, "NOT_FOUND");
+  return claim;
+}
+
+function findPolicy(s: MockState, id: string): MockPolicy {
+  const policy = s.policies.find((p) => p.id === id);
+  if (!policy) fail("policy not found", 404, "NOT_FOUND");
+  return policy;
+}
+
+function matchesStatus(claim: MockClaim, status: string | undefined): boolean {
+  return !status || status === "all" || claim.review_status === status;
+}
+
+function matchesTopics(claim: MockClaim, topicIds: string[]): boolean {
+  return topicIds.length === 0 || topicIds.includes(claim.topic?.id ?? "");
+}
+
+function matchesSearch(text: string, q: string | undefined): boolean {
+  return !q || text.toLowerCase().includes(q.toLowerCase());
+}
+
+/** Truncate a timestamp to the start of its bucket. */
+function bucketStart(iso: string, granularity: string): string {
+  const d = new Date(iso);
+  d.setUTCHours(0, 0, 0, 0);
+  if (granularity === "week") {
+    // ISO weeks start Monday.
+    const dow = (d.getUTCDay() + 6) % 7;
+    d.setUTCDate(d.getUTCDate() - dow);
+  } else if (granularity === "month") {
+    d.setUTCDate(1);
+  } else if (granularity === "year") {
+    d.setUTCMonth(0, 1);
+  }
+  return d.toISOString();
+}
+
+/** Roll snapshots into buckets, averaging within each. */
+function bucketPoints(
+  snapshots: Snapshot[],
+  granularity: string,
+  from?: string,
+  to?: string,
+): ScorePointDto[] {
+  const fromTs = from ? Date.parse(from) : Number.NEGATIVE_INFINITY;
+  const toTs = to ? Date.parse(to) : Number.POSITIVE_INFINITY;
+  const buckets = new Map<string, { final: number; claim: number; n: number }>();
+
+  for (const snap of snapshots) {
+    const ts = Date.parse(snap.captured_at);
+    if (ts < fromTs || ts > toTs) continue;
+    const key = bucketStart(snap.captured_at, granularity);
+    const bucket = buckets.get(key) ?? { final: 0, claim: 0, n: 0 };
+    bucket.final += snap.final_claim_score;
+    bucket.claim += snap.claim_score;
+    bucket.n += 1;
+    buckets.set(key, bucket);
+  }
+
+  return [...buckets.entries()]
+    .sort(([a], [b]) => Date.parse(a) - Date.parse(b))
+    .map(([key, b]) => ({
+      bucket_start: key,
+      final_claim_score: Math.round((b.final / b.n) * 10) / 10,
+      claim_score: Math.round((b.claim / b.n) * 10) / 10,
+      sample_count: b.n,
+    }));
+}
+
+/* -------------------------------- auth ---------------------------------- */
+
+function sessionFor(user: MockState["users"][number]) {
+  return {
+    user: {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      last_login_at: user.lastLoginAt,
+      created_at: user.createdAt,
+    },
+    access_token: `mock.${btoa(user.email)}`,
+    refresh_token: `mockr.${btoa(user.email)}`,
+    token_type: "Bearer",
+    expires_in: 86400,
+  };
+}
+
+function emailFromToken(token: string | undefined): string | null {
+  if (!token) return null;
+  const prefix = token.startsWith("mockr.") ? 6 : token.startsWith("mock.") ? 5 : -1;
+  if (prefix < 0) return null;
   try {
-    return atob(token.slice(5));
+    return atob(token.slice(prefix));
   } catch {
     return null;
   }
 }
 
-/* ------------------------------ auth ------------------------------- */
-
 const authRegister: MockHandler = async (ctx) => {
   await sleep(LATENCY);
-  const { username, password } = (ctx.body ?? {}) as {
-    username?: string;
-    password?: string;
-  };
-  if (!username || !password) throw new ApiError("Username and password are required.", 400);
-  const s = getState();
-  if (s.users.some((u) => u.username.toLowerCase() === username.toLowerCase())) {
-    throw new ApiError("That username is already taken.", 409);
+  const { email, password, name } = body<{
+    email: string;
+    password: string;
+    name: string;
+  }>(ctx);
+  if (!email || !password || !name) {
+    fail("email, password and name are required", 400, "VALIDATION_FAILED");
   }
-  const user = { id: makeId("usr"), username, passwordHash: btoa(password) };
+  if (password.length < 8) {
+    fail("password must be 8-128 characters", 400, "VALIDATION_FAILED");
+  }
+  const s = getState();
+  if (s.users.some((u) => u.email.toLowerCase() === email.toLowerCase())) {
+    fail("email already registered", 409, "CONFLICT");
+  }
+  const user = {
+    id: `21c4bbdd-0000-0000-0000-${String(s.users.length + 1).padStart(12, "0")}`,
+    email,
+    name,
+    passwordHash: btoa(password),
+    createdAt: new Date().toISOString(),
+    lastLoginAt: null,
+  };
   s.users.push(user);
   saveState();
-  const res: AuthResponse = {
-    token: `mock.${btoa(username)}`,
-    user: { id: user.id, username: user.username },
-  };
-  return res;
+  return ok(sessionFor(user), "account created");
 };
 
 const authLogin: MockHandler = async (ctx) => {
   await sleep(LATENCY);
-  const { username, password } = (ctx.body ?? {}) as {
-    username?: string;
-    password?: string;
-  };
-  if (!username || !password) throw new ApiError("Username and password are required.", 400);
-  const s = getState();
-  const user = s.users.find(
-    (u) => u.username.toLowerCase() === username.toLowerCase(),
-  );
-  if (!user || user.passwordHash !== btoa(password)) {
-    throw new ApiError("Incorrect username or password.", 401);
+  const { email, password } = body<{ email: string; password: string }>(ctx);
+  if (!email || !password) {
+    fail("email and password are required", 400, "VALIDATION_FAILED");
   }
-  const res: AuthResponse = {
-    token: `mock.${btoa(user.username)}`,
-    user: { id: user.id, username: user.username },
-  };
-  return res;
+  const s = getState();
+  const user = s.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  // A wrong password and an unknown email are deliberately indistinguishable.
+  if (!user || user.passwordHash !== btoa(password)) {
+    fail("invalid credentials", 401, "UNAUTHORIZED");
+  }
+  user.lastLoginAt = new Date().toISOString();
+  saveState();
+  return ok(sessionFor(user), "signed in");
 };
 
-const authMe: MockHandler = async (ctx) => {
+const authRefresh: MockHandler = async (ctx) => {
+  await sleep(120);
+  const { refresh_token } = body<{ refresh_token: string }>(ctx);
+  const email = emailFromToken(refresh_token);
+  const s = getState();
+  const user = email
+    ? s.users.find((u) => u.email.toLowerCase() === email.toLowerCase())
+    : undefined;
+  if (!user) fail("invalid refresh token", 401, "UNAUTHORIZED");
+  return ok(sessionFor(user), "token refreshed");
+};
+
+const authMe: MockHandler = async () => {
   await sleep(80);
-  const token = String(ctx.query.token ?? "");
-  const username = decodeToken(token);
-  if (!username) throw new ApiError("Not authenticated.", 401);
+  const email = emailFromToken(getToken());
+  if (!email) fail("not authenticated", 401, "UNAUTHORIZED");
   const s = getState();
-  const user = s.users.find(
-    (u) => u.username.toLowerCase() === username.toLowerCase(),
+  const user = s.users.find((u) => u.email.toLowerCase() === email.toLowerCase());
+  if (!user) fail("not authenticated", 401, "UNAUTHORIZED");
+  return ok(
+    {
+      id: user.id,
+      email: user.email,
+      name: user.name,
+      last_login_at: user.lastLoginAt,
+      created_at: user.createdAt,
+    },
+    "profile",
   );
-  // In mock mode a token can outlive its user record (localStorage cleared, etc.)
-  return { id: user?.id ?? makeId("usr"), username };
 };
 
-/* ----------------------------- claims ----------------------------- */
+const authLogout: MockHandler = async () => {
+  await sleep(80);
+  return ok(null, "signed out");
+};
 
-const listGeneric: MockHandler = async (ctx) => {
+/* ------------------------------- topics --------------------------------- */
+
+const listTopics: MockHandler = async () => {
+  await sleep(120);
+  const s = getState();
+  return ok(
+    [...s.topics].sort((a, b) => a.name.localeCompare(b.name)),
+    "topics",
+  );
+};
+
+const getTopic: MockHandler = async (ctx) => {
+  await sleep(100);
+  const s = getState();
+  const topic = s.topics.find((t) => t.id === String(ctx.params.id));
+  if (!topic) fail("topic not found", 404, "NOT_FOUND");
+  return ok(topic, "topic");
+};
+
+/* ------------------------------- claims --------------------------------- */
+
+const claimRepository: MockHandler = async (ctx) => {
   await sleep(LATENCY);
   const s = getState();
-  const topicIds = asArray(ctx.query.topicIds);
-  const status = ctx.query.status as ClaimStatus | "all" | undefined;
-  const search = String(ctx.query.search ?? "").toLowerCase().trim();
-  const limit = ctx.query.limit ? Number(ctx.query.limit) : undefined;
+  const status = qs(ctx, "status") ?? "all";
+  const topicIds = qsList(ctx, "topic_ids");
+  // NOTE: the documented endpoint takes no `q`. Mock mirrors that limitation —
+  // see MISSING_ENDPOINT.MD. `q` is accepted here only so the UI's degraded
+  // client-side search behaves identically in both modes.
+  const q = qs(ctx, "q");
 
-  let items = s.genericClaims
-    .filter((c) => (topicIds.length ? topicIds.includes(c.topicId) : true))
-    .filter((c) => (status && status !== "all" ? c.status === status : true))
-    .filter((c) => (search ? c.statement.toLowerCase().includes(search) : true))
-    .sort((a, b) => b.score.finalClaimScore - a.score.finalClaimScore)
-    .map(toGenericSummary);
+  const pool = (type: MockClaim["claim_type"]) =>
+    s.claims.filter(
+      (c) =>
+        c.claim_type === type &&
+        matchesStatus(c, status) &&
+        matchesTopics(c, topicIds) &&
+        matchesSearch(c.claim_statement, q),
+    );
 
-  const total = items.length;
-  if (limit) items = items.slice(0, limit);
-  return { items, total, lastFetchedAt: s.genericLastFetchedAt };
+  const existing = pool("existing").sort(
+    (a, b) =>
+      (b.score_breakdown?.final_claim_score ?? 0) -
+      (a.score_breakdown?.final_claim_score ?? 0),
+  );
+  const nonExisting = pool("non_existing").sort(
+    (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
+  );
+
+  return ok(
+    {
+      last_fetched_at: getSetting(s, CLAIMS_LAST_FETCHED_KEY)?.value ?? null,
+      applied_status: status,
+      applied_topics: topicIds,
+      existing: {
+        section: "S1",
+        claim_type: "existing",
+        sorted_by: "final_claim_score DESC",
+        total_in_pool: existing.length,
+        claims: existing.slice(0, 10).map((c) => summaryOf(s, c)),
+      },
+      non_existing: {
+        section: "S2",
+        claim_type: "non_existing",
+        sorted_by: "created_at DESC",
+        total_in_pool: nonExisting.length,
+        claims: nonExisting.slice(0, 10).map((c) => summaryOf(s, c)),
+      },
+    },
+    "claim repository",
+  );
 };
 
-const listSynthetic: MockHandler = async (ctx) => {
+const listClaims: MockHandler = async (ctx) => {
   await sleep(LATENCY);
   const s = getState();
-  const topicIds = asArray(ctx.query.topicIds);
-  const status = ctx.query.status as ClaimStatus | "all" | undefined;
-  const search = String(ctx.query.search ?? "").toLowerCase().trim();
-  const limit = ctx.query.limit ? Number(ctx.query.limit) : undefined;
+  const type = qs(ctx, "type") ?? "all";
+  const status = qs(ctx, "status") ?? "all";
+  const topicIds = qsList(ctx, "topic_ids");
+  const q = qs(ctx, "q");
+  const sort = qs(ctx, "sort");
 
-  let items: SyntheticClaim[] = s.syntheticClaims
-    .filter((c) => (topicIds.length ? topicIds.includes(c.topicId) : true))
-    .filter((c) => (status && status !== "all" ? c.status === status : true))
-    .filter((c) => (search ? c.statement.toLowerCase().includes(search) : true))
-    .sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))
-    .map(({ id, type, statement, topicId, topicLabel, status: st, createdAt }) => ({
-      id,
-      type,
-      statement,
-      topicId,
-      topicLabel,
-      status: st,
-      createdAt,
-    }));
+  const rows = s.claims
+    .filter((c) => (type === "all" ? true : c.claim_type === type))
+    .filter((c) => matchesStatus(c, status))
+    .filter((c) => matchesTopics(c, topicIds))
+    .filter((c) => matchesSearch(c.claim_statement, q))
+    .sort((a, b) => {
+      const byDate = Date.parse(b.created_at) - Date.parse(a.created_at);
+      const byScore =
+        (b.score_breakdown?.final_claim_score ?? -1) -
+        (a.score_breakdown?.final_claim_score ?? -1);
+      if (sort === "created_at") return byDate;
+      if (sort === "score") return byScore;
+      // Default per type: score for Existing, created_at for Non-Existing.
+      return type === "non_existing" ? byDate : byScore || byDate;
+    });
 
-  const total = items.length;
-  if (limit) items = items.slice(0, limit);
-  return { items, total };
+  const { items, meta } = paginate(rows, ctx);
+  return ok(items.map((c) => summaryOf(s, c)), "claims", meta);
 };
 
-const getGeneric: MockHandler = async (ctx) => {
+const getClaim: MockHandler = async (ctx) => {
   await sleep(LATENCY);
   const s = getState();
-  const claim = s.genericClaims.find((c) => c.id === String(ctx.params.id));
-  if (!claim) throw new ApiError("Claim not found.", 404);
-  return claim;
+  return ok(detailOf(s, findClaim(s, String(ctx.params.id))), "claim detail");
 };
 
-const getSynthetic: MockHandler = async (ctx) => {
+const claimStatements: MockHandler = async (ctx) => {
   await sleep(LATENCY);
   const s = getState();
-  const claim = s.syntheticClaims.find((c) => c.id === String(ctx.params.id));
-  if (!claim) throw new ApiError("Claim not found.", 404);
-  return claim;
+  const claim = findClaim(s, String(ctx.params.id));
+  const stance = qs(ctx, "stance") ?? "all";
+  const rows: StatementDto[] = claim.statements.filter((st) =>
+    stance === "all" ? true : st.stance === stance,
+  );
+  const { items, meta } = paginate(rows, ctx);
+  return ok(items, "claim statements", meta);
 };
 
-const updateStatus: MockHandler = async (ctx) => {
+const claimTopAccounts: MockHandler = async (ctx) => {
   await sleep(140);
   const s = getState();
-  const id = String(ctx.params.id);
-  const { status } = (ctx.body ?? {}) as { status?: ClaimStatus };
-  if (!status) throw new ApiError("status is required.", 400);
-  const g = s.genericClaims.find((c) => c.id === id);
-  if (g) {
-    g.status = status;
-    return toGenericSummary(g);
-  }
-  const syn = s.syntheticClaims.find((c) => c.id === id);
-  if (syn) {
-    syn.status = status;
-    return syn;
-  }
-  throw new ApiError("Claim not found.", 404);
+  const claim = findClaim(s, String(ctx.params.id));
+  const limit = Math.max(1, Math.trunc(qsNum(ctx, "limit", 5)));
+  return ok((claim.top_accounts ?? []).slice(0, limit), "top accounts");
 };
 
-const generateGeneric: MockHandler = async () => {
-  await sleep(400);
+const claimPolicies: MockHandler = async (ctx) => {
+  await sleep(140);
   const s = getState();
-  const claim = createGenericClaim();
-  s.genericClaims.unshift(claim);
-  s.genericLastFetchedAt = new Date().toISOString();
-  saveState();
-  return toGenericSummary(claim);
+  return ok(policyRefsFor(s, findClaim(s, String(ctx.params.id))), "claim policies");
 };
 
-/* ---------------------------- policies ---------------------------- */
+const claimScoreHistory: MockHandler = async (ctx) => {
+  await sleep(160);
+  const s = getState();
+  const claim = findClaim(s, String(ctx.params.id));
+  const granularity = qs(ctx, "granularity") ?? "week";
+  // History exists only from the moment a claim joins the watchlist.
+  const snapshots = s.snapshots.filter((snap) => snap.claim_id === claim.id);
+  return ok(
+    {
+      claim_id: claim.id,
+      granularity,
+      points: bucketPoints(snapshots, granularity, qs(ctx, "from"), qs(ctx, "to")),
+    },
+    "claim score history",
+  );
+};
 
-function toPolicySummary(p: PolicyDetail): Policy {
-  const { genericClaims, syntheticClaims, ...rest } = p;
-  void genericClaims;
-  void syntheticClaims;
-  return rest;
+const updateClaimStatus: MockHandler = async (ctx) => {
+  await sleep(140);
+  const s = getState();
+  const claim = findClaim(s, String(ctx.params.id));
+  const { status, notes } = body<{ status: string; notes?: string }>(ctx);
+  const allowed = ["unreviewed", "active", "inactive", "action_taken"];
+  if (!status || !allowed.includes(status)) {
+    fail("status must be one of unreviewed, active, inactive, action_taken", 422, "UNPROCESSABLE_ENTITY");
+  }
+  if (notes && notes.length > 2000) {
+    fail("notes must be 2000 characters or fewer", 400, "VALIDATION_FAILED");
+  }
+  claim.review_status = status as MockClaim["review_status"];
+  if (notes !== undefined) s.reviewNotes[claim.id] = notes;
+  saveState();
+  return ok(summaryOf(s, claim), "claim status updated");
+};
+
+/* ------------------------------ policies -------------------------------- */
+
+/** Resolve a queued matchmaking job once its simulated delay has elapsed. */
+const pendingMatchmaking = new Map<string, number>();
+
+function resolveMatchmaking(s: MockState, policy: MockPolicy) {
+  if (policy.processing_status !== "pending" && policy.processing_status !== "processing") {
+    return;
+  }
+  const startedAt = pendingMatchmaking.get(policy.id);
+  if (startedAt === undefined) return;
+  const elapsed = Date.now() - startedAt;
+  if (elapsed < 2000) return;
+  if (elapsed < 4500) {
+    policy.processing_status = "processing";
+    policy.is_processing = true;
+    return;
+  }
+
+  // (a) link an Existing claim that shares a keyword with the policy name
+  const keywords = policy.name
+    .toLowerCase()
+    .split(/\s+/)
+    .filter((w) => w.length > 4);
+  const match = s.claims.find(
+    (c) =>
+      c.claim_type === "existing" &&
+      !c.policy_ids.includes(policy.id) &&
+      keywords.some((k) => c.claim_statement.toLowerCase().includes(k)),
+  );
+  if (match) match.policy_ids.push(policy.id);
+
+  // (b) the AI service generates a predicted claim for the policy
+  s.claims.push(createPredictedClaim(policy.id, policy.name));
+
+  // (c) the callback supplies ai_policy_id — correlations only resolve now
+  policy.ai_policy_id = policy.id.replace(/^b/, "e");
+  policy.processing_status = "completed";
+  policy.is_processing = false;
+  policy.processed_at = new Date().toISOString();
+  policy.attempts = 1;
+  pendingMatchmaking.delete(policy.id);
+  saveState();
+}
+
+function linkedClaims(s: MockState, policy: MockPolicy) {
+  const linked = policy.ai_policy_id
+    ? s.claims.filter((c) => c.policy_ids.includes(policy.id))
+    : [];
+  return {
+    existing: linked.filter((c) => c.claim_type === "existing"),
+    nonExisting: linked.filter((c) => c.claim_type === "non_existing"),
+  };
+}
+
+function policyRow(s: MockState, policy: MockPolicy) {
+  const { existing, nonExisting } = linkedClaims(s, policy);
+  return {
+    id: policy.id,
+    name: policy.name,
+    description: policy.description,
+    month_year: policy.month_year,
+    rolled_out_date: policy.rolled_out_date,
+    status: policy.status,
+    file_name: policy.file_name,
+    download_url: policy.download_url,
+    processing_status: policy.processing_status,
+    is_processing: policy.is_processing,
+    processing_error: policy.processing_error,
+    linked_claim_count: existing.length + nonExisting.length,
+    ai_policy_id: policy.ai_policy_id,
+    created_at: policy.created_at,
+  };
+}
+
+/** Newest linked-claim activity first; policies with none sort last. */
+function latestActivity(s: MockState, policy: MockPolicy): number {
+  const { existing, nonExisting } = linkedClaims(s, policy);
+  const dates = [...existing, ...nonExisting].map((c) => Date.parse(c.created_at));
+  if (dates.length === 0) return Date.parse(policy.created_at) - 1e12;
+  return Math.max(...dates);
 }
 
 const listPolicies: MockHandler = async (ctx) => {
   await sleep(LATENCY);
   const s = getState();
-  const years = asArray(ctx.query.years).map(Number);
-  const search = String(ctx.query.search ?? "").toLowerCase().trim();
-  const limit = ctx.query.limit ? Number(ctx.query.limit) : undefined;
+  s.policies.forEach((p) => resolveMatchmaking(s, p));
 
-  let items = s.policies
+  const years = qsList(ctx, "years").map(Number).filter(Number.isFinite);
+  const q = qs(ctx, "q");
+  const status = qs(ctx, "status");
+
+  const rows = s.policies
     .filter((p) =>
       years.length
-        ? years.includes(new Date(p.rolledOutDate).getFullYear())
+        ? years.includes(new Date(p.rolled_out_date ?? "").getUTCFullYear())
         : true,
     )
-    .filter((p) => (search ? p.name.toLowerCase().includes(search) : true))
-    .sort((a, b) => {
-      // PRD US35: latest linked-claim activity first; no-activity policies last,
-      // ordered by their own creation date.
-      const aKey = a.lastClaimActivityAt
-        ? Date.parse(a.lastClaimActivityAt)
-        : -Infinity;
-      const bKey = b.lastClaimActivityAt
-        ? Date.parse(b.lastClaimActivityAt)
-        : -Infinity;
-      if (aKey !== bKey) return bKey - aKey;
-      return Date.parse(b.createdAt) - Date.parse(a.createdAt);
-    })
-    .map(toPolicySummary);
+    .filter((p) => matchesSearch(p.name, q))
+    .filter((p) => (status ? p.status === status : true))
+    .sort((a, b) => latestActivity(s, b) - latestActivity(s, a));
 
-  const total = items.length;
-  if (limit) items = items.slice(0, limit);
-  return { items, total };
+  const { items, meta } = paginate(rows, ctx);
+  return ok(items.map((p) => policyRow(s, p)), "public policies", meta);
 };
 
-/** Lazily resolve a pending matchmaking job (see createPolicy). */
-function resolveMatchmaking(policy: PolicyDetail) {
-  if (policy.processing !== "processing") return;
-  const started = pendingMatchmaking.get(policy.id);
-  if (started === undefined || Date.now() - started < 4000) return;
-
+const policyYears: MockHandler = async () => {
+  await sleep(100);
   const s = getState();
-  // (a) link an existing generic claim that shares a keyword with the policy
-  const kw = policy.name.toLowerCase().split(/\s+/).filter((w) => w.length > 4);
-  const match = s.genericClaims.find(
-    (c) =>
-      !c.correlatedPolicies.some((p) => p.id === policy.id) &&
-      kw.some((k) => c.statement.toLowerCase().includes(k)),
-  );
-  if (match) {
-    match.correlatedPolicies.push({ id: policy.id, name: policy.name });
-  }
-  // (b) generate a predicted synthetic claim for the policy
-  const syn = createSyntheticForPolicy(policy.id, policy.name);
-  s.syntheticClaims.unshift(syn);
-
-  policy.processing = "ready";
-  pendingMatchmaking.delete(policy.id);
-  recomputePolicyRollups(s.policies, s.genericClaims, s.syntheticClaims);
-  saveState();
-}
-
-const pendingMatchmaking = new Map<string, number>();
-
-const getPolicy: MockHandler = async (ctx) => {
-  await sleep(LATENCY);
-  const s = getState();
-  const policy = s.policies.find((p) => p.id === String(ctx.params.id));
-  if (!policy) throw new ApiError("Policy not found.", 404);
-  resolveMatchmaking(policy);
-  return {
-    ...policy,
-    genericClaims: policy.genericClaims.map(toGenericSummary),
-  };
+  const years = [
+    ...new Set(
+      s.policies
+        .map((p) => new Date(p.rolled_out_date ?? "").getUTCFullYear())
+        .filter(Number.isFinite),
+    ),
+  ].sort((a, b) => b - a);
+  return ok({ years }, "available policy years");
 };
 
 const createPolicy: MockHandler = async (ctx) => {
   await sleep(350);
-  const s = getState();
-  const { name, rolledOutDate, fileName } = (ctx.body ?? {}) as {
-    name?: string;
-    rolledOutDate?: string;
-    fileName?: string;
-  };
-  if (!name || !rolledOutDate || !fileName) {
-    throw new ApiError("name, rolledOutDate and fileName are required.", 400);
+  const form = ctx.form;
+  if (!form) fail("multipart/form-data body required", 400, "BAD_REQUEST");
+
+  const file = form.get("file");
+  if (!(file instanceof File)) fail("file part is required", 400, "BAD_REQUEST");
+  if (!/\.(pdf|docx?)$/i.test(file.name)) {
+    fail("only .pdf, .doc and .docx documents are accepted", 422, "UNPROCESSABLE_ENTITY");
   }
-  const nowIso = new Date().toISOString();
-  const policy: PolicyDetail = {
-    id: makeId("pol"),
+
+  const name = String(form.get("name") ?? "").trim();
+  const rolledOutDate = String(form.get("rolled_out_date") ?? "");
+  const description = form.get("description");
+  if (name.length < 2 || name.length > 500) {
+    fail("name must be 2-500 characters", 400, "VALIDATION_FAILED");
+  }
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(rolledOutDate)) {
+    fail("rolled_out_date must be YYYY-MM-DD", 400, "VALIDATION_FAILED");
+  }
+
+  const s = getState();
+  const id = `b0000000-0000-0000-0000-${String(s.policies.length + 100).padStart(12, "0")}`;
+  const iso = new Date(`${rolledOutDate}T00:00:00Z`).toISOString();
+  const policy: MockPolicy = {
+    id,
     name,
-    fileName,
-    fileUrl: "#",
-    rolledOutDate,
-    status: Date.parse(rolledOutDate) <= Date.now() ? "rolled_out" : "not_rolled_out",
-    createdAt: nowIso,
-    processing: "processing",
-    lastClaimActivityAt: null,
-    linkedGenericCount: 0,
-    linkedSyntheticCount: 0,
-    genericClaims: [],
-    syntheticClaims: [],
+    description: description ? String(description) : null,
+    month_year: new Date(iso).toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    }),
+    rolled_out_date: iso,
+    // Derived from the date, never sent by the caller.
+    status: Date.parse(iso) <= Date.now() ? "rolled_out" : "not_rolled_out",
+    file_name: file.name,
+    download_url: `/api/v1/policies/${id}/file`,
+    processing_status: "pending",
+    is_processing: true,
+    processing_error: null,
+    linked_claim_count: 0,
+    ai_policy_id: null,
+    created_at: new Date().toISOString(),
+    attempts: 0,
+    processed_at: null,
   };
   s.policies.unshift(policy);
-  pendingMatchmaking.set(policy.id, Date.now());
+  pendingMatchmaking.set(id, Date.now());
   saveState();
-  return toPolicySummary(policy);
+  return ok(policyRow(s, policy), "policy created");
 };
 
-const matchmakingStatus: MockHandler = async (ctx) => {
-  await sleep(120);
-  const s = getState();
-  const policy = s.policies.find((p) => p.id === String(ctx.params.id));
-  if (!policy) throw new ApiError("Policy not found.", 404);
-  resolveMatchmaking(policy);
-  return { processing: policy.processing };
-};
-
-/* ----------------------------- alerts ----------------------------- */
-
-const listWatchlist: MockHandler = async () => {
+const getPolicy: MockHandler = async (ctx) => {
   await sleep(LATENCY);
   const s = getState();
-  return s.watchlist
-    .slice()
-    .sort((a, b) => Date.parse(b.addedAt) - Date.parse(a.addedAt)) // US30: newest first
-    .map((entry, i): WatchlistItem | null => {
-      const claim = s.genericClaims.find((c) => c.id === entry.claimId);
-      if (!claim) return null;
-      const finalScore = claim.score.finalClaimScore;
-      return {
-        claimId: claim.id,
-        statement: claim.statement,
-        claimCreatedAt: claim.firstCaughtAt,
-        finalClaimScore: finalScore,
-        thresholdStatus:
-          finalScore >= s.settings.alertThreshold ? "over" : "under",
-        addedAt: entry.addedAt,
-        history: scoreHistory(finalScore, i),
-      };
-    })
-    .filter((x): x is WatchlistItem => x !== null);
+  const policy = findPolicy(s, String(ctx.params.id));
+  resolveMatchmaking(s, policy);
+  const { existing, nonExisting } = linkedClaims(s, policy);
+  return ok(
+    {
+      ...policyRow(s, policy),
+      existing_claims: existing.map((c) => summaryOf(s, c)),
+      non_existing_claims: nonExisting.map((c) => summaryOf(s, c)),
+    },
+    "policy detail",
+  );
 };
 
-const addToWatchlist: MockHandler = async (ctx) => {
+const policyProcessing: MockHandler = async (ctx) => {
+  await sleep(120);
+  const s = getState();
+  const policy = findPolicy(s, String(ctx.params.id));
+  resolveMatchmaking(s, policy);
+  const { existing, nonExisting } = linkedClaims(s, policy);
+  return ok(
+    {
+      policy_id: policy.id,
+      processing_status: policy.processing_status,
+      is_processing: policy.is_processing,
+      attempts: policy.attempts,
+      processed_at: policy.processed_at,
+      ai_policy_id: policy.ai_policy_id,
+      linked_claim_count: existing.length + nonExisting.length,
+      processing_error: policy.processing_error,
+    },
+    "matchmaking status",
+  );
+};
+
+const rematchPolicy: MockHandler = async (ctx) => {
+  await sleep(200);
+  const s = getState();
+  const policy = findPolicy(s, String(ctx.params.id));
+  if (policy.is_processing) {
+    fail("matchmaking is already running for this policy", 409, "CONFLICT");
+  }
+  policy.processing_status = "pending";
+  policy.is_processing = true;
+  policy.processing_error = null;
+  policy.attempts = 0;
+  pendingMatchmaking.set(policy.id, Date.now());
+  saveState();
+  return ok(
+    {
+      policy_id: policy.id,
+      processing_status: policy.processing_status,
+      is_processing: true,
+      attempts: 0,
+      processed_at: null,
+      ai_policy_id: policy.ai_policy_id,
+      linked_claim_count: policy.linked_claim_count ?? 0,
+      processing_error: null,
+    },
+    "matchmaking re-queued",
+  );
+};
+
+const updatePolicy: MockHandler = async (ctx) => {
+  await sleep(180);
+  const s = getState();
+  const policy = findPolicy(s, String(ctx.params.id));
+  const patch = body<{ name: string; rolled_out_date: string; description: string }>(ctx);
+  if (
+    patch.name === undefined &&
+    patch.rolled_out_date === undefined &&
+    patch.description === undefined
+  ) {
+    fail("at least one updatable field is required", 400, "BAD_REQUEST");
+  }
+  if (patch.name !== undefined) {
+    if (patch.name.trim().length < 2) {
+      fail("name must be 2-500 characters", 400, "VALIDATION_FAILED");
+    }
+    policy.name = patch.name.trim();
+  }
+  if (patch.rolled_out_date !== undefined) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(patch.rolled_out_date)) {
+      fail("rolled_out_date must be YYYY-MM-DD", 400, "VALIDATION_FAILED");
+    }
+    const iso = new Date(`${patch.rolled_out_date}T00:00:00Z`).toISOString();
+    policy.rolled_out_date = iso;
+    policy.month_year = new Date(iso).toLocaleDateString("en-GB", {
+      month: "long",
+      year: "numeric",
+    });
+    // status is re-derived, never supplied.
+    policy.status = Date.parse(iso) <= Date.now() ? "rolled_out" : "not_rolled_out";
+  }
+  if (patch.description !== undefined) policy.description = patch.description;
+  saveState();
+  return ok(policyRow(s, policy), "policy updated");
+};
+
+const deletePolicy: MockHandler = async (ctx) => {
+  await sleep(200);
+  const s = getState();
+  const policy = findPolicy(s, String(ctx.params.id));
+  s.policies = s.policies.filter((p) => p.id !== policy.id);
+  // Claims linked by the AI service are NOT deleted — only the correlation goes.
+  s.claims.forEach((c) => {
+    c.policy_ids = c.policy_ids.filter((pid) => pid !== policy.id);
+  });
+  saveState();
+  return ok(null, "policy deleted");
+};
+
+/* ------------------------------- alerts --------------------------------- */
+
+function watchlistRow(s: MockState, entry: MockState["watchlist"][number]): WatchlistItemDto | null {
+  const claim = s.claims.find((c) => c.id === entry.claim_id);
+  if (!claim) return null;
+  const score = claim.score_breakdown?.final_claim_score ?? null;
+  const t = threshold(s);
+  return {
+    id: claim.id,
+    alert_id: entry.alert_id,
+    claim_statement: claim.claim_statement,
+    topic: claim.topic,
+    added_at: entry.added_at,
+    chart_visible: entry.chart_visible,
+    final_claim_score: score,
+    // A null score is never escalated on missing data.
+    threshold_status: score !== null && score >= t ? "over_threshold" : "under_threshold",
+    threshold: t,
+    is_dormant: claim.is_dormant ?? false,
+    claim_created_at: claim.created_at,
+  };
+}
+
+const listAlerts: MockHandler = async (ctx) => {
+  await sleep(LATENCY);
+  const s = getState();
+  const q = qs(ctx, "q");
+  const rows = [...s.watchlist]
+    .sort((a, b) => Date.parse(b.added_at) - Date.parse(a.added_at))
+    .map((entry) => watchlistRow(s, entry))
+    .filter((row): row is WatchlistItemDto => row !== null)
+    .filter((row) => matchesSearch(row.claim_statement, q));
+  const { items, meta } = paginate(rows, ctx);
+  return ok(items, "alert watchlist", meta);
+};
+
+const addAlert: MockHandler = async (ctx) => {
   await sleep(160);
   const s = getState();
-  const { claimId } = (ctx.body ?? {}) as { claimId?: string };
-  if (!claimId) throw new ApiError("claimId is required.", 400);
-  const claim = s.genericClaims.find((c) => c.id === claimId);
-  if (!claim) throw new ApiError("Only existing claims can be watched.", 400);
-  if (!s.watchlist.some((w) => w.claimId === claimId)) {
-    s.watchlist.push({ claimId, addedAt: new Date().toISOString() });
+  const { claim_id } = body<{ claim_id: string }>(ctx);
+  if (!claim_id) fail("claim_id is required", 400, "VALIDATION_FAILED");
+  const claim = findClaim(s, claim_id);
+  if (claim.claim_type !== "existing") {
+    fail(
+      "only existing claims can be added to the alert watchlist",
+      422,
+      "UNPROCESSABLE_ENTITY",
+    );
   }
-  claim.onWatchlist = true;
+
+  // Re-adding is not an error: return the existing row untouched.
+  let entry = s.watchlist.find((w) => w.claim_id === claim_id);
+  if (!entry) {
+    entry = {
+      claim_id,
+      alert_id: `d0000000-0000-0000-0000-${String(s.watchlist.length + 100).padStart(12, "0")}`,
+      added_at: new Date().toISOString(),
+      chart_visible: false,
+    };
+    s.watchlist.push(entry);
+    // History starts the moment a claim is watched.
+    if (!s.snapshots.some((snap) => snap.claim_id === claim_id)) {
+      s.snapshots.push(
+        ...historyFor(
+          claim_id,
+          claim.score_breakdown?.final_claim_score ?? 0,
+          claim.score_breakdown?.claim_score ?? 0,
+          s.watchlist.length,
+        ),
+      );
+    }
+  }
+  claim.is_on_alert = true;
   saveState();
-  return { claimId, onWatchlist: true };
+  return ok(
+    {
+      claim_id,
+      on_watchlist: true,
+      chart_visible: entry.chart_visible,
+      added_at: entry.added_at,
+    },
+    "claim added to the alert watchlist",
+  );
 };
 
-const removeFromWatchlist: MockHandler = async (ctx) => {
+const removeAlert: MockHandler = async (ctx) => {
   await sleep(160);
   const s = getState();
   const claimId = String(ctx.params.claimId);
-  s.watchlist = s.watchlist.filter((w) => w.claimId !== claimId);
-  const claim = s.genericClaims.find((c) => c.id === claimId);
-  if (claim) claim.onWatchlist = false;
+  if (!s.watchlist.some((w) => w.claim_id === claimId)) {
+    fail("claim is not on the watchlist", 404, "NOT_FOUND");
+  }
+  // Removing also clears the chart checkbox in one step.
+  s.watchlist = s.watchlist.filter((w) => w.claim_id !== claimId);
+  const claim = s.claims.find((c) => c.id === claimId);
+  if (claim) claim.is_on_alert = false;
   saveState();
-  return { claimId, onWatchlist: false };
+  return ok(null, "claim removed from the alert watchlist");
 };
 
-/* ------------------------------ admin ----------------------------- */
-
-const getSettings: MockHandler = async () => {
+const setChartVisible: MockHandler = async (ctx) => {
   await sleep(120);
-  return getState().settings;
+  const s = getState();
+  const claimId = String(ctx.params.claimId);
+  const entry = s.watchlist.find((w) => w.claim_id === claimId);
+  if (!entry) fail("claim is not on the watchlist", 404, "NOT_FOUND");
+  const { visible } = body<{ visible: boolean }>(ctx);
+  if (typeof visible !== "boolean") {
+    fail("visible is required", 400, "VALIDATION_FAILED");
+  }
+  entry.chart_visible = visible;
+  saveState();
+  return ok({ claim_id: claimId, chart_visible: visible }, "chart visibility updated");
 };
 
-const updateSettings: MockHandler = async (ctx) => {
+const alertChart: MockHandler = async (ctx) => {
+  await sleep(180);
+  const s = getState();
+  const granularity = qs(ctx, "granularity") ?? "week";
+  const from = qs(ctx, "from");
+  const to = qs(ctx, "to");
+
+  const series = s.watchlist
+    .filter((w) => w.chart_visible)
+    .map((w) => {
+      const claim = s.claims.find((c) => c.id === w.claim_id);
+      if (!claim) return null;
+      return {
+        claim_id: claim.id,
+        claim_statement: claim.claim_statement,
+        topic: claim.topic,
+        points: bucketPoints(
+          s.snapshots.filter((snap) => snap.claim_id === claim.id),
+          granularity,
+          from,
+          to,
+        ),
+      };
+    })
+    .filter((x): x is NonNullable<typeof x> => x !== null);
+
+  return ok(
+    {
+      granularity,
+      threshold: threshold(s),
+      y_axis_min: 0,
+      y_axis_max: 100,
+      series,
+    },
+    "alert chart",
+  );
+};
+
+/* ------------------------------ settings -------------------------------- */
+
+const listSettings: MockHandler = async () => {
+  await sleep(120);
+  return ok(getState().settings, "settings");
+};
+
+const getAlertThreshold: MockHandler = async () => {
+  await sleep(100);
+  return ok({ threshold: threshold(getState()) }, "alert threshold");
+};
+
+const putAlertThreshold: MockHandler = async (ctx) => {
   await sleep(160);
   const s = getState();
-  const { alertThreshold } = (ctx.body ?? {}) as { alertThreshold?: number };
-  if (
-    alertThreshold === undefined ||
-    Number.isNaN(alertThreshold) ||
-    alertThreshold < 0 ||
-    alertThreshold > 100
-  ) {
-    throw new ApiError("alertThreshold must be between 0 and 100.", 400);
+  const { threshold: next } = body<{ threshold: number }>(ctx);
+  if (typeof next !== "number" || Number.isNaN(next) || next < 0 || next > 100) {
+    fail("threshold must be between 0 and 100", 422, "UNPROCESSABLE_ENTITY");
   }
-  s.settings.alertThreshold = Math.round(alertThreshold);
+  setSetting(s, ALERT_THRESHOLD_KEY, String(Math.round(next)));
   saveState();
-  return s.settings;
+  return ok({ threshold: Math.round(next) }, "alert threshold updated");
 };
 
-/* --------------------------- registry ---------------------------- */
+/* -------------------------------- admin --------------------------------- */
+
+const generateGenericClaim: MockHandler = async (ctx) => {
+  await sleep(500);
+  const s = getState();
+  const { topic_id } = body<{ topic_id?: string }>(ctx);
+  const claim = createGeneratedClaim(topic_id);
+  s.claims.unshift(claim);
+  const now = new Date().toISOString();
+  setSetting(s, CLAIMS_LAST_FETCHED_KEY, now);
+  saveState();
+  return ok(
+    {
+      claim_id: claim.id,
+      claim_statement: claim.claim_statement,
+      topic_id: claim.topic?.id ?? null,
+      last_fetched_at: now,
+    },
+    "generic claim generated",
+  );
+};
+
+const snapshotScores: MockHandler = async () => {
+  await sleep(300);
+  const s = getState();
+  const capturedAt = new Date().toISOString();
+  let captured = 0;
+  for (const entry of s.watchlist) {
+    const claim = s.claims.find((c) => c.id === entry.claim_id);
+    if (!claim?.score_breakdown) continue;
+    s.snapshots.push({
+      claim_id: claim.id,
+      captured_at: capturedAt,
+      final_claim_score: claim.score_breakdown.final_claim_score ?? 0,
+      claim_score: claim.score_breakdown.claim_score ?? 0,
+    });
+    captured += 1;
+  }
+  saveState();
+  return ok({ snapshots_captured: captured }, "score snapshots captured");
+};
+
+/* -------------------------------- health -------------------------------- */
+
+const healthLive: MockHandler = async () =>
+  ok(
+    {
+      status: "healthy",
+      service: "CIS Backend (mock)",
+      environment: "mock",
+      uptime_seconds: Math.round((Date.now() - MOCK_NOW) / 1000),
+    },
+    "ok",
+  );
+
+const healthReady: MockHandler = async () =>
+  ok(
+    {
+      database: "up",
+      storage_driver: "mock",
+      ai_service: { configured: false },
+      internal_routes_authenticated: false,
+    },
+    "ready",
+  );
+
+/* ------------------------------- registry ------------------------------- */
 
 export const mockHandlers: Record<string, MockHandler> = {
   "POST /auth/register": authRegister,
   "POST /auth/login": authLogin,
+  "POST /auth/refresh": authRefresh,
   "GET /auth/me": authMe,
+  "POST /auth/logout": authLogout,
 
-  "GET /claims/generic": listGeneric,
-  "GET /claims/synthetic": listSynthetic,
-  "GET /claims/generic/:id": getGeneric,
-  "GET /claims/synthetic/:id": getSynthetic,
-  "PATCH /claims/:id/status": updateStatus,
-  "POST /claims/generic/generate": generateGeneric,
+  "GET /topics": listTopics,
+  "GET /topics/:id": getTopic,
+
+  "GET /claims/repository": claimRepository,
+  "GET /claims": listClaims,
+  "GET /claims/:id": getClaim,
+  "GET /claims/:id/statements": claimStatements,
+  "GET /claims/:id/top-accounts": claimTopAccounts,
+  "GET /claims/:id/policies": claimPolicies,
+  "GET /claims/:id/score-history": claimScoreHistory,
+  "PUT /claims/:id/status": updateClaimStatus,
 
   "GET /policies": listPolicies,
-  "GET /policies/:id": getPolicy,
+  "GET /policies/years": policyYears,
   "POST /policies": createPolicy,
-  "GET /policies/:id/matchmaking": matchmakingStatus,
+  "GET /policies/:id": getPolicy,
+  "GET /policies/:id/processing": policyProcessing,
+  "POST /policies/:id/rematch": rematchPolicy,
+  "PATCH /policies/:id": updatePolicy,
+  "DELETE /policies/:id": deletePolicy,
 
-  "GET /alerts/watchlist": listWatchlist,
-  "POST /alerts/watchlist": addToWatchlist,
-  "DELETE /alerts/watchlist/:claimId": removeFromWatchlist,
+  "GET /alerts": listAlerts,
+  "POST /alerts": addAlert,
+  "DELETE /alerts/:claimId": removeAlert,
+  "PATCH /alerts/:claimId/chart": setChartVisible,
+  "GET /alerts/chart": alertChart,
 
-  "GET /admin/settings": getSettings,
-  "PUT /admin/settings": updateSettings,
+  "GET /settings": listSettings,
+  "GET /settings/alert-threshold": getAlertThreshold,
+  "PUT /settings/alert-threshold": putAlertThreshold,
+
+  "POST /admin/generate-generic-claim": generateGenericClaim,
+  "POST /admin/snapshot-scores": snapshotScores,
+
+  "GET /health": healthLive,
+  "GET /health/ready": healthReady,
 };

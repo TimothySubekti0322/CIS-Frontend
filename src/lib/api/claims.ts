@@ -1,67 +1,180 @@
 import type {
+  ClaimDetail,
   ClaimListParams,
-  ClaimStatus,
-  GenericClaim,
-  GenericClaimDetail,
-  SyntheticClaim,
-  SyntheticClaimDetail,
+  ClaimPolicyRef,
+  ClaimRepository,
+  ClaimRepositoryParams,
+  ClaimSummary,
+  ScoreHistory,
+  ScoreHistoryParams,
+  Statement,
+  StatementListParams,
+  TopAccount,
+  UpdateClaimStatusPayload,
 } from "@/types/claim";
+import type { Paginated } from "@/types/common";
 import { apiClient } from "./client";
+import type {
+  ClaimDetailDto,
+  ClaimDto,
+  ClaimPolicyRefDto,
+  ClaimRepositoryDto,
+  ScoreHistoryDto,
+  StatementDto,
+  TopAccountDto,
+} from "./dto";
 import { ENDPOINTS } from "./endpoints";
-
-export interface GenericListResponse {
-  items: GenericClaim[];
-  total: number;
-  lastFetchedAt: string;
-}
-
-export interface SyntheticListResponse {
-  items: SyntheticClaim[];
-  total: number;
-}
-
-function listQuery(params: ClaimListParams = {}) {
-  return {
-    topicIds: params.topicIds,
-    status: params.status,
-    search: params.search,
-    limit: params.limit,
-  };
-}
+import {
+  mapClaimDetail,
+  mapClaimPolicyRef,
+  mapClaimRepository,
+  mapClaimSummary,
+  mapMeta,
+  mapScoreHistory,
+  mapStatement,
+  mapTopAccount,
+} from "./mappers";
 
 export const claimsApi = {
-  listGeneric(params?: ClaimListParams): Promise<GenericListResponse> {
-    return apiClient.call<GenericListResponse>(ENDPOINTS.claims.listGeneric, {
-      query: listQuery(params),
-    });
+  /**
+   * `GET /claims/repository` — the whole F1 page in one call.
+   *
+   * Both sections always return regardless of the status tab: the filter
+   * narrows claims *within* a section, it never hides one outright. Each
+   * section caps at 10 claims with `totalInPool` behind "See all".
+   */
+  async repository(params: ClaimRepositoryParams = {}): Promise<ClaimRepository> {
+    const dto = await apiClient.call<ClaimRepositoryDto>(
+      ENDPOINTS.claims.repository,
+      {
+        query: {
+          status: params.status ?? "all",
+          topic_ids: params.topicIds,
+        },
+      },
+    );
+    return mapClaimRepository(dto);
   },
 
-  listSynthetic(params?: ClaimListParams): Promise<SyntheticListResponse> {
-    return apiClient.call<SyntheticListResponse>(ENDPOINTS.claims.listSynthetic, {
-      query: listQuery(params),
-    });
+  /**
+   * `GET /claims` — the paginated "See all" list.
+   * `sort` defaults server-side: `score` for Existing, `created_at` for
+   * Non-Existing, so leave it unset unless the user picked one.
+   */
+  async list(params: ClaimListParams = {}): Promise<Paginated<ClaimSummary>> {
+    const { data, meta } = await apiClient.callWithMeta<ClaimDto[]>(
+      ENDPOINTS.claims.list,
+      {
+        query: {
+          type: params.type,
+          status: params.status,
+          topic_ids: params.topicIds,
+          q: params.q,
+          sort: params.sort,
+          page: params.page,
+          limit: params.limit,
+        },
+      },
+    );
+    const items = (data ?? []).map(mapClaimSummary);
+    return { items, meta: mapMeta(meta, items.length) };
   },
 
-  getGeneric(id: string): Promise<GenericClaimDetail> {
-    return apiClient.call<GenericClaimDetail>(ENDPOINTS.claims.getGeneric, {
+  /**
+   * `GET /claims/:id` — full detail. Existing claims carry `score_breakdown`
+   * with every component; a Synthetic claim omits the score, top accounts,
+   * statement counts and alert state. Viewing never triggers AI generation.
+   */
+  async get(id: string): Promise<ClaimDetail> {
+    const dto = await apiClient.call<ClaimDetailDto>(ENDPOINTS.claims.get, {
       params: { id },
     });
+    return mapClaimDetail(dto);
   },
 
-  getSynthetic(id: string): Promise<SyntheticClaimDetail> {
-    return apiClient.call<SyntheticClaimDetail>(ENDPOINTS.claims.getSynthetic, {
-      params: { id },
-    });
+  /** `GET /claims/:id/statements` — paginated source posts behind a claim. */
+  async statements(
+    id: string,
+    params: StatementListParams = {},
+  ): Promise<Paginated<Statement>> {
+    const { data, meta } = await apiClient.callWithMeta<StatementDto[]>(
+      ENDPOINTS.claims.statements,
+      {
+        params: { id },
+        query: {
+          stance: params.stance,
+          page: params.page,
+          limit: params.limit,
+        },
+      },
+    );
+    const items = (data ?? []).map(mapStatement);
+    return { items, meta: mapMeta(meta, items.length) };
   },
 
-  updateStatus(id: string, status: ClaimStatus): Promise<{ id: string; status: ClaimStatus }> {
-    return apiClient.call(ENDPOINTS.claims.updateStatus, {
-      params: { id },
-      body: { status },
-    });
+  /**
+   * `GET /claims/:id/top-accounts` — ranked over supporting-side content only,
+   * by contributed impressions with post count as the tiebreaker.
+   */
+  async topAccounts(id: string, limit = 5): Promise<TopAccount[]> {
+    const dto = await apiClient.call<TopAccountDto[]>(
+      ENDPOINTS.claims.topAccounts,
+      { params: { id }, query: { limit } },
+    );
+    return (dto ?? []).map(mapTopAccount);
   },
 
-  generateGeneric(): Promise<GenericClaim> {
-    return apiClient.call<GenericClaim>(ENDPOINTS.claims.generateGeneric, {});
+  /**
+   * `GET /claims/:id/policies` — correlated policies. `source` says where the
+   * record came from: `cis` (registered through F2) or `ai` (created by the
+   * AI service, with no F2 upload behind it).
+   */
+  async policies(id: string): Promise<ClaimPolicyRef[]> {
+    const dto = await apiClient.call<ClaimPolicyRefDto[]>(
+      ENDPOINTS.claims.policies,
+      { params: { id } },
+    );
+    return (dto ?? []).map(mapClaimPolicyRef);
+  },
+
+  /**
+   * `GET /claims/:id/score-history` — history exists only from the moment a
+   * claim joins the F3 watchlist; the snapshot job captures watched claims only.
+   */
+  async scoreHistory(
+    id: string,
+    params: ScoreHistoryParams = {},
+  ): Promise<ScoreHistory> {
+    const dto = await apiClient.call<ScoreHistoryDto>(
+      ENDPOINTS.claims.scoreHistory,
+      {
+        params: { id },
+        query: {
+          granularity: params.granularity,
+          from: params.from,
+          to: params.to,
+        },
+      },
+    );
+    return mapScoreHistory(dto, id);
+  },
+
+  /**
+   * `PUT /claims/:id/status` — records a reviewer's decision in
+   * `cis_claim_reviews`. The AI service's own pipeline state is untouched, so
+   * re-running detection can never silently overwrite a human decision.
+   */
+  async updateStatus(
+    id: string,
+    payload: UpdateClaimStatusPayload,
+  ): Promise<ClaimSummary | null> {
+    const dto = await apiClient.call<ClaimDto | null>(
+      ENDPOINTS.claims.updateStatus,
+      {
+        params: { id },
+        body: { status: payload.status, notes: payload.notes },
+      },
+    );
+    return dto ? mapClaimSummary(dto) : null;
   },
 };

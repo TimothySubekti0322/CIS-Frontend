@@ -1,107 +1,217 @@
+import type { PageParams } from "./common";
+
 /**
- * Unified claim status model — PRD v1.3 §4 US1.
- * "Prebunk" and "Debunk" were merged into the single shared "Action Taken".
+ * Unified claim status model — the backend calls it `review_status` and stores
+ * it in its own `cis_claim_reviews` table, never in the AI service's
+ * `claims.status`. "Prebunk"/"Debunk" were merged into "Action Taken".
  */
 export type ClaimStatus = "unreviewed" | "active" | "inactive" | "action_taken";
 
-export type ClaimType = "generic" | "synthetic";
-
-/** A single source post/statement rolled into a claim (PRD US3, US12). */
-export interface Statement {
-  id: string;
-  text: string;
-  sentiment: "positive" | "negative";
-  author?: string;
-  postedAt?: string;
-}
-
-/** One of the Top 5 Accounts driving a claim (PRD US12 — interpretation flagged). */
-export interface TopAccount {
-  rank: number;
-  handle: string;
-  /** Contribution to the claim's spread, e.g. post count or reach. */
-  contribution: number;
-  contributionLabel: string;
-}
+/** Status filter accepted by the list endpoints. */
+export type ClaimStatusFilter = ClaimStatus | "all";
 
 /**
- * Full transparent score breakdown for an Existing/Generic claim.
- * PRD §6.5 — every value must be shown alongside FinalClaimScore (US23).
+ * `existing`  — scored, confirmed circulating. UI label "Existing Claim".
+ * `non_existing` — unscored AI prediction. UI label "Synthetic Claim".
  */
-export interface ScoreBreakdown {
-  /** Reach & Spread (0–100) */
-  r: number;
-  /** Velocity (0–100) */
-  v: number;
-  /** Falseness Confidence (0–100) */
-  f: number;
-  /** Harm Severity (0–100) */
-  h: number;
-  /** Emotional/Moral Intensity — supporting side (0–100) */
-  ei: number;
-  /** Composite Claim Score, pre-discount (0–100) */
-  claimScore: number;
-  /** Net Pushback Ratio (0–1) */
-  npr: number;
-  /** Discount factor applied to claimScore (0.5–1) */
-  discountFactor: number;
-  /** FinalClaimScore — the number used for ranking within S1 (0–100) */
-  finalClaimScore: number;
-  /** EI on the opposing side — diagnostic only, never scored (PRD §6.4.6, US24) */
-  eiOpposing: number;
-  /** True when supporting + opposing volume is 0 (PRD §6.4.7, US25) */
-  dormant: boolean;
-}
+export type ClaimType = "existing" | "non_existing";
 
-export interface PolicyRef {
+export type ClaimTypeFilter = ClaimType | "all";
+
+/** Stance of a source post relative to the claim. */
+export type Stance = "positive" | "negative" | "neutral";
+
+/** Minimal topic reference embedded in claim payloads. */
+export interface TopicRef {
   id: string;
   name: string;
 }
 
-interface ClaimBase {
+/** A single source post behind a claim (`GET /claims/:id/statements`). */
+export interface Statement {
   id: string;
-  statement: string;
-  topicId: string;
-  topicLabel: string;
-  status: ClaimStatus;
+  content: string;
+  stance: Stance;
+  authorId: string | null;
+  postedAt: string | null;
+  impressions: number | null;
+  sourceUrl: string | null;
 }
 
-/** Existing / Generic claim — lives in section [S1] (PRD §4.2). */
-export interface GenericClaim extends ClaimBase {
-  type: "generic";
-  score: ScoreBreakdown;
-  /** First-caught date by the AI (PRD US10). */
-  firstCaughtAt: string;
-  positiveCount: number;
-  negativeCount: number;
-  onWatchlist: boolean;
+/** One row of the Top 5 Accounts panel — supporting-side content only. */
+export interface TopAccount {
+  rank: number;
+  authorId: string;
+  contentCount: number;
+  totalImpressions: number;
 }
 
-/** Full detail payload for a generic claim (PRD US12). */
-export interface GenericClaimDetail extends GenericClaim {
+/** §6.3 composite weights, echoed by the backend so the UI never hardcodes them. */
+export interface ScoreWeights {
+  reach: number;
+  velocity: number;
+  falseness: number;
+  harm: number;
+  emotionalIntensity: number;
+}
+
+export interface HarmWeights {
+  publicSafety: number;
+  institutionalTrust: number;
+  economic: number;
+  policyDisruption: number;
+}
+
+/** Harm sub-scores rolled into `harm`. */
+export interface HarmBreakdown {
+  publicSafety: number;
+  institutionalTrust: number;
+  economic: number;
+  policyDisruption: number;
+  /** True when a reviewer confirmed/overrode the AI's harm assessment. */
+  humanConfirmed: boolean;
+  weights: HarmWeights | null;
+}
+
+/**
+ * Full transparent score breakdown for an Existing claim — the collapsed
+ * `finalClaimScore` is never served without its inputs.
+ *
+ * `npr` and `discountFactor` come back `null` for a dormant claim: it is
+ * flagged, never discounted, because its priority must not drop on
+ * statistically unreliable data.
+ */
+export interface ScoreBreakdown {
+  reach: number;
+  velocity: number;
+  falseness: number;
+  harm: number;
+  emotionalIntensity: number;
+  /** Opposing side — diagnostic only, never enters the score. */
+  emotionalIntensityOpposing: number;
+  harmBreakdown: HarmBreakdown | null;
+  /** Composite, pre-discount. */
+  claimScore: number;
+  npr: number | null;
+  discountFactor: number | null;
+  finalClaimScore: number;
+  isDormant: boolean;
+  weights: ScoreWeights | null;
+  /** Explanatory note the backend attaches to dormant claims. */
+  note: string | null;
+}
+
+/** Debunk (Existing) or Prebunk (Synthetic) draft generated by the AI service. */
+export interface ClaimActivity {
+  type: "debunk" | "prebunk" | string;
+  content: string;
+  generatedAt: string | null;
+  available: boolean;
+}
+
+/** A policy correlated with a claim. */
+export interface ClaimPolicyRef {
+  id: string;
+  name: string;
+  /** `cis` — registered through F2. `ai` — created directly by the AI service. */
+  source: "cis" | "ai";
+  status: "rolled_out" | "not_rolled_out" | null;
+  rolledOutDate: string | null;
+  hasDocument: boolean | null;
+}
+
+/**
+ * Claim-card shape, shared by F1's sections, the "See all" lists and the F2
+ * policy detail page. Fields a Synthetic claim does not carry are `null`,
+ * never `0` — the card must not render a zero score.
+ */
+export interface ClaimSummary {
+  id: string;
+  claimType: ClaimType;
+  claimStatement: string;
+  topic: TopicRef | null;
+  reviewStatus: ClaimStatus;
+  finalClaimScore: number | null;
+  isDormant: boolean;
+  isOnAlert: boolean;
+  positiveStatementCount: number | null;
+  negativeStatementCount: number | null;
+  /** First-caught / predicted date. Not documented on every list payload. */
+  createdAt: string | null;
+}
+
+/** `GET /claims/:id`. */
+export interface ClaimDetail extends ClaimSummary {
+  activity: ClaimActivity | null;
+  policies: ClaimPolicyRef[];
+  /** Present for Existing claims only. */
+  scoreBreakdown: ScoreBreakdown | null;
   topAccounts: TopAccount[];
-  debunkContent: string;
-  correlatedPolicies: PolicyRef[];
-  positiveStatements: Statement[];
-  negativeStatements: Statement[];
 }
 
-/** Non-Existing / Synthetic claim — lives in section [S2] (PRD §4.3). Not scored. */
-export interface SyntheticClaim extends ClaimBase {
-  type: "synthetic";
-  createdAt: string;
+/** One section of the F1 page returned by `GET /claims/repository`. */
+export interface ClaimRepositorySection {
+  /** "S1" (Existing) or "S2" (Non-Existing). */
+  section: string;
+  claimType: ClaimType;
+  sortedBy: string;
+  /** Size of the pool behind "See all" — the section itself caps at 10. */
+  totalInPool: number;
+  claims: ClaimSummary[];
 }
 
-/** Full detail payload for a synthetic claim (PRD US20). */
-export interface SyntheticClaimDetail extends SyntheticClaim {
-  prebunkContent: string;
-  /** Synthetic claims link to exactly one policy (one-to-many, PRD US20). */
-  correlatedPolicy: PolicyRef | null;
+/** The whole F1 page in one call. Both sections always return. */
+export interface ClaimRepository {
+  lastFetchedAt: string | null;
+  appliedStatus: ClaimStatusFilter;
+  appliedTopics: string[];
+  existing: ClaimRepositorySection;
+  nonExisting: ClaimRepositorySection;
 }
 
-export interface ClaimListParams {
+/** One bucket of `GET /claims/:id/score-history` / `GET /alerts/chart`. */
+export interface ScorePoint {
+  bucketStart: string;
+  finalClaimScore: number | null;
+  claimScore: number | null;
+  sampleCount: number;
+}
+
+export type Granularity = "day" | "week" | "month" | "year";
+
+export interface ScoreHistory {
+  claimId: string;
+  granularity: Granularity;
+  points: ScorePoint[];
+}
+
+export interface ClaimRepositoryParams {
+  status?: ClaimStatusFilter;
   topicIds?: string[];
-  status?: ClaimStatus | "all";
-  search?: string;
-  limit?: number;
+}
+
+export interface ClaimListParams extends PageParams {
+  type?: ClaimTypeFilter;
+  status?: ClaimStatusFilter;
+  topicIds?: string[];
+  /** Free-text search; `%` and `_` are escaped server-side. */
+  q?: string;
+  /** Defaults to `score` for Existing, `created_at` for Non-Existing. */
+  sort?: "score" | "created_at";
+}
+
+export interface StatementListParams extends PageParams {
+  stance?: Stance | "all";
+}
+
+export interface ScoreHistoryParams {
+  granularity?: Granularity;
+  from?: string;
+  to?: string;
+}
+
+export interface UpdateClaimStatusPayload {
+  status: ClaimStatus;
+  /** Optional reviewer note, max 2000 characters. */
+  notes?: string;
 }

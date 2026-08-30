@@ -5,40 +5,62 @@ import {
   CartesianGrid,
   Line,
   LineChart,
+  ReferenceLine,
   ResponsiveContainer,
   Tooltip,
   XAxis,
   YAxis,
 } from "recharts";
-import type { WatchlistItem } from "@/types/alert";
+import type { AlertChart } from "@/types/alert";
 import { formatDate } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
 import { colorForIndex } from "./chartColors";
 
-export interface ChartSeries {
-  item: WatchlistItem;
-  colorIndex: number;
-}
+/**
+ * [C1] FinalClaimScore over time for the ticked claims.
+ *
+ * Series buckets are merged on `bucket_start` rather than by array index —
+ * a claim watched last week has fewer buckets than one watched last year, and
+ * zipping by position would silently plot the wrong dates against each other.
+ *
+ * The Y axis is fixed to the backend's `y_axis_min`/`y_axis_max` (0–100) so it
+ * never rescales as claims are ticked on and off.
+ */
+export function ScoreLineChart({ chart }: { chart: AlertChart }) {
+  const { rows, labels } = useMemo(() => {
+    const byBucket = new Map<string, Record<string, number | string | null>>();
+    for (const series of chart.series) {
+      for (const point of series.points) {
+        const row = byBucket.get(point.bucketStart) ?? {
+          bucket: point.bucketStart,
+          date: formatDate(point.bucketStart),
+        };
+        row[series.claimId] = point.finalClaimScore;
+        byBucket.set(point.bucketStart, row);
+      }
+    }
+    return {
+      rows: [...byBucket.values()].sort((a, b) =>
+        String(a.bucket).localeCompare(String(b.bucket)),
+      ),
+      labels: Object.fromEntries(
+        chart.series.map((s) => [s.claimId, truncate(s.claimStatement)]),
+      ) as Record<string, string>,
+    };
+  }, [chart]);
 
-/** [C1] FinalClaimScore over time — Y axis 0–100 (PRD US27). */
-export function ScoreLineChart({ series }: { series: ChartSeries[] }) {
-  const data = useMemo(() => {
-    if (series.length === 0) return [];
-    const base = series[0].item.history.map((p) => ({
-      date: formatDate(p.date),
-    })) as Record<string, string | number>[];
-    series.forEach(({ item }) => {
-      item.history.forEach((p, i) => {
-        base[i][item.claimId] = p.score;
-      });
-    });
-    return base;
-  }, [series]);
-
-  if (series.length === 0) {
+  if (chart.series.length === 0) {
     return (
-      <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-pale-sky bg-white/60 text-sm text-regal-navy/50">
+      <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-pale-sky bg-white/60 px-6 text-center text-sm text-regal-navy/50">
         {strings.alerts.legendEmpty}
+      </div>
+    );
+  }
+
+  if (rows.length === 0) {
+    return (
+      <div className="flex h-64 items-center justify-center rounded-xl border border-dashed border-pale-sky bg-white/60 px-6 text-center text-sm text-regal-navy/50">
+        {strings.alerts.chartEmpty}
       </div>
     );
   }
@@ -48,7 +70,7 @@ export function ScoreLineChart({ series }: { series: ChartSeries[] }) {
       <h3 className="text-h3">{strings.alerts.chartTitle}</h3>
       <div className="mt-3 h-64 w-full">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
+          <LineChart data={rows} margin={{ top: 8, right: 8, bottom: 0, left: -16 }}>
             <CartesianGrid stroke="#C0D9E2" strokeDasharray="3 3" />
             <XAxis
               dataKey="date"
@@ -56,7 +78,7 @@ export function ScoreLineChart({ series }: { series: ChartSeries[] }) {
               stroke="#C0D9E2"
             />
             <YAxis
-              domain={[0, 100]}
+              domain={[chart.yAxisMin, chart.yAxisMax]}
               tick={{ fontSize: 11, fill: "#1C357F" }}
               stroke="#C0D9E2"
             />
@@ -66,16 +88,32 @@ export function ScoreLineChart({ series }: { series: ChartSeries[] }) {
                 border: "1px solid #C0D9E2",
                 fontSize: 12,
               }}
+              formatter={(value, key) => [value, labels[String(key)] ?? key]}
             />
-            {series.map(({ item, colorIndex }) => (
+            {/* The global F4 threshold, so Over/Under is visible on the chart. */}
+            {chart.threshold !== null && (
+              <ReferenceLine
+                y={chart.threshold}
+                stroke="#C8A227"
+                strokeDasharray="6 4"
+                label={{
+                  value: `Threshold ${chart.threshold}`,
+                  position: "insideTopRight",
+                  fontSize: 11,
+                  fill: "#1C357F",
+                }}
+              />
+            )}
+            {chart.series.map((series, i) => (
               <Line
-                key={item.claimId}
+                key={series.claimId}
                 type="monotone"
-                dataKey={item.claimId}
-                name={item.claimId}
-                stroke={colorForIndex(colorIndex)}
+                dataKey={series.claimId}
+                name={labels[series.claimId]}
+                stroke={colorForIndex(i)}
                 strokeWidth={2}
                 dot={false}
+                connectNulls
               />
             ))}
           </LineChart>
@@ -83,4 +121,8 @@ export function ScoreLineChart({ series }: { series: ChartSeries[] }) {
       </div>
     </div>
   );
+}
+
+function truncate(text: string, max = 48): string {
+  return text.length > max ? `${text.slice(0, max - 1)}…` : text;
 }

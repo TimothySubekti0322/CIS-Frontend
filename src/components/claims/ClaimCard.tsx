@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { CalendarClock, MinusCircle, PlusCircle } from "lucide-react";
-import type { GenericClaim, SyntheticClaim } from "@/types/claim";
+import type { ClaimSummary } from "@/types/claim";
 import { formatDate } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
 import { Card } from "@/components/ui/Card";
@@ -12,18 +12,21 @@ import { ClaimStatusControl } from "./ClaimStatusControl";
 import { BellButton } from "./BellButton";
 
 export interface ClaimCardProps {
-  claim: GenericClaim | SyntheticClaim;
+  claim: ClaimSummary;
 }
 
 /**
- * The single claim-card component (PRD US10 / US18). Reused unmodified on the
- * F1 sections, the "See all" lists, and the F2 policy detail page (US39).
- * `variant` is derived from `claim.type` — no policy-specific variant exists.
+ * The single claim-card component, reused unmodified on the F1 sections, the
+ * "See all" lists and the F2 policy detail page. The variant is derived from
+ * `claimType` — there is no policy-specific card.
+ *
+ * A Synthetic claim carries no score, dates, statement counts or bell state:
+ * those fields are absent, not zero, so nothing is rendered for them.
  */
 export function ClaimCard({ claim }: ClaimCardProps) {
   const router = useRouter();
-  const isGeneric = claim.type === "generic";
-  const href = isGeneric ? `/claims/${claim.id}` : `/predicted/${claim.id}`;
+  const isExisting = claim.claimType === "existing";
+  const href = isExisting ? `/claims/${claim.id}` : `/predicted/${claim.id}`;
 
   return (
     <Card
@@ -37,49 +40,61 @@ export function ClaimCard({ claim }: ClaimCardProps) {
       className="flex h-full flex-col gap-3"
     >
       <div className="flex items-start justify-between gap-2">
-        <StatusPill tone={isGeneric ? "info" : "neutral"}>
-          {isGeneric ? strings.claims.genericTag : strings.claims.syntheticTag}
+        <StatusPill tone={isExisting ? "info" : "neutral"}>
+          {isExisting ? strings.claims.genericTag : strings.claims.syntheticTag}
         </StatusPill>
         <div className="flex items-center gap-1.5">
-          {isGeneric && <ScoreBadge score={(claim as GenericClaim).score.finalClaimScore} size="sm" />}
-          {isGeneric && (
+          {claim.finalClaimScore !== null && (
+            <ScoreBadge score={claim.finalClaimScore} size="sm" />
+          )}
+          {claim.isDormant && (
+            <StatusPill tone="neutral">{strings.claims.dormant}</StatusPill>
+          )}
+          {isExisting && (
             <BellButton
               claimId={claim.id}
-              claimStatement={claim.statement}
-              onWatchlist={(claim as GenericClaim).onWatchlist}
+              claimStatement={claim.claimStatement}
+              onWatchlist={claim.isOnAlert}
             />
           )}
         </div>
       </div>
 
       <p className="line-clamp-3 flex-1 text-sm font-bold text-regal-navy">
-        {claim.statement}
+        {claim.claimStatement}
       </p>
 
-      <p className="text-xs text-regal-navy/60">{claim.topicLabel}</p>
+      {claim.topic && (
+        <p className="text-xs text-regal-navy/60">{claim.topic.name}</p>
+      )}
 
-      {isGeneric && (
-        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-regal-navy/60">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-regal-navy/60">
+        {claim.createdAt && (
           <span className="inline-flex items-center gap-1">
             <CalendarClock className="size-3.5" aria-hidden />
-            {strings.claims.firstCaught}: {formatDate((claim as GenericClaim).firstCaughtAt)}
+            {isExisting ? strings.claims.firstCaught : strings.claims.created}:{" "}
+            {formatDate(claim.createdAt)}
           </span>
+        )}
+        {claim.negativeStatementCount !== null && (
           <span className="inline-flex items-center gap-1 text-danger">
             <MinusCircle className="size-3.5" aria-hidden />
-            {(claim as GenericClaim).negativeCount}
+            {claim.negativeStatementCount.toLocaleString()}
           </span>
+        )}
+        {claim.positiveStatementCount !== null && (
           <span className="inline-flex items-center gap-1 text-sea-green">
             <PlusCircle className="size-3.5" aria-hidden />
-            {(claim as GenericClaim).positiveCount}
+            {claim.positiveStatementCount.toLocaleString()}
           </span>
-        </div>
-      )}
+        )}
+      </div>
 
       <div className="flex items-center justify-between gap-2 border-t border-pale-sky pt-3">
         <span className="text-xs text-regal-navy/50">
           {strings.claims.claimStatus}
         </span>
-        <ClaimStatusControl claimId={claim.id} value={claim.status} />
+        <ClaimStatusControl claimId={claim.id} value={claim.reviewStatus} />
       </div>
     </Card>
   );

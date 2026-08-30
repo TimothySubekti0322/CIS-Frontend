@@ -1,42 +1,86 @@
-import type { GenericClaim, SyntheticClaim } from "./claim";
+import type { ClaimSummary } from "./claim";
+import type { PageParams } from "./common";
 
-/** PRD §7 US41 — derived automatically from the rolled-out date. */
+/** Derived server-side from `rolledOutDate` — never set by the caller. */
 export type PolicyStatus = "rolled_out" | "not_rolled_out";
 
-/** Background AI-matchmaking job state (PRD §7 US42, §5.5). */
-export type PolicyProcessingState = "processing" | "ready";
+/**
+ * AI matchmaking job state.
+ * `pending`    queued, the AI call has not started        (is_processing: true)
+ * `processing` handed to the AI service, awaiting result  (is_processing: true)
+ * `completed`  matchmaking finished, claim lists final
+ * `failed`     see `processingError`; retry with /rematch
+ * `skipped`    no AI service configured — not an error
+ */
+export type PolicyProcessingStatus =
+  | "pending"
+  | "processing"
+  | "completed"
+  | "failed"
+  | "skipped";
 
 export interface Policy {
   id: string;
   name: string;
-  /** Uploaded source file (PDF/Word). */
-  fileName: string;
-  fileUrl: string;
-  /** Date the policy is/was rolled out (drives status — PRD US41). */
-  rolledOutDate: string;
+  description: string | null;
+  /** Pre-formatted label from the backend, e.g. "January 2026". */
+  monthYear: string | null;
+  rolledOutDate: string | null;
   status: PolicyStatus;
-  createdAt: string;
-  processing: PolicyProcessingState;
-  /** Latest created date among linked claims — drives F2 list sort (PRD US35). */
-  lastClaimActivityAt: string | null;
-  linkedGenericCount: number;
-  linkedSyntheticCount: number;
+  fileName: string | null;
+  /** Backend-relative path to `GET /policies/:id/file`. */
+  downloadUrl: string | null;
+  processingStatus: PolicyProcessingStatus;
+  isProcessing: boolean;
+  processingError: string | null;
+  linkedClaimCount: number;
+  /** The id in the AI service's own `policies` table. `null` until the
+   *  matchmaking callback supplies one — claim lists stay empty until then. */
+  aiPolicyId: string | null;
+  createdAt: string | null;
 }
 
-/** Full detail payload for a policy (PRD US39). */
+/** `GET /policies/:id` — adds the two correlated claim lists. */
 export interface PolicyDetail extends Policy {
-  genericClaims: GenericClaim[];
-  syntheticClaims: SyntheticClaim[];
+  existingClaims: ClaimSummary[];
+  nonExistingClaims: ClaimSummary[];
 }
 
-export interface CreatePolicyPayload {
-  name: string;
-  rolledOutDate: string;
-  fileName: string;
+/** `GET /policies/:id/processing` — the lightweight polling payload. */
+export interface PolicyProcessing {
+  policyId: string;
+  processingStatus: PolicyProcessingStatus;
+  isProcessing: boolean;
+  attempts: number;
+  processedAt: string | null;
+  aiPolicyId: string | null;
+  linkedClaimCount: number;
+  processingError: string | null;
 }
 
-export interface PolicyListParams {
+export interface PolicyListParams extends PageParams {
   years?: number[];
-  search?: string;
-  limit?: number;
+  q?: string;
+  status?: PolicyStatus;
+}
+
+/** multipart/form-data payload for `POST /policies`. */
+export interface CreatePolicyPayload {
+  file: File;
+  name: string;
+  /** `YYYY-MM-DD`. */
+  rolledOutDate: string;
+  description?: string;
+}
+
+/** `PATCH /policies/:id` — all optional, at least one required. */
+export interface UpdatePolicyPayload {
+  name?: string;
+  rolledOutDate?: string;
+  description?: string;
+}
+
+/** True while the "Processing" badge should show and polling should continue. */
+export function isPolicyProcessing(status: PolicyProcessingStatus): boolean {
+  return status === "pending" || status === "processing";
 }

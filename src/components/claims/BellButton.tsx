@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Bell, BellRing } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { ApiError } from "@/types/common";
 import { strings } from "@/lib/constants/strings";
 import { useToggleWatchlist } from "@/lib/hooks/useAlerts";
 import { useToast } from "@/components/ui/Toast";
@@ -35,8 +36,11 @@ export function BellButton({
       await mutateAsync({ claimId, add: !onWatchlist });
       toast(onWatchlist ? strings.bell.removed : strings.bell.added);
       setOpen(false);
-    } catch {
-      toast(strings.errors.generic, "error");
+    } catch (err) {
+      // 422 means a Synthetic claim was submitted — only Existing claims can
+      // be watched. The server's message is the clearest explanation.
+      toast(err instanceof ApiError ? err.message : strings.errors.generic, "error");
+      setOpen(false);
     }
   }
 

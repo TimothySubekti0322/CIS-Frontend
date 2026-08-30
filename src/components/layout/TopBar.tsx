@@ -29,9 +29,9 @@ export function TopBar({
 
       <div className="hidden items-center gap-1.5 text-sm text-regal-navy/70 sm:flex">
         <UserIcon className="size-4" aria-hidden />
-        {user?.username ?? "—"}
+        {user?.name || user?.email || "—"}
       </div>
-      <Button variant="ghost" size="sm" onClick={logout}>
+      <Button variant="ghost" size="sm" onClick={() => void logout()}>
         <LogOut className="size-4" aria-hidden />
         <span className="hidden sm:inline">{strings.auth.logout}</span>
       </Button>

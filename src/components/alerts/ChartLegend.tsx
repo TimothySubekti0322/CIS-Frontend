@@ -1,11 +1,12 @@
 "use client";
 
+import Link from "next/link";
+import type { AlertChartSeries } from "@/types/alert";
 import { strings } from "@/lib/constants/strings";
 import { colorForIndex } from "./chartColors";
-import type { ChartSeries } from "./ScoreLineChart";
 
-/** [C2] Key / legend — only claims ticked in the table (PRD US28). */
-export function ChartLegend({ series }: { series: ChartSeries[] }) {
+/** [C2] Key / legend — exactly the claims the chart is plotting. */
+export function ChartLegend({ series }: { series: AlertChartSeries[] }) {
   return (
     <div className="rounded-xl border border-pale-sky bg-white p-4">
       <h3 className="text-h3">{strings.alerts.legendTitle}</h3>
@@ -15,19 +16,26 @@ export function ChartLegend({ series }: { series: ChartSeries[] }) {
         </p>
       ) : (
         <ul className="mt-3 space-y-2">
-          {series.map(({ item, colorIndex }: ChartSeries) => (
+          {series.map((item, i) => (
             <li key={item.claimId} className="flex items-start gap-2">
               <span
                 className="mt-1 size-3 shrink-0 rounded-full"
-                style={{ backgroundColor: colorForIndex(colorIndex) }}
+                style={{ backgroundColor: colorForIndex(i) }}
                 aria-hidden
               />
-              <span className="text-sm text-regal-navy">
-                <span className="font-bold">{item.claimId}</span>
-                <span className="block text-xs text-regal-navy/60 line-clamp-2">
-                  {item.statement}
+              <Link
+                href={`/claims/${item.claimId}`}
+                className="min-w-0 text-sm text-regal-navy hover:text-sea-green"
+              >
+                <span className="line-clamp-2 font-medium">
+                  {item.claimStatement}
                 </span>
-              </span>
+                {item.topic && (
+                  <span className="block text-xs text-regal-navy/60">
+                    {item.topic.name}
+                  </span>
+                )}
+              </Link>
             </li>
           ))}
         </ul>

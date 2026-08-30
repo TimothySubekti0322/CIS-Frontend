@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { ClaimStatus } from "@/types/claim";
 import { CLAIM_STATUSES } from "@/lib/constants/statuses";
 import { cn } from "@/lib/utils";
@@ -15,7 +15,12 @@ export interface ClaimStatusControlProps {
   className?: string;
 }
 
-/** Unified 4-value status dropdown (PRD v1.3 US1). Persists on change. */
+/**
+ * The unified 4-value status dropdown. Persists on change via
+ * `PUT /claims/:id/status`, which writes the backend's own review table — the
+ * AI service's pipeline state is never touched, so re-running detection cannot
+ * overwrite this decision.
+ */
 export function ClaimStatusControl({
   claimId,
   value,
@@ -25,6 +30,9 @@ export function ClaimStatusControl({
   const { mutateAsync, isPending } = useUpdateClaimStatus();
   const { toast } = useToast();
   const [local, setLocal] = useState<ClaimStatus>(value);
+
+  // A refetch (or another card updating the same claim) is the source of truth.
+  useEffect(() => setLocal(value), [value]);
 
   async function onChange(next: ClaimStatus) {
     const prev = local;

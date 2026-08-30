@@ -1,45 +1,138 @@
 /**
- * API endpoint path templates.
+ * Every route the CIS backend exposes, transcribed from the API runbook.
  *
- * These are PLACEHOLDERS. The real backend contract (paths, verbs, params, payload
- * shapes) will be filled in later — update the paths here and the request/response
- * mapping in the matching `src/lib/api/*.ts` module, then set
- * NEXT_PUBLIC_API_MODE=live.
+ * Paths are written WITHOUT the `/api/v1` prefix — the client prepends
+ * `config.apiPrefix`. The two health probes sit outside that prefix and say so
+ * with `prefix: "none"`.
  *
  * `:param` segments are substituted by `buildPath()`.
  */
+
+export interface EndpointDef {
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  path: string;
+  /** `"none"` mounts the path at the API root, bypassing `/api/v1`. */
+  prefix?: "none";
+  /** Public routes never attach a Bearer token or attempt a refresh-retry. */
+  public?: boolean;
+}
+
+function def<T extends EndpointDef>(endpoint: T): T {
+  return endpoint;
+}
+
 export const ENDPOINTS = {
+  /** Email + password, short-lived JWT, rotating single-use refresh token. */
   auth: {
-    register: { method: "POST", path: "/auth/register" }, // TODO: confirm with backend
-    login: { method: "POST", path: "/auth/login" }, // TODO
-    me: { method: "GET", path: "/auth/me" }, // TODO
+    register: def({ method: "POST", path: "/auth/register", public: true }),
+    login: def({ method: "POST", path: "/auth/login", public: true }),
+    /** The presented refresh token is revoked as part of the exchange. */
+    refresh: def({ method: "POST", path: "/auth/refresh", public: true }),
+    me: def({ method: "GET", path: "/auth/me" }),
+    /** Revokes every refresh token for the user; access tokens stay valid. */
+    logout: def({ method: "POST", path: "/auth/logout" }),
   },
+
+  /** Read-only — topics are owned and written by the AI service. */
+  topics: {
+    list: def({ method: "GET", path: "/topics" }),
+    get: def({ method: "GET", path: "/topics/:id" }),
+  },
+
+  /** F1 — Claim Repository Bank. */
   claims: {
-    listGeneric: { method: "GET", path: "/claims/generic" }, // TODO
-    listSynthetic: { method: "GET", path: "/claims/synthetic" }, // TODO
-    getGeneric: { method: "GET", path: "/claims/generic/:id" }, // TODO
-    getSynthetic: { method: "GET", path: "/claims/synthetic/:id" }, // TODO
-    updateStatus: { method: "PATCH", path: "/claims/:id/status" }, // TODO
-    generateGeneric: { method: "POST", path: "/claims/generic/generate" }, // TODO (F4 / US33)
+    /** The whole F1 page in one call; both sections always return. */
+    repository: def({ method: "GET", path: "/claims/repository" }),
+    /** The "See all" list, paginated. */
+    list: def({ method: "GET", path: "/claims" }),
+    get: def({ method: "GET", path: "/claims/:id" }),
+    statements: def({ method: "GET", path: "/claims/:id/statements" }),
+    topAccounts: def({ method: "GET", path: "/claims/:id/top-accounts" }),
+    policies: def({ method: "GET", path: "/claims/:id/policies" }),
+    scoreHistory: def({ method: "GET", path: "/claims/:id/score-history" }),
+    /** Writes `cis_claim_reviews`, never the AI service's `claims.status`. */
+    updateStatus: def({ method: "PUT", path: "/claims/:id/status" }),
   },
+
+  /** F2 — Public Policy Bank. */
   policies: {
-    list: { method: "GET", path: "/policies" }, // TODO
-    get: { method: "GET", path: "/policies/:id" }, // TODO
-    create: { method: "POST", path: "/policies" }, // TODO (US40)
-    matchmakingStatus: { method: "GET", path: "/policies/:id/matchmaking" }, // TODO (US42)
+    list: def({ method: "GET", path: "/policies" }),
+    /** Distinct rolled-out years, descending — powers the year chips. */
+    years: def({ method: "GET", path: "/policies/years" }),
+    /** multipart/form-data: file, name, rolled_out_date, description. */
+    create: def({ method: "POST", path: "/policies" }),
+    get: def({ method: "GET", path: "/policies/:id" }),
+    /** 307-redirects to a signed URL, or streams bytes on the local driver. */
+    file: def({ method: "GET", path: "/policies/:id/file" }),
+    /** Lightweight polling target for the "Processing" badge. */
+    processing: def({ method: "GET", path: "/policies/:id/processing" }),
+    /** Re-queues matchmaking after a `failed` status; resets attempts. */
+    rematch: def({ method: "POST", path: "/policies/:id/rematch" }),
+    update: def({ method: "PATCH", path: "/policies/:id" }),
+    remove: def({ method: "DELETE", path: "/policies/:id" }),
   },
+
+  /** F3 — Alert Page. Existing/Generic claims only. */
   alerts: {
-    listWatchlist: { method: "GET", path: "/alerts/watchlist" }, // TODO
-    addToWatchlist: { method: "POST", path: "/alerts/watchlist" }, // TODO (US14)
-    removeFromWatchlist: { method: "DELETE", path: "/alerts/watchlist/:claimId" }, // TODO
+    list: def({ method: "GET", path: "/alerts" }),
+    add: def({ method: "POST", path: "/alerts" }),
+    remove: def({ method: "DELETE", path: "/alerts/:claimId" }),
+    /** Server-persisted "Chart" checkbox driving `GET /alerts/chart`. */
+    setChartVisible: def({ method: "PATCH", path: "/alerts/:claimId/chart" }),
+    chart: def({ method: "GET", path: "/alerts/chart" }),
   },
+
+  /** F4 — Admin settings and utilities. No roles exist in this build. */
+  settings: {
+    list: def({ method: "GET", path: "/settings" }),
+    getAlertThreshold: def({ method: "GET", path: "/settings/alert-threshold" }),
+    /** Applies globally and takes effect at read time, immediately. */
+    updateAlertThreshold: def({ method: "PUT", path: "/settings/alert-threshold" }),
+  },
+
   admin: {
-    getSettings: { method: "GET", path: "/admin/settings" }, // TODO
-    updateSettings: { method: "PUT", path: "/admin/settings" }, // TODO (US32)
+    /** Proxies to the AI service — this backend never writes `claims`. */
+    generateGenericClaim: def({
+      method: "POST",
+      path: "/admin/generate-generic-claim",
+    }),
+    /** Forces an F3 chart-history snapshot without waiting for the cron job. */
+    snapshotScores: def({ method: "POST", path: "/admin/snapshot-scores" }),
+  },
+
+  /** Ops probes — mounted at the API root, not under `/api/v1`. */
+  health: {
+    live: def({ method: "GET", path: "/health", prefix: "none", public: true }),
+    ready: def({
+      method: "GET",
+      path: "/health/ready",
+      prefix: "none",
+      public: true,
+    }),
   },
 } as const;
 
-/** Substitute `:param` segments and append a query string. */
+/**
+ * Machine-to-machine, called by the AI service — NOT by this frontend.
+ * Listed for completeness so the contract lives in one place.
+ *
+ * Auth is `X-Internal-Key`, enforced only when `INTERNAL_API_KEY` is set on
+ * both sides. `:id` is the `cis_policies.id`, not the AI service's policy id.
+ */
+export const INTERNAL_ENDPOINTS = {
+  matchmakingResult: def({
+    method: "POST",
+    path: "/internal/policies/:id/matchmaking-result",
+    public: true,
+  }),
+} as const;
+
+/**
+ * Substitute `:param` segments and append a query string.
+ *
+ * Array values are joined with commas (`topic_ids=a,b`), which is what the
+ * backend's multi-select filters expect — not repeated keys.
+ */
 export function buildPath(
   path: string,
   params?: Record<string, string | number>,
@@ -56,7 +149,8 @@ export function buildPath(
     for (const [key, value] of Object.entries(query)) {
       if (value === undefined || value === null || value === "") continue;
       if (Array.isArray(value)) {
-        value.forEach((v) => qs.append(key, String(v)));
+        if (value.length === 0) continue;
+        qs.set(key, value.map(String).join(","));
       } else {
         qs.set(key, String(value));
       }

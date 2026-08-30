@@ -1,14 +1,22 @@
 import Link from "next/link";
 import { FileText } from "lucide-react";
-import type { PolicyRef } from "@/types/claim";
+import type { ClaimPolicyRef } from "@/types/claim";
+import { formatMonthYear } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
+import { StatusPill } from "@/components/ui/StatusPill";
 
+/**
+ * Correlated public policies. `source` matters for navigation: only a `cis`
+ * policy was registered through F2 and has a detail page here — an `ai` policy
+ * exists solely in the AI service's own table, so it renders as plain text
+ * rather than a dead link.
+ */
 export function CorrelatedPolicies({
   title,
   policies,
 }: {
   title: string;
-  policies: PolicyRef[];
+  policies: ClaimPolicyRef[];
 }) {
   return (
     <div className="rounded-xl border border-pale-sky bg-white p-4">
@@ -19,17 +27,44 @@ export function CorrelatedPolicies({
         <ul className="mt-3 space-y-2">
           {policies.map((p) => (
             <li key={p.id}>
-              <Link
-                href={`/policies/${p.id}`}
-                className="flex items-center gap-2 rounded-lg border border-pale-sky px-3 py-2 text-sm font-bold text-regal-navy hover:border-sea-green hover:text-sea-green"
-              >
-                <FileText className="size-4 shrink-0" aria-hidden />
-                <span className="truncate">{p.name}</span>
-              </Link>
+              <PolicyRow policy={p} />
             </li>
           ))}
         </ul>
       )}
+    </div>
+  );
+}
+
+function PolicyRow({ policy }: { policy: ClaimPolicyRef }) {
+  const body = (
+    <>
+      <FileText className="size-4 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1">
+        <span className="block truncate">{policy.name}</span>
+        {policy.rolledOutDate && (
+          <span className="block text-xs font-normal text-regal-navy/50">
+            {formatMonthYear(policy.rolledOutDate)}
+          </span>
+        )}
+      </span>
+      {policy.source === "ai" && <StatusPill tone="muted">AI</StatusPill>}
+    </>
+  );
+
+  const className =
+    "flex items-center gap-2 rounded-lg border border-pale-sky px-3 py-2 text-sm font-bold text-regal-navy";
+
+  return policy.source === "cis" ? (
+    <Link
+      href={`/policies/${policy.id}`}
+      className={`${className} hover:border-sea-green hover:text-sea-green`}
+    >
+      {body}
+    </Link>
+  ) : (
+    <div className={`${className} bg-mint-cream/40`} title="Created by the AI service — no F2 record exists">
+      {body}
     </div>
   );
 }

@@ -1,53 +1,77 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { FileText } from "lucide-react";
+import type { PolicyStatus } from "@/types/policy";
 import { strings } from "@/lib/constants/strings";
-import { usePolicies } from "@/lib/hooks/usePolicies";
+import { usePolicies, usePolicyYears } from "@/lib/hooks/usePolicies";
 import { FilterChips } from "@/components/ui/FilterChips";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { Pagination } from "@/components/ui/Pagination";
 import { SkeletonCards } from "@/components/ui/Skeleton";
+import { Tabs } from "@/components/ui/Tabs";
 import { PolicyCard } from "./PolicyCard";
 
 export interface PolicyListProps {
-  /** Top-N shown (omit for the full "See all" list). */
+  /** Page size. The F2 landing page shows a short list; "See all" paginates. */
   limit?: number;
+  paginated?: boolean;
 }
 
-/** Shared F2 policy list: year filter + search + responsive card grid (US34–US38). */
-export function PolicyList({ limit }: PolicyListProps) {
-  const [years, setYears] = useState<string[]>([]);
-  const [search, setSearch] = useState("");
+const STATUS_TABS: { value: PolicyStatus | "all"; label: string }[] = [
+  { value: "all", label: strings.common.allStatus },
+  { value: "rolled_out", label: strings.policies.rolledOut },
+  { value: "not_rolled_out", label: strings.policies.notRolledOut },
+];
 
-  // Unfiltered fetch purely to derive the available year chips (PRD US34).
-  const all = usePolicies();
-  const yearOptions = useMemo(() => {
-    const set = new Set<number>();
-    (all.data?.items ?? []).forEach((p) =>
-      set.add(new Date(p.rolledOutDate).getFullYear()),
-    );
-    return [...set]
-      .sort((a, b) => b - a)
-      .map((y) => ({ value: String(y), label: String(y) }));
-  }, [all.data]);
+/**
+ * The shared F2 policy list. Year chips come from `GET /policies/years` rather
+ * than being derived from the current page, so a year with no results on this
+ * page is still offered.
+ *
+ * Ordering is the server's — newest linked-claim activity first — and is never
+ * re-sorted here.
+ */
+export function PolicyList({ limit = 12, paginated = false }: PolicyListProps) {
+  const [years, setYears] = useState<string[]>([]);
+  const [status, setStatus] = useState<PolicyStatus | "all">("all");
+  const [search, setSearch] = useState("");
+  const [page, setPage] = useState(1);
+
+  useEffect(() => setPage(1), [years, status, search]);
+
+  const { data: yearOptions } = usePolicyYears();
 
   const params = useMemo(
     () => ({
       years: years.length ? years.map(Number) : undefined,
-      search: search.trim() || undefined,
+      status: status === "all" ? undefined : status,
+      q: search.trim() || undefined,
+      page: paginated ? page : 1,
       limit,
     }),
-    [years, search, limit],
+    [years, status, search, page, limit, paginated],
   );
+
   const { data, isPending, isError } = usePolicies(params);
   const items = data?.items ?? [];
 
   return (
     <div className="space-y-4">
+      <Tabs
+        options={STATUS_TABS}
+        value={status}
+        onChange={setStatus}
+        aria-label={strings.policies.filterStatus}
+      />
+
       <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
         <FilterChips
-          options={yearOptions}
+          options={(yearOptions ?? []).map((y) => ({
+            value: String(y),
+            label: String(y),
+          }))}
           selected={years}
           onChange={setYears}
           allLabel={strings.common.allYears}
@@ -63,7 +87,7 @@ export function PolicyList({ limit }: PolicyListProps) {
       </div>
 
       {isPending ? (
-        <SkeletonCards count={limit ?? 8} />
+        <SkeletonCards count={limit} />
       ) : isError ? (
         <EmptyState
           title={strings.errors.generic}
@@ -73,14 +97,19 @@ export function PolicyList({ limit }: PolicyListProps) {
         <EmptyState
           icon={<FileText className="size-8" aria-hidden />}
           title={strings.common.noResults}
-          description="Try clearing the year filter or search."
+          description="Try clearing the year filter, status tab or search."
         />
       ) : (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
-          {items.map((p) => (
-            <PolicyCard key={p.id} policy={p} />
-          ))}
-        </div>
+        <>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            {items.map((p) => (
+              <PolicyCard key={p.id} policy={p} />
+            ))}
+          </div>
+          {paginated && data && (
+            <Pagination meta={data.meta} onPageChange={setPage} />
+          )}
+        </>
       )}
     </div>
   );
