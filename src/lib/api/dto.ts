@@ -5,8 +5,10 @@
  * hooks work with the camelCase domain types in `src/types/`. Keeping the two
  * apart means a backend field rename is a one-line change in the mapper.
  *
- * Fields marked "undocumented" are not in the API runbook; the mappers read
- * them defensively and fall back to `null`. See MISSING_ENDPOINT.MD.
+ * The canonical field-by-field tables live in the backend repo's `docs/api/`;
+ * the runbook is the abridged mirror of those. Where a shape is not reproduced
+ * in the runbook (statements, in particular), the mapper reads defensively
+ * across the plausible spellings — see MISSING_ENDPOINT.MD.
  */
 
 /* ------------------------------- auth ------------------------------- */
@@ -109,6 +111,12 @@ export interface TopAccountDto {
   total_impressions?: number;
 }
 
+/**
+ * `created_at` and `first_caught_at` are DIFFERENT dates and both are sent for
+ * an Existing claim: `first_caught_at` is when the AI first detected the claim
+ * in the wild (the F1 card's "First caught"), `created_at` is when the row was
+ * written. A Synthetic claim carries only `created_at` — its "Predicted" date.
+ */
 export interface ClaimDto {
   id: string;
   claim_type?: string;
@@ -120,13 +128,20 @@ export interface ClaimDto {
   is_on_alert?: boolean;
   positive_statement_count?: number | null;
   negative_statement_count?: number | null;
-  /** Undocumented on list payloads — the F1 card's "first caught" date. */
   created_at?: string | null;
   first_caught_at?: string | null;
-  detected_at?: string | null;
+}
+
+/** The single overlay row in `cis_claim_reviews` — most recent call only. */
+export interface ClaimReviewDto {
+  notes?: string | null;
+  reviewed_by?: string | null;
+  reviewed_at?: string | null;
 }
 
 export interface ClaimDetailDto extends ClaimDto {
+  updated_at?: string | null;
+  review?: ClaimReviewDto | null;
   activity?: ClaimActivityDto | null;
   policies?: ClaimPolicyRefDto[] | null;
   score_breakdown?: ScoreBreakdownDto | null;
@@ -195,8 +210,9 @@ export interface PolicyDto {
   processing_error?: string | null;
   linked_claim_count?: number | null;
   ai_policy_id?: string | null;
-  /** Undocumented on the list row — the policy card's "created" date. */
   created_at?: string | null;
+  /** Newest `created_at` among linked claims — the value the list sort uses. */
+  last_claim_activity_at?: string | null;
 }
 
 export interface PolicyDetailDto extends PolicyDto {
@@ -219,9 +235,14 @@ export interface PolicyYearsDto {
   years?: number[] | null;
 }
 
+/**
+ * `GET /policies/:id/file?mode=json`. Under the `local` driver this still
+ * returns JSON — `url` is the same `/api/v1/policies/:id/file` path and
+ * `is_signed_url` is false, meaning "call it again without mode=json".
+ */
 export interface PolicyFileUrlDto {
   url?: string | null;
-  download_url?: string | null;
+  is_signed_url?: boolean;
   expires_at?: string | null;
 }
 
@@ -239,9 +260,9 @@ export interface WatchlistItemDto {
   threshold_status?: string;
   threshold?: number | null;
   is_dormant?: boolean;
-  /** Undocumented — the F3 table's "Claim Created Date" column. */
+  /** The claim's own creation date — PRD US29's "Claim Created Date" column.
+   *  Not `added_at`, which is when the operator started watching it. */
   claim_created_at?: string | null;
-  created_at?: string | null;
 }
 
 export interface AlertSubscriptionDto {

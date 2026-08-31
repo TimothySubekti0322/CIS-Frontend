@@ -1,4 +1,4 @@
-import type { SettingDto, TopicDto } from "../dto";
+import type { ClaimReviewDto, SettingDto, TopicDto } from "../dto";
 import {
   buildSeed,
   type MockClaim,
@@ -25,8 +25,8 @@ export interface MockState {
   settings: SettingDto[];
   snapshots: Snapshot[];
   users: MockUser[];
-  /** Claim review notes, keyed by claim id — the backend's `cis_claim_reviews`. */
-  reviewNotes: Record<string, string>;
+  /** One overlay row per claim — the backend's `cis_claim_reviews`. */
+  reviews: Record<string, ClaimReviewDto>;
 }
 
 const STORAGE_KEY = "cis_mock_state_v2";
@@ -41,7 +41,7 @@ function freshState(): MockState {
     settings: seed.settings,
     snapshots: seed.snapshots,
     users: [],
-    reviewNotes: {},
+    reviews: {},
   };
 }
 

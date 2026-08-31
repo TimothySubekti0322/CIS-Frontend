@@ -109,6 +109,8 @@ function summaryOf(s: MockState, claim: MockClaim): ClaimDto {
   if (claim.claim_type !== "existing") return base;
   return {
     ...base,
+    // Only an Existing claim was "caught in the wild".
+    first_caught_at: claim.first_caught_at,
     final_claim_score: claim.score_breakdown?.final_claim_score ?? null,
     is_dormant: claim.is_dormant ?? false,
     is_on_alert: isWatched(s, claim.id),
@@ -135,6 +137,9 @@ function detailOf(s: MockState, claim: MockClaim) {
   const summary = summaryOf(s, claim);
   const detail: Record<string, unknown> = {
     ...summary,
+    updated_at: claim.created_at,
+    // A single overlay row per claim — the most recent status call only.
+    review: s.reviews[claim.id] ?? null,
     activity: claim.activity,
     policies: policyRefsFor(s, claim),
   };
@@ -355,9 +360,7 @@ const claimRepository: MockHandler = async (ctx) => {
   const s = getState();
   const status = qs(ctx, "status") ?? "all";
   const topicIds = qsList(ctx, "topic_ids");
-  // NOTE: the documented endpoint takes no `q`. Mock mirrors that limitation —
-  // see MISSING_ENDPOINT.MD. `q` is accepted here only so the UI's degraded
-  // client-side search behaves identically in both modes.
+  // One `q` filters both sections — there is no per-section search parameter.
   const q = qs(ctx, "q");
 
   const pool = (type: MockClaim["claim_type"]) =>
@@ -486,14 +489,25 @@ const updateClaimStatus: MockHandler = async (ctx) => {
   const claim = findClaim(s, String(ctx.params.id));
   const { status, notes } = body<{ status: string; notes?: string }>(ctx);
   const allowed = ["unreviewed", "active", "inactive", "action_taken"];
+  // Struct-tag validation runs before the handler, so this is always
+  // 400 VALIDATION_FAILED — never 422.
   if (!status || !allowed.includes(status)) {
-    fail("status must be one of unreviewed, active, inactive, action_taken", 422, "UNPROCESSABLE_ENTITY");
+    fail(
+      "status must be one of unreviewed, active, inactive, action_taken",
+      400,
+      "VALIDATION_FAILED",
+    );
   }
   if (notes && notes.length > 2000) {
     fail("notes must be 2000 characters or fewer", 400, "VALIDATION_FAILED");
   }
   claim.review_status = status as MockClaim["review_status"];
-  if (notes !== undefined) s.reviewNotes[claim.id] = notes;
+  // Overwrites the previous row rather than appending — not a change log.
+  s.reviews[claim.id] = {
+    notes: notes ?? s.reviews[claim.id]?.notes ?? null,
+    reviewed_by: s.users[0]?.id ?? "d0000000-0000-0000-0000-000000000001",
+    reviewed_at: new Date().toISOString(),
+  };
   saveState();
   return ok(summaryOf(s, claim), "claim status updated");
 };
@@ -555,6 +569,9 @@ function linkedClaims(s: MockState, policy: MockPolicy) {
 
 function policyRow(s: MockState, policy: MockPolicy) {
   const { existing, nonExisting } = linkedClaims(s, policy);
+  const activity = [...existing, ...nonExisting]
+    .map((c) => c.created_at)
+    .sort();
   return {
     id: policy.id,
     name: policy.name,
@@ -570,6 +587,7 @@ function policyRow(s: MockState, policy: MockPolicy) {
     linked_claim_count: existing.length + nonExisting.length,
     ai_policy_id: policy.ai_policy_id,
     created_at: policy.created_at,
+    last_claim_activity_at: activity.length ? activity[activity.length - 1] : null,
   };
 }
 
@@ -770,6 +788,35 @@ const updatePolicy: MockHandler = async (ctx) => {
   return ok(policyRow(s, policy), "policy updated");
 };
 
+const replacePolicyFile: MockHandler = async (ctx) => {
+  await sleep(320);
+  const form = ctx.form;
+  if (!form) fail("multipart/form-data body required", 400, "BAD_REQUEST");
+  const file = form.get("file");
+  if (!(file instanceof File)) fail("file part is required", 400, "BAD_REQUEST");
+  if (!/\.(pdf|docx?)$/i.test(file.name)) {
+    fail("only .pdf, .doc and .docx documents are accepted", 422, "UNPROCESSABLE_ENTITY");
+  }
+
+  const s = getState();
+  const policy = findPolicy(s, String(ctx.params.id));
+  if (policy.is_processing) {
+    fail("matchmaking is already running for this policy", 409, "CONFLICT");
+  }
+
+  // The id, ai_policy_id and every correlation survive — only the document
+  // changes. Matchmaking re-runs against the new one.
+  policy.file_name = file.name;
+  policy.processing_status = "pending";
+  policy.is_processing = true;
+  policy.processing_error = null;
+  policy.attempts = 0;
+  policy.processed_at = null;
+  pendingMatchmaking.set(policy.id, Date.now());
+  saveState();
+  return ok(policyRow(s, policy), "policy document replaced");
+};
+
 const deletePolicy: MockHandler = async (ctx) => {
   await sleep(200);
   const s = getState();
@@ -952,8 +999,9 @@ const putAlertThreshold: MockHandler = async (ctx) => {
   await sleep(160);
   const s = getState();
   const { threshold: next } = body<{ threshold: number }>(ctx);
+  // Struct-tag validated: always 400 VALIDATION_FAILED, never 422.
   if (typeof next !== "number" || Number.isNaN(next) || next < 0 || next > 100) {
-    fail("threshold must be between 0 and 100", 422, "UNPROCESSABLE_ENTITY");
+    fail("threshold must be between 0 and 100", 400, "VALIDATION_FAILED");
   }
   setSetting(s, ALERT_THRESHOLD_KEY, String(Math.round(next)));
   saveState();
@@ -1054,6 +1102,7 @@ export const mockHandlers: Record<string, MockHandler> = {
   "GET /policies/:id/processing": policyProcessing,
   "POST /policies/:id/rematch": rematchPolicy,
   "PATCH /policies/:id": updatePolicy,
+  "PUT /policies/:id/file": replacePolicyFile,
   "DELETE /policies/:id": deletePolicy,
 
   "GET /alerts": listAlerts,

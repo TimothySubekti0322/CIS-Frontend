@@ -2,7 +2,7 @@
 
 import { use, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Download, Loader2, Pencil, RefreshCw, Trash2 } from "lucide-react";
+import { Download, Loader2, Pencil, RefreshCw, Trash2, Upload } from "lucide-react";
 import { ApiError } from "@/types/common";
 import { strings } from "@/lib/constants/strings";
 import { isMockMode } from "@/lib/config";
@@ -24,6 +24,7 @@ import { ClaimGrid } from "@/components/claims/ClaimGrid";
 import { PolicyStatusPill } from "@/components/policies/PolicyStatusPill";
 import { ProcessingBadge } from "@/components/policies/ProcessingBadge";
 import { EditPolicyModal } from "@/components/policies/EditPolicyModal";
+import { ReplaceFileModal } from "@/components/policies/ReplaceFileModal";
 
 /**
  * F2 — policy detail. Reuses the F1 claim cards verbatim.
@@ -43,6 +44,7 @@ export default function PolicyDetailPage({
   const { data: policy, isPending, isError } = usePolicy(id);
 
   const [editing, setEditing] = useState(false);
+  const [replacingFile, setReplacingFile] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const download = useDownloadPolicyFile();
@@ -122,6 +124,14 @@ export default function PolicyDetailPage({
                 {strings.claims.created}: {formatDate(policy.createdAt)}
               </span>
             )}
+            {/* The value the F2 list sort is computed on — shown so the
+                ordering on the previous page is explainable. */}
+            {policy.lastClaimActivityAt && (
+              <span className="text-xs text-regal-navy/50">
+                {strings.policies.lastActivity}:{" "}
+                {formatDate(policy.lastClaimActivityAt)}
+              </span>
+            )}
           </div>
           <h1 className="text-h1">{policy.name}</h1>
           {policy.description && (
@@ -145,6 +155,10 @@ export default function PolicyDetailPage({
           <Button variant="secondary" onClick={() => setEditing(true)}>
             <Pencil className="size-4" aria-hidden />
             {strings.policies.edit}
+          </Button>
+          <Button variant="secondary" onClick={() => setReplacingFile(true)}>
+            <Upload className="size-4" aria-hidden />
+            {strings.policies.replaceFile}
           </Button>
           <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
             <Trash2 className="size-4" aria-hidden />
@@ -207,6 +221,12 @@ export default function PolicyDetailPage({
         policy={policy}
         open={editing}
         onClose={() => setEditing(false)}
+      />
+
+      <ReplaceFileModal
+        policy={policy}
+        open={replacingFile}
+        onClose={() => setReplacingFile(false)}
       />
 
       <ConfirmDialog

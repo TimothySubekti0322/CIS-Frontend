@@ -16,6 +16,7 @@ import type {
   ClaimPolicyRef,
   ClaimRepository,
   ClaimRepositorySection,
+  ClaimReview,
   ClaimStatus,
   ClaimSummary,
   ClaimType,
@@ -58,6 +59,7 @@ import type {
   ClaimPolicyRefDto,
   ClaimRepositoryDto,
   ClaimRepositorySectionDto,
+  ClaimReviewDto,
   HarmBreakdownDto,
   PolicyDetailDto,
   PolicyDto,
@@ -292,13 +294,26 @@ export function mapClaimSummary(dto: ClaimDto): ClaimSummary {
     isOnAlert: bool(dto.is_on_alert),
     positiveStatementCount: isExisting ? num(dto.positive_statement_count) : null,
     negativeStatementCount: isExisting ? num(dto.negative_statement_count) : null,
-    createdAt: str(dto.created_at) ?? str(dto.first_caught_at) ?? str(dto.detected_at),
+    createdAt: str(dto.created_at),
+    // Two different dates: only an Existing claim carries `first_caught_at`.
+    firstCaughtAt: isExisting ? str(dto.first_caught_at) : null,
+  };
+}
+
+function mapReview(dto: ClaimReviewDto | null | undefined): ClaimReview | null {
+  if (!dto) return null;
+  return {
+    notes: str(dto.notes),
+    reviewedBy: str(dto.reviewed_by),
+    reviewedAt: str(dto.reviewed_at),
   };
 }
 
 export function mapClaimDetail(dto: ClaimDetailDto): ClaimDetail {
   return {
     ...mapClaimSummary(dto),
+    updatedAt: str(dto.updated_at),
+    review: mapReview(dto.review),
     activity: mapActivity(dto.activity),
     policies: (dto.policies ?? []).map(mapClaimPolicyRef),
     scoreBreakdown: mapScoreBreakdown(dto.score_breakdown),
@@ -307,8 +322,11 @@ export function mapClaimDetail(dto: ClaimDetailDto): ClaimDetail {
 }
 
 /**
- * `GET /claims/:id/statements` has no documented response schema, so this
- * accepts the plausible spellings for each field. See MISSING_ENDPOINT.MD §1.
+ * `GET /claims/:id/statements`. The runbook does not reproduce this shape —
+ * the canonical table is in the backend's `docs/api/`. Until it has been
+ * checked against a live response, this reads across the plausible spellings
+ * so an unverified field name degrades to `null` instead of blanking the panel.
+ * See MISSING_ENDPOINT.MD §3.
  */
 export function mapStatement(dto: StatementDto, index: number): Statement {
   const stance = str(dto.stance) ?? str(dto.sentiment);
@@ -408,6 +426,7 @@ export function mapPolicy(dto: PolicyDto): Policy {
     linkedClaimCount: count(dto.linked_claim_count),
     aiPolicyId: str(dto.ai_policy_id),
     createdAt: str(dto.created_at),
+    lastClaimActivityAt: str(dto.last_claim_activity_at),
   };
 }
 
@@ -456,6 +475,7 @@ export function mapWatchlistItem(dto: WatchlistItemDto): WatchlistItem {
     alertId: str(dto.alert_id),
     claimStatement: dto.claim_statement ?? "",
     topic: mapTopicRef(dto.topic),
+    claimCreatedAt: str(dto.claim_created_at),
     addedAt: dto.added_at,
     chartVisible: bool(dto.chart_visible),
     finalClaimScore: num(dto.final_claim_score),

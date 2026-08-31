@@ -42,6 +42,9 @@ export const claimsApi = {
    * Both sections always return regardless of the status tab: the filter
    * narrows claims *within* a section, it never hides one outright. Each
    * section caps at 10 claims with `totalInPool` behind "See all".
+   *
+   * `q` is a single value applied to both sections — there is no per-section
+   * search parameter, so the page has one search box.
    */
   async repository(params: ClaimRepositoryParams = {}): Promise<ClaimRepository> {
     const dto = await apiClient.call<ClaimRepositoryDto>(
@@ -50,6 +53,7 @@ export const claimsApi = {
         query: {
           status: params.status ?? "all",
           topic_ids: params.topicIds,
+          q: params.q,
         },
       },
     );

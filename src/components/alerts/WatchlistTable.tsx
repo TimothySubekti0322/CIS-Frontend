@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Trash2 } from "lucide-react";
 import type { WatchlistItem } from "@/types/alert";
 import { ApiError } from "@/types/common";
-import { formatDateTime } from "@/lib/utils";
+import { formatDate, formatDateTime } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
 import { useSetChartVisible, useToggleWatchlist } from "@/lib/hooks/useAlerts";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -50,13 +50,14 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
 
   return (
     <div className="scroll-x rounded-xl border border-pale-sky bg-white">
-      <table className="w-full min-w-[820px] text-sm">
+      <table className="w-full min-w-[900px] text-sm">
         <thead>
           <tr className="border-b border-pale-sky text-left text-xs uppercase text-regal-navy/60">
             <th className="px-4 py-3 font-bold">{strings.alerts.colChart}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colStatement}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colTopic}</th>
             <th className="px-4 py-3 font-bold">Score</th>
+            <th className="px-4 py-3 font-bold">{strings.alerts.colCreatedDate}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colAdded}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colStatus}</th>
             <th className="px-4 py-3 font-bold">
@@ -102,6 +103,11 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
                     <StatusPill tone="neutral">{strings.claims.dormant}</StatusPill>
                   )}
                 </div>
+              </td>
+              {/* Two distinct dates: when the claim itself appeared, and when
+                  the operator started watching it. */}
+              <td className="px-4 py-3 text-regal-navy/70">
+                {formatDate(item.claimCreatedAt)}
               </td>
               <td className="px-4 py-3 text-regal-navy/70">
                 {formatDateTime(item.addedAt)}

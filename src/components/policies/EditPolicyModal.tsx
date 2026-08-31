@@ -21,8 +21,9 @@ function toDateInput(iso: string | null): string {
  * so only genuinely edited fields are sent — an unchanged form is not
  * submittable rather than being rejected with a 400.
  *
- * The document itself cannot be replaced: there is no update-file route.
- * See MISSING_ENDPOINT.MD §5.
+ * The document itself is swapped separately, through `ReplaceFileModal`
+ * (`PUT /policies/:id/file`), because that call re-runs AI matchmaking while a
+ * metadata edit does not.
  */
 export function EditPolicyModal({
   policy,

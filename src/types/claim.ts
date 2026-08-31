@@ -136,12 +136,31 @@ export interface ClaimSummary {
   isOnAlert: boolean;
   positiveStatementCount: number | null;
   negativeStatementCount: number | null;
-  /** First-caught / predicted date. Not documented on every list payload. */
+  /** When the row was written. On a Synthetic claim this is its "Predicted" date. */
   createdAt: string | null;
+  /**
+   * When the AI first detected the claim in the wild — the F1 card's "First
+   * caught". Distinct from `createdAt`, and absent on a Synthetic claim.
+   */
+  firstCaughtAt: string | null;
+}
+
+/**
+ * The reviewer's decision, from the backend's own `cis_claim_reviews`.
+ * `null` until the first `PUT /claims/:id/status`. It is a single overlay row
+ * per claim, not a change log: it always reflects the most recent call only,
+ * and earlier notes are overwritten rather than retained.
+ */
+export interface ClaimReview {
+  notes: string | null;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
 }
 
 /** `GET /claims/:id`. */
 export interface ClaimDetail extends ClaimSummary {
+  updatedAt: string | null;
+  review: ClaimReview | null;
   activity: ClaimActivity | null;
   policies: ClaimPolicyRef[];
   /** Present for Existing claims only. */
@@ -188,6 +207,11 @@ export interface ScoreHistory {
 export interface ClaimRepositoryParams {
   status?: ClaimStatusFilter;
   topicIds?: string[];
+  /**
+   * Free-text search. One value filters BOTH sections — the endpoint takes a
+   * single `q`, so the F1 page has one search box rather than one per section.
+   */
+  q?: string;
 }
 
 export interface ClaimListParams extends PageParams {

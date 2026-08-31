@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CreatePolicyPayload,
   PolicyListParams,
+  ReplacePolicyFilePayload,
   UpdatePolicyPayload,
 } from "@/types/policy";
 import { policiesApi } from "@/lib/api/policies";
@@ -48,6 +49,22 @@ export function useUpdatePolicy(id: string) {
     mutationFn: (payload: UpdatePolicyPayload) => policiesApi.update(id, payload),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: queryKeys.policies.all });
+    },
+  });
+}
+
+/**
+ * Replace the stored document. Invalidates the processing query too, because a
+ * successful swap re-queues matchmaking and the badge goes back to "Queued".
+ */
+export function useReplacePolicyFile(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ReplacePolicyFilePayload) =>
+      policiesApi.replaceFile(id, payload),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.policies.all });
+      qc.invalidateQueries({ queryKey: queryKeys.policies.processing(id) });
     },
   });
 }

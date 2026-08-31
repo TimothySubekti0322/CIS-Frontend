@@ -69,11 +69,13 @@ export function ClaimCard({ claim }: ClaimCardProps) {
       )}
 
       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-regal-navy/60">
-        {claim.createdAt && (
+        {/* Two different dates: an Existing claim shows when the AI first
+            caught it in the wild; a Synthetic one shows when it was predicted. */}
+        {(isExisting ? claim.firstCaughtAt : claim.createdAt) && (
           <span className="inline-flex items-center gap-1">
             <CalendarClock className="size-3.5" aria-hidden />
             {isExisting ? strings.claims.firstCaught : strings.claims.created}:{" "}
-            {formatDate(claim.createdAt)}
+            {formatDate(isExisting ? claim.firstCaughtAt : claim.createdAt)}
           </span>
         )}
         {claim.negativeStatementCount !== null && (

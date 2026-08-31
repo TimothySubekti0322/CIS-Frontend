@@ -17,6 +17,9 @@ export interface WatchlistItem {
   alertId: string | null;
   claimStatement: string;
   topic: TopicRef | null;
+  /** The claim's own creation date — PRD US29's "Claim Created Date" column. */
+  claimCreatedAt: string | null;
+  /** When the operator started watching it. Not the claim's creation date. */
   addedAt: string;
   /** Server-persisted "Chart" checkbox in the watchlist table. */
   chartVisible: boolean;

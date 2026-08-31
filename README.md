@@ -50,7 +50,7 @@ component → hook (src/lib/hooks) → resource module (src/lib/api/*.ts)
 
 | file | responsibility |
 |---|---|
-| `src/lib/api/endpoints.ts` | all 37 documented routes, verbs and paths — the single source of truth |
+| `src/lib/api/endpoints.ts` | all 38 documented routes, verbs and paths — the single source of truth |
 | `src/lib/api/dto.ts` | wire shapes, snake_case, exactly as the backend sends them |
 | `src/lib/api/mappers.ts` | DTO → domain translation. Nothing else imports `dto.ts` |
 | `src/lib/api/client.ts` | envelope unwrap, auth header, multipart, refresh-retry, blob download |
@@ -69,10 +69,15 @@ Key behaviours the client handles for you:
   and lose the session.
 - **Multipart** — `POST /policies` sends the `File` itself; `Content-Type` is
   left to the browser so the boundary is correct.
-- **Downloads** — `GET /policies/:id/file` needs the Bearer header, so a plain
-  `<a href>` cannot fetch it. `policiesApi.download()` streams the bytes
-  (following the 307 to a signed URL when there is one) and hands the browser an
-  object URL.
+- **Downloads** — `GET /policies/:id/file` needs the Bearer header, so the
+  `download_url` in a payload is not a usable `<a href>` and a raw link 401s.
+  `policiesApi.download()` streams the bytes (following the 307 to a signed URL
+  when there is one) and hands the browser an object URL.
+- **Error codes are deterministic** — one HTTP status/code pair per condition.
+  Struct-tag validation runs first, so a bad status enum or an out-of-range
+  threshold is always `400 VALIDATION_FAILED`, never `422`. `422` is reserved
+  for genuinely semantic failures: file format, a Synthetic claim on
+  `POST /alerts`, a malformed `ai_policy_id`.
 
 ### Mock mode
 
@@ -144,11 +149,11 @@ src/
 
 | screen | endpoints |
 |---|---|
-| `/claims` (F1) | `GET /claims/repository`, `GET /topics`, `GET /claims` (when searching) |
+| `/claims` (F1) | `GET /claims/repository` (status, topics and search in one call), `GET /topics` |
 | `/claims/all` | `GET /claims` |
 | `/claims/[id]`, `/predicted/[id]` | `GET /claims/:id`, `/statements`, `/score-history`, `PUT /claims/:id/status`, `POST|DELETE /alerts` |
 | `/policies` (F2) | `GET /policies`, `GET /policies/years` |
-| `/policies/[id]` | `GET /policies/:id`, `/processing`, `/file`, `POST /policies/:id/rematch`, `PATCH`, `DELETE` |
+| `/policies/[id]` | `GET /policies/:id`, `/processing`, `/file`, `POST /policies/:id/rematch`, `PATCH`, `PUT /policies/:id/file`, `DELETE` |
 | `/alerts` (F3) | `GET /alerts`, `GET /alerts/chart`, `PATCH /alerts/:claimId/chart`, `DELETE /alerts/:claimId` |
 | `/admin` (F4) | `GET /settings`, `GET|PUT /settings/alert-threshold`, `POST /admin/generate-generic-claim`, `POST /admin/snapshot-scores` |
 | `/coordinated-network` (F5) | none — placeholder, no endpoints exist |

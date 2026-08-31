@@ -62,6 +62,7 @@ export const strings = {
     syntheticTag: "Synthetic Claim",
     searchS1: "Search existing claims…",
     searchS2: "Search predicted claims…",
+    searchAll: "Search claim statements…",
     firstCaught: "First caught",
     created: "Predicted",
     negativeStatements: "Negative statements",
@@ -99,6 +100,14 @@ export const strings = {
       "Synthetic claims are predictions and are not scored — no score breakdown, statements or top accounts exist for them.",
     harmBreakdown: "Harm breakdown",
     loadMore: "Load more",
+    reviewTitle: "Review",
+    reviewNotes: "Reviewer notes",
+    reviewNotesPlaceholder: "Why this status? Max 2000 characters.",
+    reviewNever: "No review recorded yet — set a status to add one.",
+    reviewOverlayNote:
+      "One note is kept per claim: saving replaces the previous one rather than adding to a history.",
+    reviewSaved: "Review saved",
+    reviewBy: "by",
   },
   policies: {
     pageTitle: "Public Policy Bank",
@@ -147,6 +156,12 @@ export const strings = {
     downloadMockUnavailable:
       "File downloads need the live backend — they are not available in mock mode.",
     filterStatus: "Rollout status",
+    replaceFile: "Replace document",
+    replaceFileTitle: "Replace the policy document",
+    replaceFileHint:
+      "The policy keeps its id and every claim correlation. AI matchmaking re-runs against the new document.",
+    replaceFileDone: "Document replaced — matchmaking re-queued",
+    lastActivity: "Latest linked-claim activity",
   },
   alerts: {
     pageTitle: "Alert Page",
@@ -164,6 +179,7 @@ export const strings = {
     underThreshold: "Under Threshold",
     empty: "Your watchlist is empty. Add claims from the Claim Repository Bank using the bell icon.",
     colTopic: "Topic",
+    colCreatedDate: "Claim Created Date",
     colAdded: "Added",
     colRemove: "Remove",
     thresholdNote: "Compared against the global threshold of",

@@ -38,6 +38,9 @@ export interface Policy {
    *  matchmaking callback supplies one — claim lists stay empty until then. */
   aiPolicyId: string | null;
   createdAt: string | null;
+  /** Newest `createdAt` among linked claims — what the list sort is computed
+   *  on. `null` when nothing is linked, which is why such policies sort last. */
+  lastClaimActivityAt: string | null;
 }
 
 /** `GET /policies/:id` — adds the two correlated claim lists. */
@@ -71,6 +74,11 @@ export interface CreatePolicyPayload {
   /** `YYYY-MM-DD`. */
   rolledOutDate: string;
   description?: string;
+}
+
+/** `PUT /policies/:id/file` — swaps the document, keeping every correlation. */
+export interface ReplacePolicyFilePayload {
+  file: File;
 }
 
 /** `PATCH /policies/:id` — all optional, at least one required. */

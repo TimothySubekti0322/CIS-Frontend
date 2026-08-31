@@ -1,5 +1,5 @@
 /**
- * Every route the CIS backend exposes, transcribed from the API runbook.
+ * Every route the CIS backend exposes (38), transcribed from the API runbook.
  *
  * Paths are written WITHOUT the `/api/v1` prefix — the client prepends
  * `config.apiPrefix`. The two health probes sit outside that prefix and say so
@@ -69,6 +69,10 @@ export const ENDPOINTS = {
     /** Re-queues matchmaking after a `failed` status; resets attempts. */
     rematch: def({ method: "POST", path: "/policies/:id/rematch" }),
     update: def({ method: "PATCH", path: "/policies/:id" }),
+    /** Replaces the document in place, keeping id, ai_policy_id and every
+     *  existing claim correlation — unlike DELETE + re-create, which loses all
+     *  three. Re-queues matchmaking against the new document. */
+    replaceFile: def({ method: "PUT", path: "/policies/:id/file" }),
     remove: def({ method: "DELETE", path: "/policies/:id" }),
   },
 

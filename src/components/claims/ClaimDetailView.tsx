@@ -3,14 +3,13 @@
 import { Loader2 } from "lucide-react";
 import type { ClaimDetail } from "@/types/claim";
 import { strings } from "@/lib/constants/strings";
-import { CLAIM_STATUS_MAP } from "@/lib/constants/statuses";
 import { useClaim } from "@/lib/hooks/useClaims";
 import { BackLink } from "@/components/ui/BackLink";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
-import { ClaimStatusControl } from "./ClaimStatusControl";
 import { BellButton } from "./BellButton";
+import { ReviewPanel } from "./ReviewPanel";
 import { ScoreBreakdownPanel } from "./ScoreBreakdownPanel";
 import { ScoreHistoryCard } from "./ScoreHistoryCard";
 import { TopAccountsPanel } from "./TopAccountsPanel";
@@ -80,20 +79,6 @@ function ClaimHeader({
   );
 }
 
-function StatusBar({ claim }: { claim: ClaimDetail }) {
-  return (
-    <div className="flex flex-wrap items-center gap-3 rounded-xl border border-pale-sky bg-white p-4">
-      <span className="text-sm font-bold text-regal-navy">
-        {strings.claims.claimStatus}
-      </span>
-      <StatusPill tone={CLAIM_STATUS_MAP[claim.reviewStatus].tone}>
-        {CLAIM_STATUS_MAP[claim.reviewStatus].label}
-      </StatusPill>
-      <ClaimStatusControl claimId={claim.id} value={claim.reviewStatus} size="md" />
-    </div>
-  );
-}
-
 function ExistingClaim({ claim }: { claim: ClaimDetail }) {
   return (
     <div className="space-y-6">
@@ -108,7 +93,7 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
         />
       </ClaimHeader>
 
-      <StatusBar claim={claim} />
+      <ReviewPanel claim={claim} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
@@ -160,7 +145,7 @@ function SyntheticClaim({ claim }: { claim: ClaimDetail }) {
 
       <ClaimHeader claim={claim} />
 
-      <StatusBar claim={claim} />
+      <ReviewPanel claim={claim} />
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">

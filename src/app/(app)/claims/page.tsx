@@ -5,7 +5,9 @@ import type { ClaimStatusFilter } from "@/types/claim";
 import { STATUS_FILTER_TABS } from "@/lib/constants/statuses";
 import { strings } from "@/lib/constants/strings";
 import { useClaimRepository } from "@/lib/hooks/useClaims";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import { Tabs } from "@/components/ui/Tabs";
+import { SearchBar } from "@/components/ui/SearchBar";
 import { ClaimSection } from "@/components/claims/ClaimSection";
 import { TopicFilter } from "@/components/claims/TopicFilter";
 
@@ -15,18 +17,36 @@ import { TopicFilter } from "@/components/claims/TopicFilter";
  * The whole page is one call: `GET /claims/repository` returns both sections
  * already filtered and ranked. S1 and S2 are ALWAYS both visible — the status
  * tab filters within each section, it never hides one.
+ *
+ * Status, topics and search all live here rather than inside a section,
+ * because the endpoint takes one set of filters and answers for both halves.
  */
 export default function ClaimsPage() {
   const [status, setStatus] = useState<ClaimStatusFilter>("all");
   const [topicIds, setTopicIds] = useState<string[]>([]);
+  const [search, setSearch] = useState("");
+
+  // The search box drives a network call, so wait for a pause in typing.
+  const q = useDebouncedValue(search.trim(), 300);
 
   const params = useMemo(
-    () => ({ status, topicIds: topicIds.length ? topicIds : undefined }),
-    [status, topicIds],
+    () => ({
+      status,
+      topicIds: topicIds.length ? topicIds : undefined,
+      q: q || undefined,
+    }),
+    [status, topicIds, q],
   );
   const { data, isPending, isError } = useClaimRepository(params);
 
-  const topicQuery = topicIds.length ? `&topic_ids=${topicIds.join(",")}` : "";
+  const filtered = status !== "all" || topicIds.length > 0 || q.length > 0;
+  const seeAllQuery = [
+    `status=${status}`,
+    topicIds.length ? `topic_ids=${topicIds.join(",")}` : "",
+    q ? `q=${encodeURIComponent(q)}` : "",
+  ]
+    .filter(Boolean)
+    .join("&");
 
   return (
     <div className="space-y-8">
@@ -38,7 +58,19 @@ export default function ClaimsPage() {
           onChange={setStatus}
           aria-label="Filter claims by status"
         />
-        <TopicFilter selected={topicIds} onChange={setTopicIds} />
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <TopicFilter
+            selected={topicIds}
+            onChange={setTopicIds}
+            className="lg:flex-1"
+          />
+          <SearchBar
+            value={search}
+            onChange={setSearch}
+            placeholder={strings.claims.searchAll}
+            className="lg:w-80"
+          />
+        </div>
       </div>
 
       <ClaimSection
@@ -46,10 +78,9 @@ export default function ClaimsPage() {
         section={data?.existing}
         isPending={isPending}
         isError={isError}
-        status={status}
-        topicIds={topicIds}
+        filtered={filtered}
         lastFetchedAt={data?.lastFetchedAt}
-        seeAllHref={`/claims/all?type=existing&status=${status}${topicQuery}`}
+        seeAllHref={`/claims/all?type=existing&${seeAllQuery}`}
       />
 
       <hr className="border-pale-sky" />
@@ -59,9 +90,8 @@ export default function ClaimsPage() {
         section={data?.nonExisting}
         isPending={isPending}
         isError={isError}
-        status={status}
-        topicIds={topicIds}
-        seeAllHref={`/claims/all?type=non_existing&status=${status}${topicQuery}`}
+        filtered={filtered}
+        seeAllHref={`/claims/all?type=non_existing&${seeAllQuery}`}
       />
     </div>
   );

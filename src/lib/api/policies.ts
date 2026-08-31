@@ -5,6 +5,7 @@ import type {
   PolicyDetail,
   PolicyListParams,
   PolicyProcessing,
+  ReplacePolicyFilePayload,
   UpdatePolicyPayload,
 } from "@/types/policy";
 import { apiClient } from "./client";
@@ -118,6 +119,28 @@ export const policiesApi = {
     const dto = await apiClient.call<PolicyDto>(ENDPOINTS.policies.update, {
       params: { id },
       body,
+    });
+    return mapPolicy(dto);
+  },
+
+  /**
+   * `PUT /policies/:id/file` — swaps the document in place.
+   *
+   * The policy id, its `aiPolicyId` and every existing claim correlation are
+   * preserved, unlike DELETE + re-create which loses all three. When an AI
+   * service is configured this also resets `processingStatus` to `pending` and
+   * re-queues matchmaking against the new document; existing correlations stay
+   * until that job reports back. 409 if matchmaking is already running.
+   */
+  async replaceFile(
+    id: string,
+    payload: ReplacePolicyFilePayload,
+  ): Promise<Policy> {
+    const form = new FormData();
+    form.append("file", payload.file);
+    const dto = await apiClient.call<PolicyDto>(ENDPOINTS.policies.replaceFile, {
+      params: { id },
+      form,
     });
     return mapPolicy(dto);
   },

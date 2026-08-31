@@ -308,6 +308,9 @@ export function buildSeed(): Seed {
       positive_statement_count: positive,
       negative_statement_count: negative,
       created_at: daysAgo(3 + i * 2),
+      // Distinct from created_at: when the AI first caught it in the wild.
+      first_caught_at: daysAgo(5 + i * 2),
+      review: null,
       activity: {
         type: "debunk",
         content: debunkDraft(statement),
@@ -331,6 +334,7 @@ export function buildSeed(): Seed {
       topic: topicRef(i + 2),
       review_status: (["unreviewed", "active", "inactive", "action_taken"] as const)[i % 4],
       created_at: daysAgo(i),
+      review: null,
       activity: {
         type: "prebunk",
         content: prebunkDraft(statement),
@@ -454,6 +458,7 @@ function mockPolicy(
     linked_claim_count: 0,
     ai_policy_id: id.replace("b0000000", "e0000000"),
     created_at: daysAgo(createdDaysAgo),
+    last_claim_activity_at: null,
     attempts: 1,
     processed_at: daysAgo(createdDaysAgo - 1),
   };
@@ -518,6 +523,8 @@ export function createGeneratedClaim(topicId?: string): MockClaim {
     positive_statement_count: positive,
     negative_statement_count: negative,
     created_at: new Date().toISOString(),
+    first_caught_at: new Date(Date.now() - 2 * DAY).toISOString(),
+    review: null,
     activity: {
       type: "debunk",
       content: debunkDraft(statement),
@@ -548,6 +555,7 @@ export function createPredictedClaim(policyId: string, policyName: string): Mock
     topic: { id: topic.id, name: topic.name },
     review_status: "unreviewed",
     created_at: new Date().toISOString(),
+    review: null,
     activity: {
       type: "prebunk",
       content: prebunkDraft(statement),
