@@ -2,6 +2,7 @@
 
 import { useState, Fragment } from "react";
 import { Check, Copy } from "lucide-react";
+import type { DebunkBlocks } from "@/types/claim";
 import { strings } from "@/lib/constants/strings";
 import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
@@ -13,7 +14,21 @@ export interface CopyableContentBoxProps {
   content: string | null;
   emptyLabel: string;
   generatedAt?: string | null;
+  /**
+   * The Truth Sandwich split into three labelled blocks. Absent for every
+   * Synthetic claim (their prebunk is flat) and for Existing claims generated
+   * before the split existed — in both cases `content` is rendered as one
+   * paragraph, which is the correct rendering, not a degraded one.
+   */
+  blocks?: DebunkBlocks | null;
 }
+
+/** Section labels for the three blocks, in the order the sandwich requires. */
+const BLOCK_LABELS: [keyof DebunkBlocks, string][] = [
+  ["coreFact", "Core fact"],
+  ["nuancedFlag", "The claim, flagged"],
+  ["reiteratedFact", "Fact, restated"],
+];
 
 /**
  * The AI-generated Debunk/Prebunk draft with a copy action.
@@ -25,6 +40,7 @@ export function CopyableContentBox({
   content,
   emptyLabel,
   generatedAt,
+  blocks,
 }: CopyableContentBoxProps) {
   const [copied, setCopied] = useState(false);
   const { toast } = useToast();
@@ -63,13 +79,32 @@ export function CopyableContentBox({
       </div>
       {content ? (
         <>
-          <div className="mt-3 space-y-2 rounded-lg bg-mint-cream p-3 text-sm leading-relaxed text-regal-navy">
-            {content.split("\n").map((line, i) => (
-              <p key={i} className={line.trim() === "" ? "h-1" : undefined}>
-                {renderInline(line)}
-              </p>
-            ))}
-          </div>
+          {blocks ? (
+            /* Rendered as sections, but the copy action still uses `content`:
+               the single paragraph is what gets pasted into a channel. */
+            <div className="mt-3 space-y-2">
+              {BLOCK_LABELS.map(([key, label]) =>
+                blocks[key] ? (
+                  <div key={key} className="rounded-lg bg-mint-cream p-3">
+                    <p className="text-xs font-bold uppercase tracking-wide text-regal-navy/50">
+                      {label}
+                    </p>
+                    <p className="mt-1 text-sm leading-relaxed text-regal-navy">
+                      {renderInline(blocks[key] as string)}
+                    </p>
+                  </div>
+                ) : null,
+              )}
+            </div>
+          ) : (
+            <div className="mt-3 space-y-2 rounded-lg bg-mint-cream p-3 text-sm leading-relaxed text-regal-navy">
+              {content.split("\n").map((line, i) => (
+                <p key={i} className={line.trim() === "" ? "h-1" : undefined}>
+                  {renderInline(line)}
+                </p>
+              ))}
+            </div>
+          )}
           <p className="mt-2 text-xs text-regal-navy/50">
             AI-generated draft — treat as a starting point, not a final decision.
           </p>

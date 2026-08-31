@@ -9,6 +9,8 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { BellButton } from "./BellButton";
+import { CoordinatedNetworkPanel } from "./CoordinatedNetworkLink";
+import { HarmConfirmPanel } from "./HarmConfirmPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { ScoreBreakdownPanel } from "./ScoreBreakdownPanel";
 import { ScoreHistoryCard } from "./ScoreHistoryCard";
@@ -95,10 +97,21 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
 
       <ReviewPanel claim={claim} />
 
+      {/* US61 — shown only when a qualifying network exists. There is no empty
+          state: nothing to show and no detector deployed look the same here. */}
+      <CoordinatedNetworkPanel badge={claim.coordinatedNetwork} />
+
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
           {claim.scoreBreakdown && (
             <ScoreBreakdownPanel score={claim.scoreBreakdown} />
+          )}
+
+          {claim.scoreBreakdown?.harmBreakdown && (
+            <HarmConfirmPanel
+              claimId={claim.id}
+              harm={claim.scoreBreakdown.harmBreakdown}
+            />
           )}
 
           <ScoreHistoryCard claimId={claim.id} />
@@ -108,6 +121,7 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
             content={claim.activity?.available ? claim.activity.content : null}
             emptyLabel={strings.claims.activityUnavailable}
             generatedAt={claim.activity?.generatedAt ?? null}
+            blocks={claim.activity?.debunk ?? null}
           />
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

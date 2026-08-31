@@ -32,3 +32,68 @@ export function useSnapshotScores() {
     },
   });
 }
+
+/**
+ * Re-evaluates every Existing claim's score. Long-running: the AI service does
+ * LLM work inside the request, so the caller must show a progress affordance.
+ */
+export function useRescoreClaims() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => adminApi.rescore(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.claims.all });
+      qc.invalidateQueries({ queryKey: queryKeys.alerts.all });
+    },
+  });
+}
+
+/**
+ * "Generate sample data". Until a live crawler exists this is the only route
+ * new content — and therefore new Existing claims — takes into the system.
+ */
+export function useGenerateSampleContent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (options: Parameters<typeof adminApi.generateSampleContent>[0]) =>
+      adminApi.generateSampleContent(options),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.claims.all });
+      qc.invalidateQueries({ queryKey: queryKeys.topics.all });
+      // New content moves the S1 "last fetched" label.
+      qc.invalidateQueries({ queryKey: queryKeys.settings.all });
+    },
+  });
+}
+
+/** Forces a clustering pass. Normally unnecessary — ingestion triggers one. */
+export function useClusterNow() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: () => adminApi.clusterNow(),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.claims.all });
+      qc.invalidateQueries({ queryKey: queryKeys.topics.all });
+    },
+  });
+}
+
+/**
+ * Clears backend rows orphaned by an AI-side reseed.
+ *
+ * A dry run changes nothing, so nothing is invalidated for it — only a real
+ * sweep touches reviews, watchlist rows and policy links.
+ */
+export function useReconcile() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (options: { dryRun?: boolean; force?: boolean }) =>
+      adminApi.reconcile(options),
+    onSuccess: (result) => {
+      if (result.dryRun) return;
+      qc.invalidateQueries({ queryKey: queryKeys.claims.all });
+      qc.invalidateQueries({ queryKey: queryKeys.alerts.all });
+      qc.invalidateQueries({ queryKey: queryKeys.policies.all });
+    },
+  });
+}

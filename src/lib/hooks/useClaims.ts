@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   ClaimListParams,
   ClaimRepositoryParams,
+  ConfirmHarmPayload,
   ScoreHistoryParams,
   StatementListParams,
   UpdateClaimStatusPayload,
@@ -90,6 +91,25 @@ export function useUpdateClaimStatus() {
       qc.invalidateQueries({ queryKey: queryKeys.claims.detail(variables.id) });
       // A policy's claim lists embed the same review status.
       qc.invalidateQueries({ queryKey: queryKeys.policies.all });
+    },
+  });
+}
+
+/**
+ * An analyst confirming or overriding the four Harm sub-scores (PRD 6.2.4).
+ *
+ * The response is the whole rescored claim, so it is written straight into the
+ * detail cache rather than triggering a re-fetch. Every list that carries a
+ * FinalClaimScore is invalidated because the rescore moves it.
+ */
+export function useConfirmHarm(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: ConfirmHarmPayload) => claimsApi.confirmHarm(id, payload),
+    onSuccess: (claim) => {
+      qc.setQueryData(queryKeys.claims.detail(id), claim);
+      qc.invalidateQueries({ queryKey: queryKeys.claims.all });
+      qc.invalidateQueries({ queryKey: queryKeys.alerts.all });
     },
   });
 }

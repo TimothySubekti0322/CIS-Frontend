@@ -13,7 +13,14 @@ export interface Readiness {
   database: string;
   storageDriver: string;
   aiServiceConfigured: boolean;
-  internalRoutesAuthenticated: boolean;
+  /**
+   * `null` when the AI service is not configured — there is nothing to reach.
+   * An unreachable AI service does NOT make the probe fail: only a database
+   * failure returns 503.
+   */
+  aiServiceReachable: boolean | null;
+  /** Present only when `aiServiceReachable` is false. */
+  aiServiceError: string | null;
 }
 
 /**
@@ -34,17 +41,22 @@ export const healthApi = {
   },
 
   /**
-   * `GET /health/ready` — database, storage driver and AI service config.
-   * 503 when the database ping fails, echoing the same payload under
+   * `GET /health/ready` — database, storage driver and AI service reachability.
+   * 503 only when the database ping fails, echoing the same payload under
    * `error.details`.
    */
   async ready(): Promise<Readiness> {
     const dto = await apiClient.call<ReadinessDto>(ENDPOINTS.health.ready);
+    const ai = dto?.ai_service ?? null;
+    const configured = ai?.configured ?? false;
     return {
       database: dto?.database ?? "unknown",
       storageDriver: dto?.storage_driver ?? "unknown",
-      aiServiceConfigured: dto?.ai_service?.configured ?? false,
-      internalRoutesAuthenticated: dto?.internal_routes_authenticated ?? false,
+      aiServiceConfigured: configured,
+      // `reachable` is only sent when configured, so an unconfigured service
+      // reports null rather than a misleading `false`.
+      aiServiceReachable: configured ? (ai?.reachable ?? false) : null,
+      aiServiceError: ai?.error ?? null,
     };
   },
 };

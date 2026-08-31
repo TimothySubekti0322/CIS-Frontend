@@ -1,6 +1,7 @@
 import type {
   ClaimDetail,
   ClaimListParams,
+  ConfirmHarmPayload,
   ClaimPolicyRef,
   ClaimRepository,
   ClaimRepositoryParams,
@@ -180,5 +181,38 @@ export const claimsApi = {
       },
     );
     return dto ? mapClaimSummary(dto) : null;
+  },
+
+  /**
+   * `PUT /claims/:id/harm/confirm` — an analyst confirms or overrides the four
+   * Harm sub-scores (PRD 6.2.4). Existing claims only.
+   *
+   * The backend cannot apply this itself: `harm_*` and every score derived from
+   * them are columns on the AI-owned `claims` table. The request is proxied,
+   * the AI service recomputes harm -> claim_score -> final_claim_score, and the
+   * claim is re-read — so the response IS the full `GET /claims/:id` payload,
+   * already rescored. Never re-fetch after a successful confirm.
+   *
+   * An empty payload is valid and meaningful: "I reviewed these and they are
+   * right" still flips `humanConfirmed` to true.
+   *
+   * Runs on the backend's long timeout — show a progress affordance.
+   */
+  async confirmHarm(
+    id: string,
+    payload: ConfirmHarmPayload = {},
+  ): Promise<ClaimDetail> {
+    const dto = await apiClient.call<ClaimDetailDto>(ENDPOINTS.claims.confirmHarm, {
+      params: { id },
+      // Only the sub-scores the analyst actually changed are sent; an omitted
+      // field keeps the AI's own classification rather than resetting it.
+      body: {
+        public_safety: payload.publicSafety,
+        institutional_trust: payload.institutionalTrust,
+        economic: payload.economic,
+        policy_disruption: payload.policyDisruption,
+      },
+    });
+    return mapClaimDetail(dto);
   },
 };

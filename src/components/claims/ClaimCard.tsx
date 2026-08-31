@@ -10,6 +10,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { ClaimStatusControl } from "./ClaimStatusControl";
 import { BellButton } from "./BellButton";
+import { CoordinatedNetworkIcon } from "./CoordinatedNetworkLink";
 
 export interface ClaimCardProps {
   claim: ClaimSummary;
@@ -44,6 +45,9 @@ export function ClaimCard({ claim }: ClaimCardProps) {
           {isExisting ? strings.claims.genericTag : strings.claims.syntheticTag}
         </StatusPill>
         <div className="flex items-center gap-1.5">
+          {/* US61 - visible during triage without opening the claim. Part of
+              the shared card, so it appears on F2's policy detail page too. */}
+          <CoordinatedNetworkIcon badge={claim.coordinatedNetwork} />
           {claim.finalClaimScore !== null && (
             <ScoreBadge score={claim.finalClaimScore} size="sm" />
           )}

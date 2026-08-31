@@ -6,6 +6,12 @@ export interface ScoreBadgeProps {
   /** Show the "/100" suffix (used on detail pages). */
   showScale?: boolean;
   size?: "sm" | "md" | "lg";
+  /**
+   * What the number is, for the tooltip. Defaults to FinalClaimScore; F5
+   * reuses this same badge for the Coordination Score (PRD US46), which is on
+   * the same 0–100 scale and uses the same severity banding.
+   */
+  label?: string;
   className?: string;
 }
 
@@ -16,7 +22,13 @@ const SIZES = {
 };
 
 /** FinalClaimScore badge (0–100) — existing/generic claims only (PRD US10). */
-export function ScoreBadge({ score, showScale, size = "md", className }: ScoreBadgeProps) {
+export function ScoreBadge({
+  score,
+  showScale,
+  size = "md",
+  label = "FinalClaimScore",
+  className,
+}: ScoreBadgeProps) {
   return (
     <span
       className={cn(
@@ -25,7 +37,7 @@ export function ScoreBadge({ score, showScale, size = "md", className }: ScoreBa
         SIZES[size],
         className,
       )}
-      title={`FinalClaimScore ${score} / 100`}
+      title={`${label} ${score} / 100`}
     >
       {score.toFixed(1)}
       {showScale && <span className="ml-0.5 font-normal opacity-70">/100</span>}

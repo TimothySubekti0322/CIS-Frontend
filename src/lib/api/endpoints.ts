@@ -1,5 +1,5 @@
 /**
- * Every route the CIS backend exposes (38), transcribed from the API runbook.
+ * Every route the CIS backend exposes, transcribed from `docs/api/`.
  *
  * Paths are written WITHOUT the `/api/v1` prefix — the client prepends
  * `config.apiPrefix`. The two health probes sit outside that prefix and say so
@@ -52,6 +52,10 @@ export const ENDPOINTS = {
     scoreHistory: def({ method: "GET", path: "/claims/:id/score-history" }),
     /** Writes `cis_claim_reviews`, never the AI service's `claims.status`. */
     updateStatus: def({ method: "PUT", path: "/claims/:id/status" }),
+    /** Existing claims only. Proxied to the AI service, which rescores before
+     *  replying, so the response IS the full `GET /claims/:id` payload — never
+     *  re-fetch after a successful confirm. Runs on the long timeout. */
+    confirmHarm: def({ method: "PUT", path: "/claims/:id/harm/confirm" }),
   },
 
   /** F2 — Public Policy Bank. */
@@ -92,6 +96,19 @@ export const ENDPOINTS = {
     getAlertThreshold: def({ method: "GET", path: "/settings/alert-threshold" }),
     /** Applies globally and takes effect at read time, immediately. */
     updateAlertThreshold: def({ method: "PUT", path: "/settings/alert-threshold" }),
+    /** F5 detector control panel (US62) — ~30 governed parameters with two
+     *  cross-field constraints, so it does NOT live in `cis_settings`. */
+    getDetector: def({ method: "GET", path: "/settings/detector" }),
+    /** Every field optional: an omitted parameter keeps its stored value. */
+    updateDetector: def({ method: "PUT", path: "/settings/detector" }),
+    /** PRD 10.11's bounds — serve the form from this, never hardcode them. */
+    detectorRanges: def({ method: "GET", path: "/settings/detector/ranges" }),
+    detectorHistory: def({ method: "GET", path: "/settings/detector/history" }),
+    /** The same change log across every setting, not just the detector. */
+    history: def({ method: "GET", path: "/settings/history" }),
+    /** IANA zone name — PRD 10.8 needs city-local time in report footers. */
+    getCityTimezone: def({ method: "GET", path: "/settings/city-timezone" }),
+    setCityTimezone: def({ method: "PUT", path: "/settings/city-timezone" }),
   },
 
   admin: {
@@ -102,6 +119,107 @@ export const ENDPOINTS = {
     }),
     /** Forces an F3 chart-history snapshot without waiting for the cron job. */
     snapshotScores: def({ method: "POST", path: "/admin/snapshot-scores" }),
+    /** Re-evaluates every Existing claim's score. NPR drifts with wall-clock
+     *  time, so without this the F3 trend is a horizontal line by construction.
+     *  Long call; 503 without an AI service. */
+    rescore: def({ method: "POST", path: "/admin/rescore" }),
+    /** Until a live crawler exists this is the only way content enters the
+     *  system through the product. Long call when `auto_cluster` is on. */
+    generateSampleContent: def({
+      method: "POST",
+      path: "/admin/generate-sample-content",
+    }),
+    /** Normally unnecessary — ingestion triggers clustering on its own. */
+    clusterNow: def({ method: "POST", path: "/admin/cluster-now" }),
+    /** Clears backend rows orphaned by an AI-side reseed. Not reversible;
+     *  prefer `dry_run` first. 409 trips the empty-database guard. */
+    reconcile: def({ method: "POST", path: "/admin/reconcile" }),
+
+    /* --- F5 governance surfaces (US62, US63, US64, PRD 10.9.3) --- */
+
+    /** On-demand run: `{ claim_ids }`. 422 for a Synthetic claim — a predicted
+     *  claim has no real posts, so there is nothing to cluster. */
+    triggerDetection: def({ method: "POST", path: "/admin/detection-runs" }),
+    /** Coordinated clusters that failed the claim-relevance gate. Retained so
+     *  an admin can see whether the gate is too loose — never surfaced in F5. */
+    offtopicClusters: def({ method: "GET", path: "/admin/offtopic-clusters" }),
+    offtopicRates: def({ method: "GET", path: "/admin/offtopic-clusters/rates" }),
+    dismissals: def({ method: "GET", path: "/admin/dismissals" }),
+    dismissalSummary: def({ method: "GET", path: "/admin/dismissals/summary" }),
+    exportAudit: def({ method: "GET", path: "/admin/export-audit" }),
+
+    /* --- the declared-coordination allowlist (US56, US63) --- */
+
+    allowlist: def({ method: "GET", path: "/admin/allowlist" }),
+    allowlistCategories: def({ method: "GET", path: "/admin/allowlist/categories" }),
+    createAllowlistEntry: def({ method: "POST", path: "/admin/allowlist" }),
+    updateAllowlistEntry: def({ method: "PATCH", path: "/admin/allowlist/:id" }),
+    /** A removal reason is required and is stored separately from the addition
+     *  reason — overwriting the latter would destroy why the entry existed. */
+    removeAllowlistEntry: def({ method: "DELETE", path: "/admin/allowlist/:id" }),
+
+    /** Slogans and civic boilerplate excluded from duplication scoring, so a
+     *  shared campaign hashtag is not read as content duplication. */
+    commonPhrases: def({ method: "GET", path: "/admin/common-phrases" }),
+    createCommonPhrase: def({ method: "POST", path: "/admin/common-phrases" }),
+    deleteCommonPhrase: def({ method: "DELETE", path: "/admin/common-phrases/:id" }),
+  },
+
+  /**
+   * F5 — Coordinated-Network Detector.
+   *
+   * When the detection pipeline has not been deployed its tables are absent and
+   * every route here answers `503 SERVICE_UNAVAILABLE` with a display-ready
+   * message. F1–F4 are unaffected, and so is the US61 claim badge, which
+   * simply does not appear.
+   */
+  networks: {
+    list: def({ method: "GET", path: "/networks" }),
+    /** The composite is never returned without `why_flagged` (US50). */
+    get: def({ method: "GET", path: "/networks/:id" }),
+    /** `reason` is required, min 20 chars — unlike F1's optional claim notes. */
+    updateStatus: def({ method: "PUT", path: "/networks/:id/status" }),
+    /** Append-only, newest first; each entry carries the signal profile as it
+     *  stood at that decision — a re-run recomputes the live scores. */
+    reviewLog: def({ method: "GET", path: "/networks/:id/review-log" }),
+    /** Nodes carry precomputed ForceAtlas2 coordinates: layout is NOT
+     *  recomputed client-side, so the PDF and the screen render identically. */
+    graph: def({ method: "GET", path: "/networks/:id/graph" }),
+    timeline: def({ method: "GET", path: "/networks/:id/timeline" }),
+    /** Rendered from the snapshot and never re-fetched, which is why a deleted
+     *  post still appears, marked no longer publicly available. */
+    content: def({ method: "GET", path: "/networks/:id/content" }),
+    accounts: def({ method: "GET", path: "/networks/:id/accounts" }),
+    /** "No account may appear in a network without a viewable reason" (US55). */
+    account: def({ method: "GET", path: "/networks/:id/accounts/:accountId" }),
+    /** Written to the export audit log BEFORE the bytes are sent. */
+    accountsCsv: def({ method: "GET", path: "/networks/:id/accounts.csv" }),
+    /** Fail-closed gate: only `under_review` / `confirmed` / `action_taken`. */
+    generateReport: def({ method: "POST", path: "/networks/:id/reports" }),
+    reports: def({ method: "GET", path: "/networks/:id/reports" }),
+    evidenceBundle: def({ method: "POST", path: "/networks/:id/evidence-bundle" }),
+    /** US56 — allowlist a whole membership, or one member. */
+    allowlistNetwork: def({ method: "POST", path: "/networks/:id/allowlist" }),
+    allowlistAccount: def({
+      method: "POST",
+      path: "/networks/:id/accounts/:accountId/allowlist",
+    }),
+  },
+
+  /** Addressed by report id: a report outlives the page it came from. */
+  reports: {
+    /** Carries `X-Content-SHA256` so a recipient can verify the download. */
+    file: def({ method: "GET", path: "/reports/:reportId/file" }),
+  },
+
+  /**
+   * Detection runs. The read side is deliberately NOT under `/admin`:
+   * truncation and unavailable signal families explain why a network is banded
+   * where it is, which is an analyst's question, not an operator's.
+   */
+  detectionRuns: {
+    list: def({ method: "GET", path: "/detection-runs" }),
+    get: def({ method: "GET", path: "/detection-runs/:id" }),
   },
 
   /** Ops probes — mounted at the API root, not under `/api/v1`. */

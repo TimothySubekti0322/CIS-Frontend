@@ -88,11 +88,46 @@ export interface ScoreBreakdownDto {
   note?: string | null;
 }
 
+/**
+ * The Truth Sandwich, split into three labelled blocks for a UI that renders
+ * sections instead of one paragraph.
+ *
+ * Omitted entirely for every Synthetic claim (their prebunk is flat) and for
+ * older Existing claims generated before the split existed. An individual block
+ * can also be `null` — guard for both.
+ */
+export interface DebunkBlocksDto {
+  core_fact?: string | null;
+  nuanced_flag?: string | null;
+  reiterated_fact?: string | null;
+}
+
 export interface ClaimActivityDto {
   type?: string;
+  /** Unchanged — still the copy-to-clipboard source. */
   content?: string;
   generated_at?: string | null;
   available?: boolean;
+  debunk?: DebunkBlocksDto | null;
+}
+
+/**
+ * The US61 cross-link. **Omitted, not null**, when nothing qualifies: the PRD
+ * is explicit that there is no empty state. A backend with no detection
+ * pipeline deployed behaves identically, which is correct — in both cases
+ * there is nothing to show.
+ */
+export interface ClaimNetworkBadgeDto {
+  network_id: string;
+  label?: string;
+  coordination_score?: number;
+  confidence_band?: string;
+  /** Displayed, not merely used for filtering — see US61. */
+  review_status?: string;
+  account_count?: number;
+  /** How many other networks also qualify; the highest-scoring one is returned. */
+  other_count?: number;
+  detail_url?: string;
 }
 
 export interface ClaimPolicyRefDto {
@@ -130,6 +165,8 @@ export interface ClaimDto {
   negative_statement_count?: number | null;
   created_at?: string | null;
   first_caught_at?: string | null;
+  /** Absent unless a qualifying coordinated network exists (US61). */
+  coordinated_network?: ClaimNetworkBadgeDto;
 }
 
 /** The single overlay row in `cis_claim_reviews` — most recent call only. */
@@ -316,6 +353,42 @@ export interface SnapshotResultDto {
   snapshots_captured?: number;
 }
 
+export interface RescoreResultDto {
+  claims_rescored?: number;
+}
+
+/**
+ * The three `claims_*` counts and `content_items_clustered` are `null` when
+ * `auto_cluster` was false: nothing was clustered, which is different from
+ * clustering that produced nothing.
+ */
+export interface SampleContentResultDto {
+  generated_count?: number;
+  failed_count?: number;
+  claims_created?: number | null;
+  claims_updated?: number | null;
+  content_items_clustered?: number | null;
+  last_fetched_at?: string | null;
+  message?: string;
+}
+
+export interface ClusterResultDto {
+  claims_created?: number;
+  claims_updated?: number;
+  content_items_clustered?: number;
+}
+
+export interface ReconcileResultDto {
+  dry_run?: boolean;
+  orphaned_reviews?: number;
+  orphaned_alerts?: number;
+  orphaned_score_snapshots?: number;
+  policies_unlinked?: number;
+  claims_in_database?: number;
+  ai_policies_in_database?: number;
+  message?: string;
+}
+
 /* ------------------------------ health ------------------------------ */
 
 export interface HealthDto {
@@ -325,9 +398,19 @@ export interface HealthDto {
   uptime_seconds?: number;
 }
 
+/**
+ * `internal_routes_authenticated` was removed in V1. `reachable` is present
+ * only when `configured` is true, and `error` only when `reachable` is false.
+ *
+ * An unreachable AI service does NOT make this endpoint 503 — only a database
+ * failure does.
+ */
 export interface ReadinessDto {
   database?: string;
   storage_driver?: string;
-  ai_service?: { configured?: boolean } | null;
-  internal_routes_authenticated?: boolean;
+  ai_service?: {
+    configured?: boolean;
+    reachable?: boolean;
+    error?: string;
+  } | null;
 }

@@ -13,6 +13,8 @@
 import type {
   ClaimActivity,
   ClaimDetail,
+  CoordinatedNetworkBadge,
+  DebunkBlocks,
   ClaimPolicyRef,
   ClaimRepository,
   ClaimRepositorySection,
@@ -56,10 +58,12 @@ import type {
   ClaimActivityDto,
   ClaimDetailDto,
   ClaimDto,
+  ClaimNetworkBadgeDto,
   ClaimPolicyRefDto,
   ClaimRepositoryDto,
   ClaimRepositorySectionDto,
   ClaimReviewDto,
+  DebunkBlocksDto,
   HarmBreakdownDto,
   PolicyDetailDto,
   PolicyDto,
@@ -235,6 +239,25 @@ export function mapScoreBreakdown(
   };
 }
 
+/**
+ * The three Truth Sandwich blocks. `null` unless at least one block has text:
+ * a Synthetic claim's prebunk is flat, and older Existing claims predate the
+ * split — both must fall back to rendering `content` as one paragraph.
+ */
+function mapDebunkBlocks(
+  dto: DebunkBlocksDto | null | undefined,
+): DebunkBlocks | null {
+  if (!dto) return null;
+  const blocks = {
+    coreFact: str(dto.core_fact),
+    nuancedFlag: str(dto.nuanced_flag),
+    reiteratedFact: str(dto.reiterated_fact),
+  };
+  return blocks.coreFact || blocks.nuancedFlag || blocks.reiteratedFact
+    ? blocks
+    : null;
+}
+
 function mapActivity(
   dto: ClaimActivityDto | null | undefined,
 ): ClaimActivity | null {
@@ -246,6 +269,31 @@ function mapActivity(
     generatedAt: str(dto.generated_at),
     // `available: false` and an empty body both mean "nothing to show yet".
     available: bool(dto.available, Boolean(content)),
+    debunk: mapDebunkBlocks(dto.debunk),
+  };
+}
+
+/**
+ * US61's badge. Returns `null` when the backend omitted the field — there is
+ * no empty state, so "no qualifying network" and "no detector deployed" render
+ * identically, which is correct.
+ */
+function mapNetworkBadge(
+  dto: ClaimNetworkBadgeDto | null | undefined,
+): CoordinatedNetworkBadge | null {
+  if (!dto?.network_id) return null;
+  return {
+    networkId: dto.network_id,
+    label: str(dto.label) ?? "Coordinated network",
+    coordinationScore: count(dto.coordination_score),
+    confidenceBand: oneOf<"low" | "medium" | "high">(
+      dto.confidence_band,
+      ["low", "medium", "high"],
+      "medium",
+    ),
+    reviewStatus: str(dto.review_status) ?? "unreviewed",
+    accountCount: count(dto.account_count),
+    otherCount: count(dto.other_count),
   };
 }
 
@@ -297,6 +345,9 @@ export function mapClaimSummary(dto: ClaimDto): ClaimSummary {
     createdAt: str(dto.created_at),
     // Two different dates: only an Existing claim carries `first_caught_at`.
     firstCaughtAt: isExisting ? str(dto.first_caught_at) : null,
+    // PRD 10.3 puts Synthetic claims out of detection scope, so a badge on one
+    // would be a contradiction rather than a case to render.
+    coordinatedNetwork: isExisting ? mapNetworkBadge(dto.coordinated_network) : null,
   };
 }
 

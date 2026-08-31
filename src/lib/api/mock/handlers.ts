@@ -1,6 +1,12 @@
 import { ApiError } from "@/types/common";
 import { getToken } from "@/lib/auth/token";
 import { sleep } from "@/lib/utils";
+import {
+  computeClaimScore,
+  computeDiscountFactor,
+  computeFinalClaimScore,
+  computeHarm,
+} from "@/lib/scoring";
 import type {
   ClaimDto,
   ClaimPolicyRefDto,
@@ -25,6 +31,7 @@ import {
   setSetting,
   type MockState,
 } from "./store";
+import { networkBadgeFor, networkMockHandlers } from "./networkHandlers";
 
 export interface MockContext {
   method: string;
@@ -111,6 +118,9 @@ function summaryOf(s: MockState, claim: MockClaim): ClaimDto {
     ...base,
     // Only an Existing claim was "caught in the wild".
     first_caught_at: claim.first_caught_at,
+    // US61. Omitted, not null, when nothing qualifies — there is no empty
+    // state, and PRD 10.3 puts Synthetic claims out of detection scope.
+    coordinated_network: networkBadgeFor(claim.id),
     final_claim_score: claim.score_breakdown?.final_claim_score ?? null,
     is_dormant: claim.is_dormant ?? false,
     is_on_alert: isWatched(s, claim.id),
@@ -1050,6 +1060,173 @@ const snapshotScores: MockHandler = async () => {
   return ok({ snapshots_captured: captured }, "score snapshots captured");
 };
 
+/**
+ * `POST /admin/rescore`. NPR drifts as opposing posts age out of the window,
+ * so the mock nudges the discount factor rather than returning the same
+ * numbers — a rescore that changes nothing would hide the bug it exists to
+ * prevent (a flat F3 trend line).
+ */
+const rescoreClaims: MockHandler = async () => {
+  await sleep(900);
+  const s = getState();
+  let rescored = 0;
+  for (const claim of s.claims) {
+    const score = claim.score_breakdown;
+    if (claim.claim_type !== "existing" || !score) continue;
+    if (score.is_dormant) continue;
+    const drift = ((rescored % 5) - 2) / 100;
+    const npr = Math.min(Math.max((score.npr ?? 0) + drift, 0), 1);
+    const discount = computeDiscountFactor(npr);
+    score.npr = Math.round(npr * 100) / 100;
+    score.discount_factor = discount;
+    score.final_claim_score = computeFinalClaimScore(
+      score.claim_score ?? 0,
+      discount,
+    );
+    claim.final_claim_score = score.final_claim_score;
+    rescored += 1;
+  }
+  saveState();
+  return ok({ claims_rescored: rescored }, "claims rescored");
+};
+
+const generateSampleContent: MockHandler = async (ctx) => {
+  await sleep(1200);
+  const s = getState();
+  const { count, auto_cluster } = body<{
+    count?: number;
+    topic_hint?: string;
+    auto_cluster?: boolean;
+  }>(ctx);
+  const requested = Math.min(Math.max(count ?? 10, 1), 50);
+  if (count !== undefined && (count < 1 || count > 50)) {
+    fail("count must be between 1 and 50", 422, "UNPROCESSABLE_ENTITY");
+  }
+  const clustering = auto_cluster !== false;
+
+  // Clustering is what turns content into claims, so only the clustered path
+  // creates any.
+  const created = clustering ? Math.max(1, Math.floor(requested / 5)) : 0;
+  for (let i = 0; i < created; i++) {
+    s.claims.unshift(createGeneratedClaim());
+  }
+  const now = new Date().toISOString();
+  setSetting(s, CLAIMS_LAST_FETCHED_KEY, now);
+  saveState();
+
+  return ok(
+    {
+      generated_count: requested,
+      failed_count: 0,
+      // Null, not zero, when nothing was clustered: "not clustered" and
+      // "clustered and produced nothing" are different answers.
+      claims_created: clustering ? created : null,
+      claims_updated: clustering ? Math.max(0, requested - created * 5) : null,
+      content_items_clustered: clustering ? requested : null,
+      last_fetched_at: now,
+      message: `generated ${requested} content items`,
+    },
+    "sample content generated",
+  );
+};
+
+const clusterNow: MockHandler = async () => {
+  await sleep(700);
+  return ok(
+    { claims_created: 0, claims_updated: 0, content_items_clustered: 0 },
+    "clustering pass complete",
+  );
+};
+
+/**
+ * `POST /admin/reconcile`. Mock mode never has orphans — the claims and the
+ * `cis_*` overlay live in the same store — so this reports a clean sweep. The
+ * empty-database guard is not simulated: it exists to catch a backend pointed
+ * at the wrong database, which has no mock-mode analogue.
+ */
+const reconcile: MockHandler = async (ctx) => {
+  await sleep(500);
+  const s = getState();
+  const { dry_run } = body<{ dry_run?: boolean; force?: boolean }>(ctx);
+  const dryRun = dry_run ?? false;
+  return ok(
+    {
+      dry_run: dryRun,
+      orphaned_reviews: 0,
+      orphaned_alerts: 0,
+      orphaned_score_snapshots: 0,
+      policies_unlinked: 0,
+      claims_in_database: s.claims.length,
+      ai_policies_in_database: s.policies.length,
+      message: dryRun
+        ? "0 rows would be reconciled"
+        : "0 rows reconciled — nothing was orphaned",
+    },
+    dryRun ? "reconciliation preview" : "reconciliation complete",
+  );
+};
+
+/**
+ * `PUT /claims/:id/harm/confirm`. An empty body is valid and meaningful: it
+ * records that a person reviewed the sub-scores and agreed, which still flips
+ * `human_confirmed`. Omitted fields keep the AI's own classification.
+ */
+const confirmHarm: MockHandler = async (ctx) => {
+  await sleep(1100);
+  const s = getState();
+  const claim = findClaim(s, String(ctx.params.id));
+  if (claim.claim_type !== "existing" || !claim.score_breakdown?.harm_breakdown) {
+    fail(
+      "this claim is Synthetic and carries no scores to confirm",
+      422,
+      "UNPROCESSABLE_ENTITY",
+    );
+  }
+
+  const payload = body<{
+    public_safety?: number;
+    institutional_trust?: number;
+    economic?: number;
+    policy_disruption?: number;
+  }>(ctx);
+
+  const harm = claim.score_breakdown.harm_breakdown;
+  for (const [key, value] of Object.entries(payload)) {
+    if (value === undefined) continue;
+    if (typeof value !== "number" || value < 0 || value > 100) {
+      fail(`${key} must be between 0 and 100`, 422, "UNPROCESSABLE_ENTITY");
+    }
+    (harm as Record<string, unknown>)[key] = value;
+  }
+  harm.human_confirmed = true;
+
+  // The AI service rescores harm -> claim_score -> final_claim_score, so the
+  // whole chain is recomputed here rather than only the sub-scores.
+  const score = claim.score_breakdown;
+  score.harm = computeHarm({
+    publicSafety: harm.public_safety ?? 0,
+    institutionalTrust: harm.institutional_trust ?? 0,
+    economic: harm.economic ?? 0,
+    policyDisruption: harm.policy_disruption ?? 0,
+  });
+  score.claim_score = computeClaimScore({
+    reach: score.reach ?? 0,
+    velocity: score.velocity ?? 0,
+    falseness: score.falseness ?? 0,
+    harm: score.harm,
+    emotionalIntensity: score.emotional_intensity ?? 0,
+  });
+  score.final_claim_score = computeFinalClaimScore(
+    score.claim_score,
+    score.discount_factor ?? 1,
+  );
+  claim.final_claim_score = score.final_claim_score;
+  saveState();
+
+  // The response IS the full claim detail — the caller must not re-fetch.
+  return ok(detailOf(s, claim), "harm assessment confirmed");
+};
+
 /* -------------------------------- health -------------------------------- */
 
 const healthLive: MockHandler = async () =>
@@ -1068,8 +1245,9 @@ const healthReady: MockHandler = async () =>
     {
       database: "up",
       storage_driver: "mock",
+      // `internal_routes_authenticated` was removed in V1, and `reachable` is
+      // only sent when the service is configured.
       ai_service: { configured: false },
-      internal_routes_authenticated: false,
     },
     "ready",
   );
@@ -1117,7 +1295,16 @@ export const mockHandlers: Record<string, MockHandler> = {
 
   "POST /admin/generate-generic-claim": generateGenericClaim,
   "POST /admin/snapshot-scores": snapshotScores,
+  "POST /admin/rescore": rescoreClaims,
+  "POST /admin/generate-sample-content": generateSampleContent,
+  "POST /admin/cluster-now": clusterNow,
+  "POST /admin/reconcile": reconcile,
+
+  "PUT /claims/:id/harm/confirm": confirmHarm,
 
   "GET /health": healthLive,
   "GET /health/ready": healthReady,
+
+  // F5 — Coordinated-Network Detector, in its own module.
+  ...networkMockHandlers,
 };
