@@ -43,7 +43,7 @@ export function Tabs<T extends string>({
             className={cn(
               "-mb-px whitespace-nowrap border-b-2 px-3 py-2 text-sm font-bold transition-colors",
               active
-                ? "border-sea-green text-sea-green"
+                ? "border-sea-green text-sea-green hover:text-sea-green/80"
                 : "border-transparent text-regal-navy/60 hover:text-regal-navy",
             )}
           >

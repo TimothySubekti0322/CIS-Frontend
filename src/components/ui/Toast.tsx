@@ -60,6 +60,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               type="button"
               aria-label="Dismiss"
               onClick={() => setItems((prev) => prev.filter((x) => x.id !== t.id))}
+              className="rounded p-0.5 opacity-70 transition-opacity hover:opacity-100"
             >
               <X className="size-4" aria-hidden />
             </button>

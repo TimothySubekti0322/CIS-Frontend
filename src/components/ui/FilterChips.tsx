@@ -76,7 +76,7 @@ function Chip({
       className={cn(
         "whitespace-nowrap rounded-full border px-3 py-1 text-sm transition-colors",
         active
-          ? "border-sea-green bg-sea-green-soft font-bold text-sea-green"
+          ? "border-sea-green bg-sea-green-soft font-bold text-sea-green hover:bg-sea-green-soft/70"
           : "border-pale-sky bg-white text-regal-navy/70 hover:border-glaucous",
       )}
     >

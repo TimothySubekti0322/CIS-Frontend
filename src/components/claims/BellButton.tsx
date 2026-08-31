@@ -56,9 +56,9 @@ export function BellButton({
           setOpen(true);
         }}
         className={cn(
-          "inline-flex size-8 items-center justify-center rounded-lg transition-colors",
+          "inline-flex size-8 items-center justify-center rounded-lg transition-all duration-150 ease-out hover:scale-110 active:scale-95",
           onWatchlist
-            ? "bg-sea-green-soft text-sea-green"
+            ? "bg-sea-green-soft text-sea-green hover:bg-sea-green-soft/70"
             : "text-glaucous hover:bg-pale-sky/50",
           className,
         )}

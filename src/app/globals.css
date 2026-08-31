@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Tailwind v4 wraps `hover:` in `@media (hover: hover)`, so it silently
+   no-ops on touchscreen laptops / DevTools touch emulation where the
+   primary pointer reports as coarse. This app is desktop/mouse-first
+   internal tooling, so always honour plain CSS :hover. */
+@custom-variant hover (&:hover);
+
 /* ==========================================================================
    CIS design tokens — PRD v1.3 §5.1 palette (referenced by name)
    ========================================================================== */

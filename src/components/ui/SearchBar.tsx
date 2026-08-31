@@ -26,6 +26,7 @@ export function SearchBar({ value, onChange, placeholder, className }: SearchBar
         className={cn(
           "h-10 w-full rounded-lg border border-pale-sky bg-white pl-9 pr-9 text-sm",
           "placeholder:text-glaucous focus-visible:border-sea-green focus-visible:outline-none",
+          "[&::-webkit-search-cancel-button]:appearance-none",
         )}
       />
       {value && (
@@ -33,7 +34,7 @@ export function SearchBar({ value, onChange, placeholder, className }: SearchBar
           type="button"
           aria-label="Clear search"
           onClick={() => onChange("")}
-          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-glaucous hover:text-regal-navy"
+          className="absolute right-2 top-1/2 -translate-y-1/2 rounded p-1 text-glaucous transition-colors hover:bg-pale-sky/50 hover:text-regal-navy"
         >
           <X className="size-4" aria-hidden />
         </button>

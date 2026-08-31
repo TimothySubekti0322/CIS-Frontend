@@ -59,7 +59,9 @@ export function FileDropzone({ file, onFile, rejectMessage, hint }: FileDropzone
         }}
         className={cn(
           "flex w-full flex-col items-center gap-2 rounded-lg border-2 border-dashed px-4 py-6 text-center transition-colors",
-          dragOver ? "border-sea-green bg-sea-green-soft" : "border-pale-sky bg-mint-cream",
+          dragOver
+            ? "border-sea-green bg-sea-green-soft"
+            : "border-pale-sky bg-mint-cream hover:border-glaucous",
         )}
       >
         {file ? (
