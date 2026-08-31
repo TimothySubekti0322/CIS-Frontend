@@ -19,10 +19,21 @@ export interface ModalProps {
 export function Modal({ open, onClose, title, children, footer, className }: ModalProps) {
   const panelRef = useRef<HTMLDivElement>(null);
 
+  // Callers pass `onClose` as a plain arrow or a function declared in their
+  // body, so its identity changes on every render. Reading it through a ref
+  // keeps the effect below keyed on `open` alone — otherwise every keystroke
+  // in a field would re-run the effect and pull focus back to the panel.
+  const onCloseRef = useRef(onClose);
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  });
+
   useEffect(() => {
     if (!open) return;
+    // Restore focus to whatever opened the dialog once it closes.
+    const previouslyFocused = document.activeElement as HTMLElement | null;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key === "Escape") onCloseRef.current();
     };
     document.addEventListener("keydown", onKey);
     document.body.style.overflow = "hidden";
@@ -30,8 +41,9 @@ export function Modal({ open, onClose, title, children, footer, className }: Mod
     return () => {
       document.removeEventListener("keydown", onKey);
       document.body.style.overflow = "";
+      previouslyFocused?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!open) return null;
 

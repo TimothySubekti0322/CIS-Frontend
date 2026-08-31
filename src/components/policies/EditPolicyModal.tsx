@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { PolicyDetail, UpdatePolicyPayload } from "@/types/policy";
 import { ApiError } from "@/types/common";
 import { strings } from "@/lib/constants/strings";
@@ -40,12 +40,22 @@ export function EditPolicyModal({
   const { mutateAsync, isPending } = useUpdatePolicy(policy.id);
   const { toast } = useToast();
 
+  // Seed the form from the freshest policy at the moment the modal opens, and
+  // never again while it is open: `policy` gets a new identity on every
+  // background refetch (the processing poller invalidates the list), which
+  // would otherwise wipe whatever the user had typed.
+  const policyRef = useRef(policy);
+  useEffect(() => {
+    policyRef.current = policy;
+  });
+
   useEffect(() => {
     if (!open) return;
-    setName(policy.name);
-    setRolledOutDate(toDateInput(policy.rolledOutDate));
-    setDescription(policy.description ?? "");
-  }, [open, policy]);
+    const current = policyRef.current;
+    setName(current.name);
+    setRolledOutDate(toDateInput(current.rolledOutDate));
+    setDescription(current.description ?? "");
+  }, [open]);
 
   const patch: UpdatePolicyPayload = {};
   if (name.trim() !== policy.name) patch.name = name.trim();
