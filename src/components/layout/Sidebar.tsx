@@ -5,7 +5,9 @@ import { usePathname } from "next/navigation";
 import { ShieldHalf, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
-import { NAV_ITEMS } from "@/lib/constants/nav";
+import { NAV_ITEMS, type NavBadge } from "@/lib/constants/nav";
+import { HOME_HREF } from "@/lib/constants/routes";
+import { useAlertNotifications } from "@/lib/hooks/useAlerts";
 import { IconButton } from "@/components/ui/IconButton";
 
 export function Sidebar({
@@ -16,6 +18,15 @@ export function Sidebar({
   onCloseMobile: () => void;
 }) {
   const pathname = usePathname();
+
+  /* US71's counter. It lives here rather than on the Alert page because the
+     point of the badge is to be visible from anywhere else in the product.
+     The query never throws — a backend without the v1.5 route simply yields
+     nothing, and the badge does not render. */
+  const notifications = useAlertNotifications();
+  const counts: Record<NavBadge, number> = {
+    alertCrossings: notifications.data?.unacknowledgedCount ?? 0,
+  };
 
   return (
     <>
@@ -33,7 +44,7 @@ export function Sidebar({
         )}
       >
         <div className="flex items-center justify-between gap-2 px-4 py-4">
-          <Link href="/claims" className="flex items-center gap-2" onClick={onCloseMobile}>
+          <Link href={HOME_HREF} className="flex items-center gap-2" onClick={onCloseMobile}>
             <ShieldHalf className="size-6 text-mint-leaf" aria-hidden />
             <span className="font-bold leading-tight">
               {strings.app.shortName}
@@ -56,6 +67,7 @@ export function Sidebar({
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             const Icon = item.icon;
+            const count = item.badge ? counts[item.badge] : 0;
             return (
               <Link
                 key={item.href}
@@ -71,14 +83,39 @@ export function Sidebar({
               >
                 <Icon className="size-4 shrink-0" aria-hidden />
                 <span className="flex-1">{item.label}</span>
-                <span className="text-[10px] font-bold text-white/40">{item.code}</span>
+                {count > 0 ? (
+                  <NavCounter count={count} label={strings.alerts.notificationsLabel} />
+                ) : (
+                  <span className="text-[10px] font-bold text-white/40">
+                    {item.code}
+                  </span>
+                )}
               </Link>
             );
           })}
         </nav>
 
-        <p className="px-4 py-3 text-[11px] text-white/40">PRD v1.3 · Phase 1</p>
+        <p className="px-4 py-3 text-[11px] text-white/40">PRD v1.5 · Phase 1</p>
       </aside>
     </>
+  );
+}
+
+/**
+ * The Gold counter §5.5 specifies. It replaces the F-code rather than sitting
+ * beside it: two small badges on one row read as one confusing cluster, and
+ * the count is the thing the user is meant to notice.
+ *
+ * Capped at 99+ — an exact figure past that is a threshold problem to solve on
+ * F4, not a number to render.
+ */
+function NavCounter({ count, label }: { count: number; label: string }) {
+  return (
+    <span
+      className="inline-flex min-w-5 items-center justify-center rounded-full bg-gold px-1.5 py-0.5 text-[10px] font-bold tabular-nums text-regal-navy"
+      aria-label={`${count} ${label}`}
+    >
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }

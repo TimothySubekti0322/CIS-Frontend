@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { Granularity } from "@/types/claim";
 import { strings } from "@/lib/constants/strings";
-import { useAlertChart, useWatchlist } from "@/lib/hooks/useAlerts";
+import {
+  useAcknowledgeAlerts,
+  useAlertChart,
+  useWatchlist,
+} from "@/lib/hooks/useAlerts";
 import { SearchBar } from "@/components/ui/SearchBar";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Pagination } from "@/components/ui/Pagination";
@@ -39,6 +43,27 @@ export default function AlertsPage() {
   const chart = useAlertChart({ granularity });
 
   const items = watchlist.data?.items ?? [];
+
+  /* US71 — opening this page IS the acknowledgment.
+   *
+   * It runs once per visit, and only once the first page of rows has actually
+   * arrived: acknowledging is what makes the *next* render unhighlighted, so
+   * acknowledging before the rows are in hand would clear the very highlights
+   * the user came here to see. A ref rather than state, because this must not
+   * re-run when the list refetches on search or paging. */
+  const acknowledge = useAcknowledgeAlerts();
+  const acknowledgedRef = useRef(false);
+  const rowsRendered = watchlist.isSuccess;
+  const acknowledgeMutate = acknowledge.mutate;
+
+  useEffect(() => {
+    if (!rowsRendered || acknowledgedRef.current) return;
+    acknowledgedRef.current = true;
+    // Fire and forget: a failed acknowledgment leaves the badge up, which is
+    // the safe direction — it is never a reason to fail the page.
+    acknowledgeMutate();
+  }, [rowsRendered, acknowledgeMutate]);
+
   // Only an unfiltered, first-page empty result means the watchlist is empty.
   const watchlistEmpty =
     !search.trim() && page === 1 && watchlist.data?.meta.total === 0;

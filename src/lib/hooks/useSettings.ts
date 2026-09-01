@@ -32,3 +32,34 @@ export function useUpdateAlertThreshold() {
     },
   });
 }
+
+/**
+ * US65 — the F4 city selector's options and current selection.
+ *
+ * The catalog is a closed set held in backend code, so it changes on a human
+ * timescale rather than a request one; it is cached accordingly.
+ */
+export function useCities() {
+  return useQuery({
+    queryKey: queryKeys.settings.cities,
+    queryFn: () => settingsApi.cities(),
+    staleTime: 30 * 60 * 1000,
+  });
+}
+
+/**
+ * Saving a city re-scopes the whole Overview page and moves the timezone F5's
+ * report footers are stamped in, so both are invalidated rather than patched:
+ * every F6 figure is recomputed server-side against the new scope, and there
+ * is nothing the client could correctly recompute on its own.
+ */
+export function useUpdateCity() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (city: string) => settingsApi.setCity(city),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: queryKeys.settings.all });
+      qc.invalidateQueries({ queryKey: queryKeys.overview.all });
+    },
+  });
+}

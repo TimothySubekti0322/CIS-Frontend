@@ -9,6 +9,7 @@ export const strings = {
     tagline: "A structured immune system for your information environment.",
   },
   nav: {
+    overview: "Overview",
     claims: "Claim Repository Bank",
     policies: "Public Policy Bank",
     alerts: "Alert Page",
@@ -51,6 +52,9 @@ export const strings = {
     allYears: "All Year",
     allStatus: "All Status",
     lastFetched: "Last fetched",
+    whatIsThis: "What is this?",
+    edit: "Edit",
+    notAvailable: "—",
   },
   claims: {
     pageTitle: "Claim Repository Bank",
@@ -99,16 +103,8 @@ export const strings = {
     syntheticNotScored:
       "Synthetic claims are predictions and are not scored — no score breakdown, statements or top accounts exist for them.",
     harmBreakdown: "Harm breakdown",
-    harmConfirmTitle: "Harm assessment",
-    harmConfirmHint:
-      "Confirm or override the AI's four Harm sub-scores. Leaving every value unchanged is a valid answer — it records that a person reviewed them and agreed.",
-    harmConfirmSlow:
-      "Confirming rescores the claim through the AI service, so this takes a few seconds. Only values you changed are sent; the rest keep the AI's own classification.",
-    harmReview: "Review harm sub-scores",
-    harmConfirmAction: "Confirm assessment",
     harmConfirmed: "Harm assessment confirmed — the claim has been rescored.",
     harmHumanConfirmed: "Human confirmed",
-    harmAiOnly: "AI assessment, unconfirmed",
     loadMore: "Load more",
     reviewTitle: "Review",
     reviewNotes: "Reviewer notes",
@@ -118,6 +114,25 @@ export const strings = {
       "One note is kept per claim: saving replaces the previous one rather than adding to a history.",
     reviewSaved: "Review saved",
     reviewBy: "by",
+
+    /* --- v1.5 --- */
+    scoreFormulaLabel: "How this score is calculated",
+    scoreFormulaFallback:
+      "FinalClaimScore combines five weighted parameters — Reach, Velocity, Falseness Confidence, Harm Severity and Emotional Intensity — into a ClaimScore, then discounts it by the Net Pushback Ratio, which lowers the score of a claim the public is already pushing back on.",
+    harmRowEdit: "Edit",
+    harmRowEditLabel: "Edit the four Harm sub-scores",
+    harmEditTitle: "Harm sub-scores",
+    harmEditSlow:
+      "Saving rescores the claim through the AI service, so this takes a few seconds. Only values you changed are sent; the rest keep the AI's own classification.",
+    harmEdited: "Edited",
+    harmEditedTag: "Harm edited by a reviewer",
+    harmEditedBy: "Edited by",
+    harmEditedPrevious: "AI's original values",
+    harmRangeError: "Each sub-score must be between 0 and 100.",
+    debunkSegmentsTitle: "Debunk Activity — segmented recommendations",
+    debunkSegmentsHint:
+      "One tailored draft per audience segment, most-exposed first. Each is written for that segment's own framing — copy the one you are actually addressing.",
+    debunkSegmentCount: "audience segments",
   },
   policies: {
     pageTitle: "Public Policy Bank",
@@ -203,6 +218,13 @@ export const strings = {
     remove: "Remove from watchlist",
     removed: "Removed from watchlist",
     chartToggleFailed: "Could not update the chart selection.",
+
+    /* --- v1.5 --- */
+    justCrossed: "Just crossed",
+    crossedUp: "Crossed above the threshold",
+    crossedDown: "Crossed below the threshold",
+    colLastMoved: "Last moved",
+    notificationsLabel: "threshold crossings",
   },
   admin: {
     pageTitle: "Admin Settings",
@@ -261,7 +283,96 @@ export const strings = {
     tabDetector: "Detector",
     tabAllowlist: "Allowlist",
     tabRuns: "Runs & governance",
+
+    /* --- v1.5 --- */
+    cityTitle: "Monitored city",
+    cityDesc:
+      "Which single Indonesian city this instance is monitoring. It scopes every figure on the Overview page, and sets the timezone the detector's report footers are stamped in.",
+    cityLabel: "City",
+    citySaved: "Monitored city updated — the Overview page has been re-scoped.",
+    cityTimezoneNote: "Timezone",
+    cityUnset: "No city selected yet",
   },
+  overview: {
+    pageTitle: "Overview",
+    subtitle:
+      "The information environment at a glance, across the whole claim repository.",
+    generatedAt: "Computed",
+    cityLabel: "Monitoring",
+    cityUnset: "No city configured",
+    cityUnsetHint:
+      "Set the monitored city on Admin Settings to scope this page.",
+    notPartitioned: "City labels this instance",
+    notPartitionedHint:
+      "Content is not yet tagged with a city, so the selection names this deployment rather than filtering it. Every figure below covers the whole repository.",
+
+    ratioTitle: "Claims above the alert threshold",
+    ratioSubtitle:
+      "Every existing claim, whatever its review status. An unscored claim counts as below — a claim is never escalated on missing data.",
+    ratioAbove: "Over threshold",
+    ratioBelow: "Under threshold",
+    ratioTotal: "existing claims",
+    ratioEmpty: "No existing claims have been captured yet.",
+    ratioThreshold: "Threshold",
+
+    csiTitle: "Climate Sentiment Index",
+    csiSubtitle: "7-day rolling average · higher is healthier",
+    csiExplain:
+      "Half of this index is the balance of positive against negative climate conversation; the other half is the risk load those conversations carry, inverted so both halves read the same way. A calm-sounding but dangerous conversation cannot score as healthy.",
+    csiBandRisky: "Risky",
+    csiBandWatch: "Watch",
+    csiBandHealthy: "Healthy",
+    csiUnavailable: "Index unavailable",
+    csiInsufficient: "Insufficient data",
+    csiUnavailableFallback:
+      "Per-item sentiment has not been provisioned by the AI service yet, so the index cannot be computed. Every other figure on this page is unaffected.",
+    csiInsufficientFallback:
+      "Too little climate conversation in the window to compute an index. A quiet week must not read as a calm one.",
+    csiBreakdown: "Show the breakdown",
+    csiBreakdownHide: "Hide the breakdown",
+    csiBcs: "Baseline sentiment",
+    csiBcsHint: "Positive minus negative conversation, rescaled to 0–100.",
+    csiRiskLoad: "Risk load",
+    csiRiskLoadHint:
+      "Score-weighted volume of claims at or above the risk cutoff. Higher is worse, which is why the index inverts it.",
+    csiMomentum: "vs. 24h earlier",
+    csiVolume: "Conversation volume",
+    csiVolumePositive: "Positive",
+    csiVolumeNegative: "Negative",
+    csiVolumeNeutral: "Neutral",
+    csiWindow: "Window",
+    csiRiskCutoff: "Risk cutoff",
+
+    topicsTitle: "Hot topics",
+    topicsSubtitle:
+      "One box per existing-claim topic, sized by above-threshold count and average score together. Sizes compare topics with each other right now, not with last week.",
+    topicsEmpty: "No existing-claim topics to map yet.",
+    topicsClaims: "claims",
+    topicsAbove: "above threshold",
+    topicsAverage: "Average score",
+    topicsWeight: "Box weight",
+    topicModalTitle: "Topic detail",
+    topicMom: "Month on month",
+    topicMomEmpty: "Not enough history to compare months.",
+    topicRatio: "Above / under ratio",
+    topicRatioEmpty: "Nothing is under threshold, so there is no ratio to show.",
+    topicCurrentMonth: "This month",
+    topicPreviousMonth: "Last month",
+    topicOpen: "Open the claim repository filtered to this topic",
+
+    policiesTitle: "Policies attracting the most high-risk claims",
+    policiesSubtitle:
+      "Ranked by the same combined metric that sizes the topic map.",
+    policiesEmpty: "No public policy has correlated existing claims yet.",
+    colRank: "#",
+    colPolicy: "Public policy",
+    colClaims: "Claims",
+    colAbove: "Over threshold",
+    colAverage: "Avg. score",
+    colScore: "Hotness",
+    policyAiOnly: "Not in the Public Policy Bank",
+  },
+
   bell: {
     addTitle: "Add to Alert watchlist?",
     removeTitle: "Remove from Alert watchlist?",

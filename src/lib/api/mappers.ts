@@ -13,6 +13,8 @@
 import type {
   ClaimActivity,
   ClaimDetail,
+  DebunkSegment,
+  HarmEdit,
   CoordinatedNetworkBadge,
   DebunkBlocks,
   ClaimPolicyRef,
@@ -43,8 +45,11 @@ import type {
 import type {
   AlertChart,
   AlertChartSeries,
+  AlertNotifications,
   AlertSubscription,
+  CrossingDirection,
   Setting,
+  ThresholdCrossing,
   ThresholdStatus,
   WatchlistItem,
 } from "@/types/alert";
@@ -53,6 +58,7 @@ import type { PageMeta, PageMetaDto, Topic } from "@/types/common";
 import type {
   AlertChartDto,
   AlertChartSeriesDto,
+  AlertNotificationsDto,
   AlertSubscriptionDto,
   AuthSessionDto,
   ClaimActivityDto,
@@ -64,7 +70,9 @@ import type {
   ClaimRepositorySectionDto,
   ClaimReviewDto,
   DebunkBlocksDto,
+  DebunkSegmentDto,
   HarmBreakdownDto,
+  HarmEditDto,
   PolicyDetailDto,
   PolicyDto,
   PolicyProcessingDto,
@@ -75,11 +83,22 @@ import type {
   SettingDto,
   StatementDto,
   TopAccountDto,
+  ThresholdCrossingDto,
   TopicDto,
   TopicRefDto,
   UserDto,
   WatchlistItemDto,
 } from "./dto";
+import {
+  bool,
+  count,
+  list,
+  num,
+  oneOf,
+  optionalOneOf,
+  str,
+  text,
+} from "./primitives";
 
 /* ---------------------------- primitives ---------------------------- */
 
@@ -99,35 +118,6 @@ const POLICY_PROCESSING_STATUSES: PolicyProcessingStatus[] = [
 ];
 
 const GRANULARITIES: Granularity[] = ["day", "week", "month", "year"];
-
-/** `null` unless the value is a real, finite number. */
-function num(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) return value;
-  if (typeof value === "string" && value.trim() !== "") {
-    const n = Number(value);
-    if (Number.isFinite(n)) return n;
-  }
-  return null;
-}
-
-/** A number with a floor — for counts the backend always sends. */
-function count(value: unknown, fallback = 0): number {
-  return num(value) ?? fallback;
-}
-
-function str(value: unknown): string | null {
-  return typeof value === "string" && value !== "" ? value : null;
-}
-
-function bool(value: unknown, fallback = false): boolean {
-  return typeof value === "boolean" ? value : fallback;
-}
-
-function oneOf<T extends string>(value: unknown, allowed: T[], fallback: T): T {
-  return typeof value === "string" && (allowed as string[]).includes(value)
-    ? (value as T)
-    : fallback;
-}
 
 export function mapMeta(meta: PageMetaDto | undefined, itemCount: number): PageMeta {
   return {
@@ -213,6 +203,31 @@ function mapHarmBreakdown(
           policyDisruption: count(dto.weights.policy_disruption),
         }
       : null,
+    edit: mapHarmEdit(dto.edit),
+  };
+}
+
+/**
+ * US23's audit trail. Returns `null` when the backend omitted the field, which
+ * it does for every claim whose Harm sub-scores are still the AI's originals —
+ * so `edit !== null` is the "human-overridden" test the UI marks the score
+ * badge from. `human_confirmed` cannot serve: an empty confirmation sets it.
+ */
+function mapHarmEdit(dto: HarmEditDto | null | undefined): HarmEdit | null {
+  if (!dto) return null;
+  const previous = dto.previous;
+  return {
+    editedBy: str(dto.edited_by),
+    editedAt: str(dto.edited_at),
+    previous: previous
+      ? {
+          publicSafety: num(previous.public_safety),
+          institutionalTrust: num(previous.institutional_trust),
+          economic: num(previous.economic),
+          policyDisruption: num(previous.policy_disruption),
+          harmScore: num(previous.harm_score),
+        }
+      : null,
   };
 }
 
@@ -236,6 +251,9 @@ export function mapScoreBreakdown(
     isDormant: bool(dto.is_dormant),
     weights: mapWeights(dto.weights),
     note: str(dto.note),
+    // Served, never hardcoded — the sentence and the weights come from the
+    // same backend constants and so cannot drift apart.
+    formula: str(dto.formula),
   };
 }
 
@@ -270,7 +288,29 @@ function mapActivity(
     // `available: false` and an empty body both mean "nothing to show yet".
     available: bool(dto.available, Boolean(content)),
     debunk: mapDebunkBlocks(dto.debunk),
+    segments: mapDebunkSegments(dto.segments),
   };
+}
+
+/**
+ * The per-audience variants (US12, v1.5). Always an array so the UI never has
+ * to branch on `null`; a variant without a segment name is dropped, because an
+ * unlabelled box reads as exactly the generic draft v1.5 exists to remove.
+ */
+function mapDebunkSegments(
+  dtos: DebunkSegmentDto[] | null | undefined,
+): DebunkSegment[] {
+  return list(dtos)
+    .map((dto) => ({
+      segment: str(dto.segment),
+      rationale: str(dto.rationale),
+      content: str(dto.content),
+      generatedAt: str(dto.generated_at),
+    }))
+    .filter(
+      (segment): segment is DebunkSegment =>
+        segment.segment !== null && segment.content !== null,
+    );
 }
 
 /**
@@ -533,6 +573,42 @@ export function mapWatchlistItem(dto: WatchlistItemDto): WatchlistItem {
     thresholdStatus: mapThresholdStatus(dto.threshold_status),
     threshold: num(dto.threshold),
     isDormant: bool(dto.is_dormant),
+    // v1.5: `just_crossed` clears on acknowledgment, the other two persist as
+    // the row's "last moved" record.
+    justCrossed: bool(dto.just_crossed),
+    crossedDirection: optionalOneOf<CrossingDirection>(dto.crossed_direction, [
+      "up",
+      "down",
+    ]),
+    crossedAt: str(dto.crossed_at),
+  };
+}
+
+function mapThresholdCrossing(dto: ThresholdCrossingDto): ThresholdCrossing {
+  return {
+    // As on the watchlist row, `id` is the CLAIM id.
+    claimId: dto.id,
+    claimStatement: text(dto.claim_statement),
+    finalClaimScore: num(dto.final_claim_score),
+    thresholdStatus: mapThresholdStatus(dto.threshold_status),
+    justCrossed: bool(dto.just_crossed, true),
+    crossedDirection: optionalOneOf<CrossingDirection>(dto.crossed_direction, [
+      "up",
+      "down",
+    ]),
+    crossedAt: str(dto.crossed_at),
+  };
+}
+
+/** `GET|POST /alerts/notifications*` — both routes answer the same shape. */
+export function mapAlertNotifications(
+  dto: AlertNotificationsDto | null | undefined,
+): AlertNotifications {
+  return {
+    unacknowledgedCount: count(dto?.unacknowledged_count),
+    acknowledgedAt: str(dto?.acknowledged_at),
+    threshold: num(dto?.threshold),
+    crossings: list(dto?.crossings).map(mapThresholdCrossing),
   };
 }
 

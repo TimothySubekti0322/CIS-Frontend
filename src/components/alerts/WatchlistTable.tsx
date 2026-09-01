@@ -1,10 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { ArrowDownRight, ArrowUpRight, Trash2 } from "lucide-react";
 import type { WatchlistItem } from "@/types/alert";
 import { ApiError } from "@/types/common";
-import { formatDate, formatDateTime } from "@/lib/utils";
+import { cn, formatDate, formatDateTime } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
 import { useSetChartVisible, useToggleWatchlist } from "@/lib/hooks/useAlerts";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -18,6 +18,13 @@ import { useToast } from "@/components/ui/Toast";
  * The "Chart" checkbox is server state, not local: `GET /alerts/chart` returns
  * only the ticked claims, so the tick has to persist through
  * `PATCH /alerts/:claimId/chart` before the chart can reflect it.
+ *
+ * v1.5 (US29/US71) adds the crossing highlight. `justCrossed` is per-reader
+ * and clears when this page acknowledges; `crossedAt`/`crossedDirection`
+ * persist, which is what the "last moved" column reads. The tint is a light
+ * Pale-Sky wash, deliberately lighter than the standing Over-Threshold pill —
+ * "this moved" and "this is high" are different statements and must not
+ * compete.
  */
 export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
   const setVisible = useSetChartVisible();
@@ -60,6 +67,7 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
             <th className="px-4 py-3 font-bold">{strings.alerts.colCreatedDate}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colAdded}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colStatus}</th>
+            <th className="px-4 py-3 font-bold">{strings.alerts.colLastMoved}</th>
             <th className="px-4 py-3 font-bold">
               <span className="sr-only">{strings.alerts.colRemove}</span>
             </th>
@@ -67,7 +75,13 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
         </thead>
         <tbody>
           {items.map((item) => (
-            <tr key={item.claimId} className="border-b border-pale-sky last:border-0">
+            <tr
+              key={item.claimId}
+              className={cn(
+                "border-b border-pale-sky last:border-0",
+                item.justCrossed && "bg-pale-sky/30",
+              )}
+            >
               <td className="px-4 py-3">
                 <input
                   type="checkbox"
@@ -113,11 +127,22 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
                 {formatDateTime(item.addedAt)}
               </td>
               <td className="px-4 py-3">
-                {item.thresholdStatus === "over_threshold" ? (
-                  <StatusPill tone="danger">{strings.alerts.overThreshold}</StatusPill>
-                ) : (
-                  <StatusPill tone="success">{strings.alerts.underThreshold}</StatusPill>
-                )}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {item.thresholdStatus === "over_threshold" ? (
+                    <StatusPill tone="danger">{strings.alerts.overThreshold}</StatusPill>
+                  ) : (
+                    <StatusPill tone="success">
+                      {strings.alerts.underThreshold}
+                    </StatusPill>
+                  )}
+                  {/* The tint alone would carry this for sighted users only. */}
+                  {item.justCrossed && (
+                    <StatusPill tone="muted">{strings.alerts.justCrossed}</StatusPill>
+                  )}
+                </div>
+              </td>
+              <td className="px-4 py-3 text-regal-navy/70">
+                <CrossingCell item={item} />
               </td>
               <td className="px-4 py-3 text-right">
                 <IconButton
@@ -134,5 +159,34 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
         </tbody>
       </table>
     </div>
+  );
+}
+
+/**
+ * The "last moved" column. `crossedAt` and `crossedDirection` survive
+ * acknowledgment — only `justCrossed` clears — so this keeps telling the
+ * reader what last happened to a claim after the highlight has gone.
+ * A claim that has never crossed shows nothing rather than a zero state.
+ */
+function CrossingCell({ item }: { item: WatchlistItem }) {
+  if (!item.crossedAt || !item.crossedDirection) {
+    return <span className="text-regal-navy/40">—</span>;
+  }
+  const up = item.crossedDirection === "up";
+  const Icon = up ? ArrowUpRight : ArrowDownRight;
+  return (
+    <span
+      className={cn(
+        "inline-flex items-center gap-1 text-xs",
+        up ? "text-danger" : "text-sea-green",
+      )}
+      title={up ? strings.alerts.crossedUp : strings.alerts.crossedDown}
+    >
+      <Icon className="size-3.5" aria-hidden />
+      <span className="text-regal-navy/70">{formatDateTime(item.crossedAt)}</span>
+      <span className="sr-only">
+        {up ? strings.alerts.crossedUp : strings.alerts.crossedDown}
+      </span>
+    </span>
   );
 }

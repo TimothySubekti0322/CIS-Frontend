@@ -1,52 +1,116 @@
-import type { ScoreBreakdown } from "@/types/claim";
+"use client";
+
+import { useState, type ReactNode } from "react";
+import { Pencil } from "lucide-react";
+import type { HarmEdit, ScoreBreakdown } from "@/types/claim";
 import { strings } from "@/lib/constants/strings";
-import { cn } from "@/lib/utils";
+import { cn, formatDateTime } from "@/lib/utils";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
+import { InfoTooltip } from "@/components/ui/InfoTooltip";
+import { HarmRowEditor } from "./HarmRowEditor";
 
 /**
  * The full transparent score breakdown. Every component the backend sends is
  * displayed alongside FinalClaimScore — the collapsed number is never shown
- * alone.
+ * alone (PRD 6.5).
  *
  * Weights are read from the payload, not hardcoded, so a backend re-weighting
- * shows up here without a frontend change.
+ * shows up here without a frontend change. The same is true of the v1.5
+ * formula sentence: it is generated from the same constants as the arithmetic,
+ * so the explanation cannot drift away from the number it explains.
+ *
+ * v1.5 also folds the Harm edit into this panel. There is no separate "Harm
+ * Assessment" section any more — the Harm row is the one place the four
+ * sub-scores can be corrected, and R, V, F and EI stay AI-only.
  */
-export function ScoreBreakdownPanel({ score }: { score: ScoreBreakdown }) {
+export function ScoreBreakdownPanel({
+  score,
+  claimId,
+}: {
+  score: ScoreBreakdown;
+  /** Enables the Harm row's edit control. Omit for a read-only rendering. */
+  claimId?: string;
+}) {
+  const [editingHarm, setEditingHarm] = useState(false);
   const weights = score.weights;
-  const rows = [
-    { key: "reach", label: "Reach & Spread (R)", value: score.reach, weight: weights?.reach },
-    { key: "velocity", label: "Velocity (V)", value: score.velocity, weight: weights?.velocity },
-    { key: "falseness", label: "Falseness Confidence (F)", value: score.falseness, weight: weights?.falseness },
-    { key: "harm", label: "Harm Severity (H)", value: score.harm, weight: weights?.harm },
-    {
-      key: "ei",
-      label: strings.claims.eiSupporting,
-      value: score.emotionalIntensity,
-      weight: weights?.emotionalIntensity,
-    },
-  ];
-
   const harm = score.harmBreakdown;
+  // Presence of the audit trail — not `humanConfirmed`, which an empty
+  // confirmation also sets — is what marks the value as human-overridden.
+  const harmEdit = harm?.edit ?? null;
+  const canEditHarm = Boolean(claimId && harm);
 
   return (
     <div className="space-y-4 rounded-xl border border-pale-sky bg-white p-4">
       <div className="flex items-center justify-between gap-2">
-        <h3 className="text-h3">{strings.claims.scoreBreakdown}</h3>
+        <div className="flex items-center gap-1.5">
+          <h3 className="text-h3">{strings.claims.scoreBreakdown}</h3>
+          {/* US23's info-tooltip. The sentence is served; the hardcoded copy is
+              only reached by a backend that predates v1.5. */}
+          <InfoTooltip
+            content={score.formula ?? strings.claims.scoreFormulaFallback}
+            label={strings.claims.scoreFormulaLabel}
+            align="start"
+          />
+        </div>
         {score.isDormant && (
           <StatusPill tone="neutral">{strings.claims.dormant}</StatusPill>
         )}
       </div>
 
       <dl className="space-y-2.5">
-        {rows.map((row) => (
+        <ScoreRow
+          label="Reach & Spread (R)"
+          value={score.reach}
+          weight={weights?.reach}
+        />
+        <ScoreRow
+          label="Velocity (V)"
+          value={score.velocity}
+          weight={weights?.velocity}
+        />
+        <ScoreRow
+          label="Falseness Confidence (F)"
+          value={score.falseness}
+          weight={weights?.falseness}
+        />
+
+        {/* The Harm row carries the edit control (US23, v1.5). */}
+        <div>
           <ScoreRow
-            key={row.key}
-            label={row.label}
-            value={row.value}
-            weight={row.weight}
+            label="Harm Severity (H)"
+            value={score.harm}
+            weight={weights?.harm}
+            edited={Boolean(harmEdit)}
+            action={
+              canEditHarm && !editingHarm ? (
+                <button
+                  type="button"
+                  onClick={() => setEditingHarm(true)}
+                  aria-label={strings.claims.harmRowEditLabel}
+                  className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-sea-green transition-colors hover:bg-sea-green-soft"
+                >
+                  <Pencil className="size-3" aria-hidden />
+                  {strings.claims.harmRowEdit}
+                </button>
+              ) : null
+            }
           />
-        ))}
+
+          {claimId && harm && editingHarm && (
+            <HarmRowEditor
+              claimId={claimId}
+              harm={harm}
+              onDone={() => setEditingHarm(false)}
+            />
+          )}
+        </div>
+
+        <ScoreRow
+          label={strings.claims.eiSupporting}
+          value={score.emotionalIntensity}
+          weight={weights?.emotionalIntensity}
+        />
       </dl>
 
       <div className="grid grid-cols-2 gap-3 border-t border-pale-sky pt-3 text-sm">
@@ -65,20 +129,26 @@ export function ScoreBreakdownPanel({ score }: { score: ScoreBreakdown }) {
             score={score.finalClaimScore}
             showScale
             size="md"
+            edited={Boolean(harmEdit)}
+            editedLabel={strings.claims.harmEditedTag}
             className="mt-1"
           />
         </div>
       </div>
 
-      {harm && (
+      {harm && !editingHarm && (
         <div className="border-t border-pale-sky pt-3">
-          <div className="mb-2 flex items-center justify-between">
+          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wide text-regal-navy/50">
               {strings.claims.harmBreakdown}
             </p>
-            {harm.humanConfirmed && (
-              <StatusPill tone="success">Human confirmed</StatusPill>
-            )}
+            {harmEdit ? (
+              <StatusPill tone="info">{strings.claims.harmEdited}</StatusPill>
+            ) : harm.humanConfirmed ? (
+              <StatusPill tone="success">
+                {strings.claims.harmHumanConfirmed}
+              </StatusPill>
+            ) : null}
           </div>
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <Stat label="Public safety" value={harm.publicSafety.toFixed(0)} />
@@ -92,6 +162,7 @@ export function ScoreBreakdownPanel({ score }: { score: ScoreBreakdown }) {
               value={harm.policyDisruption.toFixed(0)}
             />
           </div>
+          {harmEdit && <HarmEditTrail edit={harmEdit} />}
         </div>
       )}
 
@@ -122,24 +193,66 @@ export function ScoreBreakdownPanel({ score }: { score: ScoreBreakdown }) {
   );
 }
 
+/**
+ * US23's audit trail, rendered under the sub-scores once a human has
+ * overridden them. `previous` holds the AI's original classification, so the
+ * page — not only the audit table — can answer what the AI itself said.
+ */
+function HarmEditTrail({ edit }: { edit: HarmEdit }) {
+  const previous = edit.previous;
+  return (
+    <div className="mt-3 rounded-lg bg-frosted-blue-soft p-3">
+      <p className="text-xs text-regal-navy/70">
+        {strings.claims.harmEditedBy}{" "}
+        <span className="font-bold">{edit.editedBy ?? "a reviewer"}</span>
+        {edit.editedAt && <> · {formatDateTime(edit.editedAt)}</>}
+      </p>
+      {previous && (
+        <p className="mt-1 text-xs text-regal-navy/60">
+          {strings.claims.harmEditedPrevious}: {formatPrevious(previous.publicSafety)}
+          {" · "}
+          {formatPrevious(previous.institutionalTrust)}
+          {" · "}
+          {formatPrevious(previous.economic)}
+          {" · "}
+          {formatPrevious(previous.policyDisruption)}
+          {previous.harmScore !== null && <> → H {previous.harmScore.toFixed(1)}</>}
+        </p>
+      )}
+    </div>
+  );
+}
+
+function formatPrevious(value: number | null): string {
+  return value === null ? "—" : value.toFixed(0);
+}
+
 function ScoreRow({
   label,
   value,
   weight,
+  edited,
+  action,
 }: {
   label: string;
   value: number;
   weight?: number;
+  /** Marks the row as human-overridden (US23). */
+  edited?: boolean;
+  action?: ReactNode;
 }) {
   return (
     <div className="flex items-center gap-3">
-      <dt className="w-44 shrink-0 text-sm text-regal-navy/70">
-        {label}
-        {weight !== undefined && (
-          <span className="ml-1 text-xs text-regal-navy/40">
-            ×{weight.toFixed(2)}
-          </span>
-        )}
+      <dt className="flex w-44 shrink-0 items-center gap-1 text-sm text-regal-navy/70">
+        <span>
+          {label}
+          {weight !== undefined && (
+            <span className="ml-1 text-xs text-regal-navy/40">
+              ×{weight.toFixed(2)}
+            </span>
+          )}
+        </span>
+        {action}
       </dt>
       <dd className="flex flex-1 items-center gap-2">
         <div className="h-2 flex-1 overflow-hidden rounded-full bg-pale-sky/60">
@@ -151,8 +264,14 @@ function ScoreRow({
             style={{ width: `${Math.max(2, Math.min(100, value))}%` }}
           />
         </div>
-        <span className="w-10 text-right text-sm font-bold tabular-nums">
+        <span className="flex w-10 items-center justify-end gap-1 text-right text-sm font-bold tabular-nums">
           {value.toFixed(0)}
+          {edited && (
+            <span
+              className="size-1.5 shrink-0 rounded-full bg-regal-navy/60"
+              title={strings.claims.harmEditedTag}
+            />
+          )}
         </span>
       </dd>
     </div>

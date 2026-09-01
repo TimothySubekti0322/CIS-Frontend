@@ -1,9 +1,10 @@
 # CIS — Climate Immune System (Frontend)
 
-Frontend for the Climate Immune System platform (PRD v1.3): a structured
-"immune system" for a city climate team's information environment — a claim
-repository with a transparent scoring system (F1), a public-policy bank with
-AI claim matchmaking (F2), an alert watchlist (F3), and admin settings (F4).
+Frontend for the Climate Immune System platform (PRD v1.5): a structured
+"immune system" for a city climate team's information environment — a
+leadership Overview (F6), a claim repository with a transparent scoring system
+(F1), a public-policy bank with AI claim matchmaking (F2), an alert watchlist
+(F3), admin settings (F4), and the Coordinated-Network Detector (F5).
 
 ## Stack
 
@@ -11,7 +12,7 @@ AI claim matchmaking (F2), an alert watchlist (F3), and admin settings (F4).
 - **Tailwind CSS v4** (design tokens in `src/app/globals.css`, PRD §5.1 palette)
 - **Lato** via `next/font/google`
 - **TanStack Query** for server state
-- **Recharts** for the F3 alert chart
+- **Recharts** for the F3 alert chart and the F6 topic treemap
 - `lucide-react` icons
 
 ## Getting started
@@ -23,7 +24,7 @@ npm run dev               # http://localhost:3000
 ```
 
 Register with an email, name and password on `/register`, then you land on the
-Claim Repository Bank.
+Overview — first in the sidebar since v1.5 (US66).
 
 ## Environment
 
@@ -51,10 +52,11 @@ component → hook (src/lib/hooks) → resource module (src/lib/api/*.ts)
 | file | responsibility |
 |---|---|
 | `src/lib/api/endpoints.ts` | all 38 documented routes, verbs and paths — the single source of truth |
-| `src/lib/api/dto.ts` | wire shapes, snake_case, exactly as the backend sends them |
-| `src/lib/api/mappers.ts` | DTO → domain translation. Nothing else imports `dto.ts` |
+| `src/lib/api/dto.ts`, `dto.networks.ts`, `dto.overview.ts` | wire shapes, snake_case, exactly as the backend sends them |
+| `src/lib/api/mappers*.ts` | DTO → domain translation. Nothing else imports a `dto` module |
+| `src/lib/api/primitives.ts` | the defensive `num`/`str`/`oneOf` helpers every mapper shares |
 | `src/lib/api/client.ts` | envelope unwrap, auth header, multipart, refresh-retry, blob download |
-| `src/lib/api/{auth,topics,claims,policies,alerts,settings,admin,health}.ts` | one module per resource |
+| `src/lib/api/{auth,topics,claims,policies,alerts,settings,admin,networks,detector,overview,health}.ts` | one module per resource |
 | `src/lib/hooks/*` | TanStack Query wrappers — the only thing components touch |
 
 Key behaviours the client handles for you:
@@ -90,7 +92,23 @@ rejects, re-adding a watched claim is a no-op, a Synthetic claim is rejected 422
 dormant claims return `npr`/`discount_factor` as `null`, and policy matchmaking
 resolves asynchronously a few seconds after upload.
 
+The mock also computes F6 the way the backend does: the threshold ratio, the
+treemap metric, the policy leaderboard and the Climate Sentiment Index are all
+derived from the same `claims` rows F1 ranks, on every request. Edit a claim's
+Harm sub-scores and the Overview moves, because nothing is cached and there is
+no parallel fixture to fall out of step.
+
+It keeps two separate score histories on purpose, because the product depends
+on the difference: the backend's watchlist-only snapshots drive the F3 chart
+and the per-claim Score History Chart, so an unwatched claim correctly shows no
+history; the AI service's per-rescore history for *every* claim is what the
+Overview's topic month-on-month reads, since a MoM figure computed over the
+watchlist would describe the team's attention rather than the topic.
+
 Not simulated: file downloads (there are no real bytes) and the AI service.
+`sentiment.status` is always `ok` in mock — the `insufficient_data` and
+`unavailable` states depend on what the AI service has provisioned, so they are
+handled in the UI but not reproducible without a backend.
 
 ### Switching to the live backend
 
@@ -130,14 +148,17 @@ npm run typecheck   # tsc --noEmit
 src/
   app/
     (auth)/            login + register
-    (app)/             authenticated pages (F1–F5) under the AppShell
+    (app)/             authenticated pages (F1–F6) under the AppShell
   components/
-    ui/                design-system primitives (Button, Modal, Tabs, StatusPill, …)
+    ui/                design-system primitives (Button, Modal, Tabs, StatusPill,
+                       InfoTooltip, CopyButton, GranularitySelect, …)
     layout/            AppShell, Sidebar, TopBar
+    overview/          SentimentGauge, ThresholdRatioCard, TopicTreemap, …
     claims/            ClaimCard (reused across F1 + F2), ScoreBreakdownPanel, …
     policies/          PolicyCard, AddPolicyModal, EditPolicyModal, …
     alerts/            ScoreLineChart, ChartLegend, WatchlistTable
-    admin/             ThresholdForm, GenerateClaimButton, SnapshotScoresButton
+    admin/             ThresholdForm, CitySelectorForm, GenerateClaimButton, …
+    networks/          NetworkListView, NetworkDetailView, …
   lib/
     api/               endpoints, client, dto, mappers, one module per resource
     hooks/             TanStack Query hooks — the component-facing surface
@@ -149,14 +170,18 @@ src/
 
 | screen | endpoints |
 |---|---|
+| `/overview` (F6) | `GET /overview`, `GET /overview/topics/:id` |
 | `/claims` (F1) | `GET /claims/repository` (status, topics and search in one call), `GET /topics` |
 | `/claims/all` | `GET /claims` |
 | `/claims/[id]`, `/predicted/[id]` | `GET /claims/:id`, `/statements`, `/score-history`, `PUT /claims/:id/status`, `POST|DELETE /alerts` |
 | `/policies` (F2) | `GET /policies`, `GET /policies/years` |
 | `/policies/[id]` | `GET /policies/:id`, `/processing`, `/file`, `POST /policies/:id/rematch`, `PATCH`, `PUT /policies/:id/file`, `DELETE` |
-| `/alerts` (F3) | `GET /alerts`, `GET /alerts/chart`, `PATCH /alerts/:claimId/chart`, `DELETE /alerts/:claimId` |
-| `/admin` (F4) | `GET /settings`, `GET|PUT /settings/alert-threshold`, `POST /admin/generate-generic-claim`, `POST /admin/snapshot-scores` |
-| `/coordinated-network` (F5) | none — placeholder, no endpoints exist |
+| `/alerts` (F3) | `GET /alerts`, `GET /alerts/chart`, `PATCH /alerts/:claimId/chart`, `DELETE /alerts/:claimId`, `GET /alerts/notifications`, `POST /alerts/notifications/acknowledge` |
+| `/admin` (F4) | `GET /settings`, `GET|PUT /settings/alert-threshold`, `GET /settings/cities`, `GET|PUT /settings/city`, `POST /admin/generate-generic-claim`, `POST /admin/snapshot-scores` |
+| `/coordinated-network` (F5) | `GET /networks`, `GET /networks/:id` and the rest of the F5 surface |
+
+The sidebar badge on **Alert** polls `GET /alerts/notifications` from the app
+shell, so it is visible from every page.
 
 `POST /api/v1/internal/policies/:id/matchmaking-result` is called by the AI
 service, never by this frontend. It is recorded in

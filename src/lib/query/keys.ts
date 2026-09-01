@@ -5,6 +5,7 @@ import type {
   StatementListParams,
 } from "@/types/claim";
 import type { AlertChartParams, WatchlistParams } from "@/types/alert";
+import type { OverviewParams } from "@/types/overview";
 import type { PolicyListParams } from "@/types/policy";
 import type {
   AccountAnnexParams,
@@ -24,6 +25,12 @@ import type {
 export const queryKeys = {
   auth: {
     me: ["auth", "me"] as const,
+  },
+  /** F6 — the whole page is one query; the topic modal is a child of it. */
+  overview: {
+    all: ["overview"] as const,
+    page: (params?: OverviewParams) => ["overview", "page", params ?? {}] as const,
+    topic: (id: string) => ["overview", "topic", id] as const,
   },
   topics: {
     all: ["topics"] as const,
@@ -54,6 +61,9 @@ export const queryKeys = {
     all: ["alerts"] as const,
     list: (params?: WatchlistParams) => ["alerts", "list", params ?? {}] as const,
     chart: (params?: AlertChartParams) => ["alerts", "chart", params ?? {}] as const,
+    /** US71's badge. Deliberately outside `alerts.list`/`chart` so a watchlist
+     *  refetch does not re-read the counter, and vice versa. */
+    notifications: ["alerts", "notifications"] as const,
   },
   settings: {
     all: ["settings"] as const,
@@ -63,6 +73,7 @@ export const queryKeys = {
     detectorRanges: ["settings", "detector", "ranges"] as const,
     detectorHistory: ["settings", "detector", "history"] as const,
     cityTimezone: ["settings", "city-timezone"] as const,
+    cities: ["settings", "cities"] as const,
   },
   /** F5 — every key under one resource so one mutation can invalidate the lot. */
   networks: {

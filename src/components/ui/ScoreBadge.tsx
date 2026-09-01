@@ -12,6 +12,14 @@ export interface ScoreBadgeProps {
    * the same 0–100 scale and uses the same severity banding.
    */
   label?: string;
+  /**
+   * PRD §5.6 (v1.5) — a human has overridden the Harm sub-scores behind this
+   * number, so the ranking reflects a correction rather than the AI's own
+   * classification. Shown as a small dot, and named in the tooltip so it is
+   * not conveyed by a coloured mark alone.
+   */
+  edited?: boolean;
+  editedLabel?: string;
   className?: string;
 }
 
@@ -27,8 +35,11 @@ export function ScoreBadge({
   showScale,
   size = "md",
   label = "FinalClaimScore",
+  edited,
+  editedLabel,
   className,
 }: ScoreBadgeProps) {
+  const title = `${label} ${score} / 100${editedLabel && edited ? ` — ${editedLabel}` : ""}`;
   return (
     <span
       className={cn(
@@ -37,10 +48,17 @@ export function ScoreBadge({
         SIZES[size],
         className,
       )}
-      title={`${label} ${score} / 100`}
+      title={title}
     >
       {score.toFixed(1)}
       {showScale && <span className="ml-0.5 font-normal opacity-70">/100</span>}
+      {edited && (
+        <span
+          aria-hidden
+          className="ml-1 size-1.5 shrink-0 rounded-full bg-regal-navy/60"
+        />
+      )}
+      {edited && editedLabel && <span className="sr-only"> — {editedLabel}</span>}
     </span>
   );
 }

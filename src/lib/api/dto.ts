@@ -61,6 +61,25 @@ export interface HarmWeightsDto {
   policy_disruption?: number;
 }
 
+export interface HarmEditPreviousDto {
+  public_safety?: number | null;
+  institutional_trust?: number | null;
+  economic?: number | null;
+  policy_disruption?: number | null;
+  harm_score?: number | null;
+}
+
+/**
+ * New in v1.5 (US23). **Omitted while the values are the AI's originals** —
+ * its presence, not `human_confirmed`, is what marks an edited Harm, because
+ * an empty confirmation sets the boolean too.
+ */
+export interface HarmEditDto {
+  edited_by?: string | null;
+  edited_at?: string | null;
+  previous?: HarmEditPreviousDto | null;
+}
+
 export interface HarmBreakdownDto {
   public_safety?: number;
   institutional_trust?: number;
@@ -68,6 +87,7 @@ export interface HarmBreakdownDto {
   policy_disruption?: number;
   human_confirmed?: boolean;
   weights?: HarmWeightsDto | null;
+  edit?: HarmEditDto | null;
 }
 
 export interface ScoreBreakdownDto {
@@ -86,6 +106,8 @@ export interface ScoreBreakdownDto {
   is_dormant?: boolean;
   weights?: ScoreWeightsDto | null;
   note?: string | null;
+  /** New in v1.5 — the ready-made US23 tooltip sentence. */
+  formula?: string | null;
 }
 
 /**
@@ -102,6 +124,14 @@ export interface DebunkBlocksDto {
   reiterated_fact?: string | null;
 }
 
+/** One audience-segment variant (US12, new in v1.5). */
+export interface DebunkSegmentDto {
+  segment?: string;
+  rationale?: string | null;
+  content?: string;
+  generated_at?: string | null;
+}
+
 export interface ClaimActivityDto {
   type?: string;
   /** Unchanged — still the copy-to-clipboard source. */
@@ -109,6 +139,8 @@ export interface ClaimActivityDto {
   generated_at?: string | null;
   available?: boolean;
   debunk?: DebunkBlocksDto | null;
+  /** Always an array, never `null`; empty on a deployment without segmentation. */
+  segments?: DebunkSegmentDto[] | null;
 }
 
 /**
@@ -300,6 +332,30 @@ export interface WatchlistItemDto {
   /** The claim's own creation date — PRD US29's "Claim Created Date" column.
    *  Not `added_at`, which is when the operator started watching it. */
   claim_created_at?: string | null;
+  /** New in v1.5 (US29/US71). Per-reader; only this flag clears on acknowledge. */
+  just_crossed?: boolean;
+  /** `up` = below -> above, `down` = above -> below. Persists after acknowledge. */
+  crossed_direction?: string | null;
+  crossed_at?: string | null;
+}
+
+/** One entry of `crossings` on `GET /alerts/notifications` (US71). */
+export interface ThresholdCrossingDto {
+  id: string;
+  claim_statement?: string;
+  final_claim_score?: number | null;
+  threshold_status?: string;
+  just_crossed?: boolean;
+  crossed_direction?: string | null;
+  crossed_at?: string | null;
+}
+
+/** `GET /alerts/notifications` and `POST /alerts/notifications/acknowledge`. */
+export interface AlertNotificationsDto {
+  unacknowledged_count?: number;
+  acknowledged_at?: string | null;
+  threshold?: number | null;
+  crossings?: ThresholdCrossingDto[] | null;
 }
 
 export interface AlertSubscriptionDto {

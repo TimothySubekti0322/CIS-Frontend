@@ -4,6 +4,7 @@ import { useState } from "react";
 import { strings } from "@/lib/constants/strings";
 import { Tabs } from "@/components/ui/Tabs";
 import { ThresholdForm } from "@/components/admin/ThresholdForm";
+import { CitySelectorForm } from "@/components/admin/CitySelectorForm";
 import { GenerateClaimButton } from "@/components/admin/GenerateClaimButton";
 import { SnapshotScoresButton } from "@/components/admin/SnapshotScoresButton";
 import { SettingsTable } from "@/components/admin/SettingsTable";
@@ -53,6 +54,8 @@ export default function AdminPage() {
         <div className="space-y-6">
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             <ThresholdForm />
+            {/* US65 — scopes every figure on the Overview page (F6). */}
+            <CitySelectorForm />
             <GenerateClaimButton />
             <GenerateSampleContentButton />
             <SnapshotScoresButton />

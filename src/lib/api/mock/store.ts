@@ -1,6 +1,7 @@
 import type { ClaimReviewDto, SettingDto, TopicDto } from "../dto";
 import {
   buildSeed,
+  type ContentVolume,
   type MockClaim,
   type MockPolicy,
   type Snapshot,
@@ -24,12 +25,25 @@ export interface MockState {
   watchlist: WatchEntry[];
   settings: SettingDto[];
   snapshots: Snapshot[];
+  /** The AI service's per-rescore history for every claim — see `data.ts`. */
+  aiSnapshots: Snapshot[];
   users: MockUser[];
   /** One overlay row per claim — the backend's `cis_claim_reviews`. */
   reviews: Record<string, ClaimReviewDto>;
+  /** The AI service's content stream, for the Climate Sentiment Index. */
+  contentVolume: ContentVolume;
+  /**
+   * When this reader last acknowledged threshold crossings (US71). The real
+   * backend keys this per user in `cis_alert_acknowledgements`; the mock has
+   * one reader, so one timestamp is the faithful reduction.
+   */
+  acknowledgedAt: string | null;
 }
 
-const STORAGE_KEY = "cis_mock_state_v2";
+/* Bumped for v1.5: watchlist entries gained the threshold-crossing state, and
+   a persisted v2 watchlist would carry none of it — the seeded demo crossing
+   would silently never appear. */
+const STORAGE_KEY = "cis_mock_state_v3";
 
 function freshState(): MockState {
   const seed = buildSeed();
@@ -40,8 +54,11 @@ function freshState(): MockState {
     watchlist: seed.watchlist,
     settings: seed.settings,
     snapshots: seed.snapshots,
+    aiSnapshots: seed.aiSnapshots,
     users: [],
     reviews: {},
+    contentVolume: seed.contentVolume,
+    acknowledgedAt: null,
   };
 }
 
@@ -57,6 +74,7 @@ function persist() {
         users: state.users,
         watchlist: state.watchlist,
         settings: state.settings,
+        acknowledgedAt: state.acknowledgedAt,
       }),
     );
   } catch {
@@ -74,6 +92,9 @@ export function getState(): MockState {
         const slim = JSON.parse(raw) as Partial<MockState>;
         if (slim.users) state.users = slim.users;
         if (slim.settings) state.settings = slim.settings;
+        if (slim.acknowledgedAt !== undefined) {
+          state.acknowledgedAt = slim.acknowledgedAt;
+        }
         if (slim.watchlist) {
           state.watchlist = slim.watchlist;
           const watched = new Set(slim.watchlist.map((w) => w.claim_id));

@@ -1,4 +1,5 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { HOME_HREF } from "@/lib/constants/routes";
 
 const AUTH_COOKIE = "cis_token";
 const AUTH_PAGES = ["/login", "/register"];
@@ -6,7 +7,7 @@ const AUTH_PAGES = ["/login", "/register"];
 /**
  * Really simple route gate: presence of the token cookie only.
  * - unauthenticated + protected route  -> /login
- * - authenticated + auth page           -> /claims
+ * - authenticated + auth page           -> the Overview (US66)
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -22,7 +23,7 @@ export function middleware(req: NextRequest) {
 
   if (hasToken && isAuthPage) {
     const url = req.nextUrl.clone();
-    url.pathname = "/claims";
+    url.pathname = HOME_HREF;
     url.search = "";
     return NextResponse.redirect(url);
   }

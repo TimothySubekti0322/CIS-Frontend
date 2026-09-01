@@ -39,6 +39,18 @@ export const ENDPOINTS = {
     get: def({ method: "GET", path: "/topics/:id" }),
   },
 
+  /**
+   * F6 — Overview (PRD v1.5). The whole page in one call, mirroring
+   * `GET /claims/repository`: three round trips to render one screen buys
+   * nothing, and nothing here is stored, so every figure is computed on read.
+   */
+  overview: {
+    /** `?limit` sizes the O3 leaderboard; the backend default is 5. */
+    get: def({ method: "GET", path: "/overview" }),
+    /** The O2 treemap's click-through modal. 404 for an unknown topic. */
+    topic: def({ method: "GET", path: "/overview/topics/:id" }),
+  },
+
   /** F1 — Claim Repository Bank. */
   claims: {
     /** The whole F1 page in one call; both sections always return. */
@@ -88,6 +100,16 @@ export const ENDPOINTS = {
     /** Server-persisted "Chart" checkbox driving `GET /alerts/chart`. */
     setChartVisible: def({ method: "PATCH", path: "/alerts/:claimId/chart" }),
     chart: def({ method: "GET", path: "/alerts/chart" }),
+    /** US71 — the sidebar counter badge. Poll it, or refresh on navigation. */
+    notifications: def({ method: "GET", path: "/alerts/notifications" }),
+    /** Clears THIS user's badge and row highlights. Call it AFTER rendering
+     *  the rows you were handed — acknowledging is what makes the *next*
+     *  render unhighlighted, so calling it first clears what the user was
+     *  just told about. Answers the same payload as the GET. */
+    acknowledge: def({
+      method: "POST",
+      path: "/alerts/notifications/acknowledge",
+    }),
   },
 
   /** F4 — Admin settings and utilities. No roles exist in this build. */
@@ -106,7 +128,16 @@ export const ENDPOINTS = {
     detectorHistory: def({ method: "GET", path: "/settings/detector/history" }),
     /** The same change log across every setting, not just the detector. */
     history: def({ method: "GET", path: "/settings/history" }),
-    /** IANA zone name — PRD 10.8 needs city-local time in report footers. */
+    /** US65 — the closed catalog of Indonesian cities, plus the selection. */
+    cities: def({ method: "GET", path: "/settings/cities" }),
+    getCity: def({ method: "GET", path: "/settings/city" }),
+    /** Single-select: the new city replaces the old outright, and writes
+     *  `city_timezone` with it, so F5 report footers follow F6's scope. 422
+     *  for a city outside the catalog. Re-fetch `GET /overview` after a save. */
+    setCity: def({ method: "PUT", path: "/settings/city" }),
+    /** IANA zone name — PRD 10.8 needs city-local time in report footers.
+     *  Since v1.5 `PUT /settings/city` normally sets this; writing it directly
+     *  is the escape hatch for a city outside the US65 catalog. */
     getCityTimezone: def({ method: "GET", path: "/settings/city-timezone" }),
     setCityTimezone: def({ method: "PUT", path: "/settings/city-timezone" }),
   },

@@ -10,12 +10,12 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { BellButton } from "./BellButton";
 import { CoordinatedNetworkPanel } from "./CoordinatedNetworkLink";
-import { HarmConfirmPanel } from "./HarmConfirmPanel";
 import { ReviewPanel } from "./ReviewPanel";
 import { ScoreBreakdownPanel } from "./ScoreBreakdownPanel";
 import { ScoreHistoryCard } from "./ScoreHistoryCard";
 import { TopAccountsPanel } from "./TopAccountsPanel";
 import { CopyableContentBox } from "./CopyableContentBox";
+import { SegmentedDebunkActivity } from "./SegmentedDebunkActivity";
 import { StatementList } from "./StatementList";
 import { CorrelatedPolicies } from "./CorrelatedPolicies";
 
@@ -71,7 +71,15 @@ function ClaimHeader({
             <StatusPill tone="neutral">{strings.claims.dormant}</StatusPill>
           )}
           {claim.finalClaimScore !== null && (
-            <ScoreBadge score={claim.finalClaimScore} size="sm" showScale />
+            <ScoreBadge
+              score={claim.finalClaimScore}
+              size="sm"
+              showScale
+              // PRD §5.6 — a reviewer elsewhere in the product has to be able
+              // to see that this ranking reflects a human correction.
+              edited={Boolean(claim.scoreBreakdown?.harmBreakdown?.edit)}
+              editedLabel={strings.claims.harmEditedTag}
+            />
           )}
         </div>
         <h1 className="text-h1">{claim.claimStatement}</h1>
@@ -103,25 +111,20 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
+          {/* v1.5: the Harm edit lives inside this panel — there is no separate
+              "Harm Assessment" section any more (US12/US23). */}
           {claim.scoreBreakdown && (
-            <ScoreBreakdownPanel score={claim.scoreBreakdown} />
-          )}
-
-          {claim.scoreBreakdown?.harmBreakdown && (
-            <HarmConfirmPanel
-              claimId={claim.id}
-              harm={claim.scoreBreakdown.harmBreakdown}
-            />
+            <ScoreBreakdownPanel score={claim.scoreBreakdown} claimId={claim.id} />
           )}
 
           <ScoreHistoryCard claimId={claim.id} />
 
-          <CopyableContentBox
-            title={strings.claims.debunkActivity}
-            content={claim.activity?.available ? claim.activity.content : null}
-            emptyLabel={strings.claims.activityUnavailable}
-            generatedAt={claim.activity?.generatedAt ?? null}
-            blocks={claim.activity?.debunk ?? null}
+          {/* One copyable draft per audience segment (US12, v1.5); falls back
+              to the single draft when the AI service has not segmented it. */}
+          <SegmentedDebunkActivity
+            activity={claim.activity}
+            title={strings.claims.debunkSegmentsTitle}
+            fallbackTitle={strings.claims.debunkActivity}
           />
 
           <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">

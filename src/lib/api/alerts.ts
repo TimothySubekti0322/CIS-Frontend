@@ -1,15 +1,27 @@
 import type {
   AlertChart,
   AlertChartParams,
+  AlertNotifications,
   AlertSubscription,
   WatchlistItem,
   WatchlistParams,
 } from "@/types/alert";
 import type { Paginated } from "@/types/common";
 import { apiClient } from "./client";
-import type { AlertChartDto, AlertSubscriptionDto, WatchlistItemDto } from "./dto";
+import type {
+  AlertChartDto,
+  AlertNotificationsDto,
+  AlertSubscriptionDto,
+  WatchlistItemDto,
+} from "./dto";
 import { ENDPOINTS } from "./endpoints";
-import { mapAlertChart, mapAlertSubscription, mapMeta, mapWatchlistItem } from "./mappers";
+import {
+  mapAlertChart,
+  mapAlertNotifications,
+  mapAlertSubscription,
+  mapMeta,
+  mapWatchlistItem,
+} from "./mappers";
 
 export const alertsApi = {
   /**
@@ -71,5 +83,32 @@ export const alertsApi = {
       },
     });
     return mapAlertChart(dto ?? {});
+  },
+
+  /**
+   * `GET /alerts/notifications` — the US71 sidebar badge.
+   * `unacknowledgedCount` is the number; `crossings` names the claims behind
+   * it so the badge can expand into something readable.
+   */
+  async notifications(): Promise<AlertNotifications> {
+    const dto = await apiClient.call<AlertNotificationsDto>(
+      ENDPOINTS.alerts.notifications,
+    );
+    return mapAlertNotifications(dto);
+  },
+
+  /**
+   * `POST /alerts/notifications/acknowledge` — opening F3 is the
+   * acknowledgment (US71), so this runs on entering the page, **after** the
+   * rows have rendered: acknowledging is what makes the next render
+   * unhighlighted, and calling it first would clear the highlights the user
+   * was just shown. Acknowledgment is per user — one operator clearing their
+   * badge must not clear a colleague's.
+   */
+  async acknowledge(): Promise<AlertNotifications> {
+    const dto = await apiClient.call<AlertNotificationsDto>(
+      ENDPOINTS.alerts.acknowledge,
+    );
+    return mapAlertNotifications(dto);
   },
 };

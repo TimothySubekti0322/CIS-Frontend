@@ -16,6 +16,13 @@ import type {
 } from "../dto";
 import { ALERT_THRESHOLD_KEY, CLAIMS_LAST_FETCHED_KEY } from "../settings";
 import {
+  buildOverview,
+  buildTopicOverview,
+  currentCity,
+  setCity,
+} from "./overviewHandlers";
+import {
+  CITY_CATALOG,
   createGeneratedClaim,
   createPredictedClaim,
   historyFor,
@@ -23,6 +30,7 @@ import {
   type MockClaim,
   type MockPolicy,
   type Snapshot,
+  type WatchEntry,
 } from "./data";
 import {
   getSetting,
@@ -860,7 +868,54 @@ function watchlistRow(s: MockState, entry: MockState["watchlist"][number]): Watc
     threshold: t,
     is_dormant: claim.is_dormant ?? false,
     claim_created_at: claim.created_at,
+    // Per-reader: `just_crossed` is a crossing this reader has not yet
+    // acknowledged. The stamp itself survives acknowledgment.
+    just_crossed: isUnacknowledged(s, entry),
+    crossed_direction: entry.crossed_direction ?? null,
+    crossed_at: entry.crossed_at ?? null,
   };
+}
+
+/**
+ * A crossing is unacknowledged when it happened after this reader last opened
+ * F3. The real backend keys acknowledgments per user; the mock has one reader,
+ * so a single timestamp is the faithful reduction.
+ */
+function isUnacknowledged(s: MockState, entry: WatchEntry): boolean {
+  if (!entry.crossed_at) return false;
+  if (!s.acknowledgedAt) return true;
+  return Date.parse(entry.crossed_at) > Date.parse(s.acknowledgedAt);
+}
+
+/**
+ * Re-evaluate one watched claim against the threshold and stamp a crossing if
+ * its Over/Under status actually flipped.
+ *
+ * The whole point is that a crossing is a *transition between two
+ * evaluations*, not a state: the score says where a claim is now, never that
+ * it just moved, which is why the previous status has to be stored. A claim
+ * with no recorded previous status is having its baseline set — a first
+ * sighting is not a transition and must not notify.
+ *
+ * The backend runs this on each score refresh and immediately after a Harm
+ * edit, so an edit at 09:05 is not left unnotified until 10:00.
+ */
+function evaluateCrossing(s: MockState, claimId: string) {
+  const entry = s.watchlist.find((w) => w.claim_id === claimId);
+  const claim = s.claims.find((c) => c.id === claimId);
+  if (!entry || !claim) return;
+
+  const score = claim.score_breakdown?.final_claim_score ?? null;
+  const t = threshold(s);
+  const status =
+    score !== null && score >= t ? "over_threshold" : "under_threshold";
+  const previous = entry.last_threshold_status;
+
+  entry.last_threshold_status = status;
+  if (!previous || previous === status) return;
+
+  entry.crossed_at = new Date().toISOString();
+  entry.crossed_direction = status === "over_threshold" ? "up" : "down";
 }
 
 const listAlerts: MockHandler = async (ctx) => {
@@ -893,11 +948,18 @@ const addAlert: MockHandler = async (ctx) => {
   // Re-adding is not an error: return the existing row untouched.
   let entry = s.watchlist.find((w) => w.claim_id === claim_id);
   if (!entry) {
+    const score = claim.score_breakdown?.final_claim_score ?? null;
     entry = {
       claim_id,
       alert_id: `d0000000-0000-0000-0000-${String(s.watchlist.length + 100).padStart(12, "0")}`,
       added_at: new Date().toISOString(),
       chart_visible: false,
+      // Baseline only: a first sighting is not a transition, so nothing is
+      // stamped and nothing notifies.
+      last_threshold_status:
+        score !== null && score >= threshold(s) ? "over_threshold" : "under_threshold",
+      crossed_at: null,
+      crossed_direction: null,
     };
     s.watchlist.push(entry);
     // History starts the moment a claim is watched.
@@ -993,6 +1055,59 @@ const alertChart: MockHandler = async (ctx) => {
   );
 };
 
+/**
+ * `GET /alerts/notifications` — the US71 sidebar badge, plus the claims behind
+ * it so the count can be expanded into something readable.
+ */
+const alertNotifications: MockHandler = async () => {
+  await sleep(120);
+  return ok(notificationsPayload(getState()), "alert notifications");
+};
+
+/**
+ * `POST /alerts/notifications/acknowledge`. Opening F3 is the acknowledgment
+ * (US71). Only the unacknowledged flag clears — `crossed_at` and
+ * `crossed_direction` stay on the row so the table can still say what last
+ * happened to a claim.
+ */
+const acknowledgeAlerts: MockHandler = async () => {
+  await sleep(140);
+  const s = getState();
+  s.acknowledgedAt = new Date().toISOString();
+  saveState();
+  return ok(notificationsPayload(s), "alert notifications acknowledged");
+};
+
+function notificationsPayload(s: MockState) {
+  const crossings = s.watchlist
+    .filter((entry) => isUnacknowledged(s, entry))
+    .sort((a, b) => Date.parse(b.crossed_at ?? "") - Date.parse(a.crossed_at ?? ""))
+    // Newest first, capped at 20: a watchlist where dozens crossed at once is
+    // a threshold problem, not a paging problem.
+    .slice(0, 20)
+    .map((entry) => {
+      const row = watchlistRow(s, entry);
+      if (!row) return null;
+      return {
+        id: row.id,
+        claim_statement: row.claim_statement,
+        final_claim_score: row.final_claim_score,
+        threshold_status: row.threshold_status,
+        just_crossed: true,
+        crossed_direction: row.crossed_direction,
+        crossed_at: row.crossed_at,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
+  return {
+    unacknowledged_count: crossings.length,
+    acknowledged_at: s.acknowledgedAt,
+    threshold: threshold(s),
+    crossings,
+  };
+}
+
 /* ------------------------------ settings -------------------------------- */
 
 const listSettings: MockHandler = async () => {
@@ -1016,6 +1131,48 @@ const putAlertThreshold: MockHandler = async (ctx) => {
   setSetting(s, ALERT_THRESHOLD_KEY, String(Math.round(next)));
   saveState();
   return ok({ threshold: Math.round(next) }, "alert threshold updated");
+};
+
+/** `GET /settings/cities` (US65) — options plus the current selection. */
+const listCities: MockHandler = async () => {
+  await sleep(100);
+  const selected = currentCity(getState());
+  return ok({ cities: CITY_CATALOG, selected }, "configurable cities");
+};
+
+const getCity: MockHandler = async () => {
+  await sleep(90);
+  return ok(currentCity(getState()), "configured city");
+};
+
+/** Single-select: the new city replaces the old, and writes the timezone. */
+const putCity: MockHandler = async (ctx) => {
+  await sleep(180);
+  const { city } = body<{ city?: string }>(ctx);
+  if (!city || typeof city !== "string") {
+    fail("city is required", 400, "VALIDATION_FAILED");
+  }
+  // 422 for a city outside the catalog — a genuinely semantic failure.
+  return ok(setCity(getState(), city), "configured city updated");
+};
+
+/* -------------------------------- overview ------------------------------- */
+
+/** US70's section heading says "Top 10", its detail says 5. The detail wins. */
+const DEFAULT_POLICY_LIMIT = 5;
+
+const overview: MockHandler = async (ctx) => {
+  await sleep(LATENCY);
+  const limit = Math.max(1, Math.trunc(qsNum(ctx, "limit", DEFAULT_POLICY_LIMIT)));
+  return ok(buildOverview(getState(), limit), "overview");
+};
+
+const topicOverview: MockHandler = async (ctx) => {
+  await sleep(180);
+  return ok(
+    buildTopicOverview(getState(), String(ctx.params.id)),
+    "topic overview",
+  );
 };
 
 /* -------------------------------- admin --------------------------------- */
@@ -1056,6 +1213,8 @@ const snapshotScores: MockHandler = async () => {
     });
     captured += 1;
   }
+  // The hourly snapshot job re-evaluates every watched claim as it runs.
+  for (const entry of s.watchlist) evaluateCrossing(s, entry.claim_id);
   saveState();
   return ok({ snapshots_captured: captured }, "score snapshots captured");
 };
@@ -1086,6 +1245,9 @@ const rescoreClaims: MockHandler = async () => {
     claim.final_claim_score = score.final_claim_score;
     rescored += 1;
   }
+  // A rescore IS the score refresh, and the refresh is the only point where
+  // scores actually move — so it is where crossings are detected.
+  for (const entry of s.watchlist) evaluateCrossing(s, entry.claim_id);
   saveState();
   return ok({ claims_rescored: rescored }, "claims rescored");
 };
@@ -1191,14 +1353,38 @@ const confirmHarm: MockHandler = async (ctx) => {
   }>(ctx);
 
   const harm = claim.score_breakdown.harm_breakdown;
+
+  // Captured before anything is written: the audit trail records the AI's
+  // classification as it stood, and it has to be the pre-edit values.
+  const before = {
+    public_safety: harm.public_safety ?? null,
+    institutional_trust: harm.institutional_trust ?? null,
+    economic: harm.economic ?? null,
+    policy_disruption: harm.policy_disruption ?? null,
+    harm_score: claim.score_breakdown.harm ?? null,
+  };
+
+  let changed = false;
   for (const [key, value] of Object.entries(payload)) {
     if (value === undefined) continue;
     if (typeof value !== "number" || value < 0 || value > 100) {
       fail(`${key} must be between 0 and 100`, 422, "UNPROCESSABLE_ENTITY");
     }
+    if ((harm as Record<string, unknown>)[key] !== value) changed = true;
     (harm as Record<string, unknown>)[key] = value;
   }
   harm.human_confirmed = true;
+
+  // An empty confirmation sets `human_confirmed` but writes no audit row —
+  // which is exactly why the UI reads `edit`, not the boolean, to decide
+  // whether a value was actually overridden.
+  if (changed) {
+    harm.edit = {
+      edited_by: emailFromToken(getToken()) ?? "reviewer",
+      edited_at: new Date().toISOString(),
+      previous: before,
+    };
+  }
 
   // The AI service rescores harm -> claim_score -> final_claim_score, so the
   // whole chain is recomputed here rather than only the sub-scores.
@@ -1221,6 +1407,11 @@ const confirmHarm: MockHandler = async (ctx) => {
     score.discount_factor ?? 1,
   );
   claim.final_claim_score = score.final_claim_score;
+
+  // US23's system flow ends here: recomputing H moves FinalClaimScore, which
+  // can push a watched claim across the threshold. Waiting for the hourly
+  // snapshot job would leave an edit made at 09:05 unnotified until 10:00.
+  evaluateCrossing(s, claim.id);
   saveState();
 
   // The response IS the full claim detail — the caller must not re-fetch.
@@ -1288,10 +1479,18 @@ export const mockHandlers: Record<string, MockHandler> = {
   "DELETE /alerts/:claimId": removeAlert,
   "PATCH /alerts/:claimId/chart": setChartVisible,
   "GET /alerts/chart": alertChart,
+  "GET /alerts/notifications": alertNotifications,
+  "POST /alerts/notifications/acknowledge": acknowledgeAlerts,
 
   "GET /settings": listSettings,
   "GET /settings/alert-threshold": getAlertThreshold,
   "PUT /settings/alert-threshold": putAlertThreshold,
+  "GET /settings/cities": listCities,
+  "GET /settings/city": getCity,
+  "PUT /settings/city": putCity,
+
+  "GET /overview": overview,
+  "GET /overview/topics/:id": topicOverview,
 
   "POST /admin/generate-generic-claim": generateGenericClaim,
   "POST /admin/snapshot-scores": snapshotScores,

@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth/AuthContext";
 import { ApiError } from "@/types/common";
 import { strings } from "@/lib/constants/strings";
+import { HOME_HREF } from "@/lib/constants/routes";
 import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 
@@ -39,7 +40,7 @@ export function AuthForm({ mode }: { mode: "login" | "register" }) {
       } else {
         await register({ email: email.trim(), password, name: name.trim() });
       }
-      router.replace("/claims");
+      router.replace(HOME_HREF);
     } catch (err) {
       // 401 is deliberately identical for a wrong password and an unknown
       // email, so the server's own message is the most honest thing to show.

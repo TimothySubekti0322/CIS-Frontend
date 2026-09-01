@@ -27,6 +27,9 @@ import {
 
 const DAY = 86_400_000;
 export const MOCK_NOW = Date.parse("2026-08-30T09:00:00Z");
+
+/** Matches the backend's fresh-database default (US32). */
+export const DEFAULT_THRESHOLD = 70;
 const daysAgo = (n: number) => new Date(MOCK_NOW - n * DAY).toISOString();
 
 /* ------------------------------- topics ------------------------------- */
@@ -118,7 +121,31 @@ function buildScore(seed: ScoreSeed): ScoreBreakdownDto {
     note: dormant
       ? "No supporting or opposing volume — the claim is flagged as dormant and its score is not discounted."
       : null,
+    formula: formulaSentence(dormant),
   };
+}
+
+/**
+ * US23's tooltip sentence (v1.5).
+ *
+ * Generated from the same weight constants the score is computed from, for
+ * the reason the backend generates it rather than letting the frontend write
+ * it: the explanation and the arithmetic have exactly one source, so they
+ * cannot drift apart.
+ */
+function formulaSentence(dormant: boolean): string {
+  const w = CLAIM_SCORE_WEIGHTS;
+  const parts = [
+    `Reach ×${w.reach}`,
+    `Velocity ×${w.velocity}`,
+    `Falseness Confidence ×${w.falseness}`,
+    `Harm Severity ×${w.harm}`,
+    `Emotional Intensity ×${w.emotionalIntensity}`,
+  ].join(", ");
+  const base = `ClaimScore is the weighted sum of five parameters (${parts}), each on 0–100.`;
+  return dormant
+    ? `${base} This claim is dormant — it has no supporting or opposing volume in the window — so the pushback discount is not applied and FinalClaimScore equals ClaimScore.`
+    : `${base} FinalClaimScore then discounts it by the Net Pushback Ratio, which lowers the score of a claim the public is already visibly pushing back on.`;
 }
 
 /* ---------------------------- statements/accounts ----------------------- */
@@ -255,13 +282,81 @@ export interface WatchEntry {
   alert_id: string;
   added_at: string;
   chart_visible: boolean;
+  /**
+   * v1.5 (US71). A crossing is a transition between two evaluations, not a
+   * state, so the previous Over/Under status has to be stored: the score alone
+   * says where a claim is now, never that it just moved.
+   *
+   * A claim added to the watchlist records its current status as a baseline
+   * without notifying — a first sighting is not a transition.
+   */
+  last_threshold_status?: "over_threshold" | "under_threshold";
+  crossed_at?: string | null;
+  crossed_direction?: "up" | "down" | null;
 }
+
+/** The 27-city catalog US65 selects from, as the backend holds it in code. */
+export interface CityRecord {
+  name: string;
+  province: string;
+  timezone: string;
+}
+
+export const CITY_CATALOG: CityRecord[] = [
+  { name: "Jakarta", province: "DKI Jakarta", timezone: "Asia/Jakarta" },
+  { name: "Surabaya", province: "Jawa Timur", timezone: "Asia/Jakarta" },
+  { name: "Bandung", province: "Jawa Barat", timezone: "Asia/Jakarta" },
+  { name: "Medan", province: "Sumatera Utara", timezone: "Asia/Jakarta" },
+  { name: "Semarang", province: "Jawa Tengah", timezone: "Asia/Jakarta" },
+  { name: "Palembang", province: "Sumatera Selatan", timezone: "Asia/Jakarta" },
+  { name: "Makassar", province: "Sulawesi Selatan", timezone: "Asia/Makassar" },
+  { name: "Denpasar", province: "Bali", timezone: "Asia/Makassar" },
+  { name: "Balikpapan", province: "Kalimantan Timur", timezone: "Asia/Makassar" },
+  { name: "Samarinda", province: "Kalimantan Timur", timezone: "Asia/Makassar" },
+  { name: "Manado", province: "Sulawesi Utara", timezone: "Asia/Makassar" },
+  { name: "Banjarmasin", province: "Kalimantan Selatan", timezone: "Asia/Makassar" },
+  { name: "Pontianak", province: "Kalimantan Barat", timezone: "Asia/Jakarta" },
+  { name: "Padang", province: "Sumatera Barat", timezone: "Asia/Jakarta" },
+  { name: "Pekanbaru", province: "Riau", timezone: "Asia/Jakarta" },
+  { name: "Bandar Lampung", province: "Lampung", timezone: "Asia/Jakarta" },
+  { name: "Malang", province: "Jawa Timur", timezone: "Asia/Jakarta" },
+  { name: "Bogor", province: "Jawa Barat", timezone: "Asia/Jakarta" },
+  { name: "Bekasi", province: "Jawa Barat", timezone: "Asia/Jakarta" },
+  { name: "Depok", province: "Jawa Barat", timezone: "Asia/Jakarta" },
+  { name: "Tangerang", province: "Banten", timezone: "Asia/Jakarta" },
+  { name: "Yogyakarta", province: "DI Yogyakarta", timezone: "Asia/Jakarta" },
+  { name: "Surakarta", province: "Jawa Tengah", timezone: "Asia/Jakarta" },
+  { name: "Cirebon", province: "Jawa Barat", timezone: "Asia/Jakarta" },
+  { name: "Ambon", province: "Maluku", timezone: "Asia/Jayapura" },
+  { name: "Jayapura", province: "Papua", timezone: "Asia/Jayapura" },
+  { name: "Kupang", province: "Nusa Tenggara Timur", timezone: "Asia/Makassar" },
+];
 
 export interface Snapshot {
   claim_id: string;
   captured_at: string;
   final_claim_score: number;
   claim_score: number;
+}
+
+/**
+ * The AI service's content stream, as far as the Climate Sentiment Index needs
+ * it: the 7-day window's sentiment split, plus each claim's own conversation
+ * volume for the RiskLoad weighting.
+ *
+ * PRD 6.6.1 is explicit that the denominator is *all* climate-related content,
+ * independent of the claim repository — so `total` is larger than the sum of
+ * the per-claim volumes, and unclustered content is what makes up the
+ * difference. Getting this wrong in the mock would make the index look
+ * plausible while exercising the wrong arithmetic.
+ */
+export interface ContentVolume {
+  total: number;
+  positive: number;
+  negative: number;
+  neutral: number;
+  /** Supporting + opposing volume per claim — a weight, never a score. */
+  perClaim: Record<string, number>;
 }
 
 export interface Seed {
@@ -271,6 +366,75 @@ export interface Seed {
   watchlist: WatchEntry[];
   settings: SettingDto[];
   snapshots: Snapshot[];
+  aiSnapshots: Snapshot[];
+  contentVolume: ContentVolume;
+}
+
+/**
+ * The AI service's own score history — a row per rescore for **every** claim,
+ * not just watched ones.
+ *
+ * This is deliberately a second store rather than more rows in `snapshots`.
+ * The two answer different questions and the product depends on the
+ * difference: the backend's watchlist-only snapshots drive the F3 chart and
+ * the per-claim Score History Chart, so an unwatched claim must show no
+ * history there. The AI service's history is what the Overview's topic
+ * month-on-month reads, precisely because a MoM figure computed over the
+ * watchlist would describe the team's attention rather than the topic.
+ *
+ * Merging them would make the mock teach the wrong rule in both directions.
+ */
+function buildAiSnapshots(claims: MockClaim[]): Snapshot[] {
+  const out: Snapshot[] = [];
+  for (const claim of claims) {
+    if (claim.claim_type !== "existing" || !claim.score_breakdown) continue;
+    const final = claim.score_breakdown.final_claim_score ?? 0;
+    const composite = claim.score_breakdown.claim_score ?? 0;
+    // Ten fortnightly points, ending at today's score — enough to populate
+    // both sides of a month-on-month comparison.
+    for (let i = 9; i >= 0; i--) {
+      const drift = i === 0 ? 0 : Math.sin((i + final) / 3) * 6 - i * 0.9;
+      const clampScore = (n: number) => Math.max(0, Math.min(100, Math.round(n * 10) / 10));
+      out.push({
+        claim_id: claim.id,
+        captured_at: new Date(MOCK_NOW - i * 14 * DAY).toISOString(),
+        final_claim_score: clampScore(final + drift),
+        claim_score: clampScore(composite + drift),
+      });
+    }
+  }
+  return out;
+}
+
+/**
+ * Deterministic content volumes derived from the claims themselves, so the
+ * index moves when the repository does — a rescore or a Harm edit changes
+ * RiskLoad, which is the behaviour the real pipeline has.
+ */
+export function buildContentVolume(claims: MockClaim[]): ContentVolume {
+  const perClaim: Record<string, number> = {};
+  let clustered = 0;
+
+  for (const claim of claims) {
+    if (claim.claim_type !== "existing") continue;
+    const positive = claim.positive_statement_count ?? 0;
+    const negative = claim.negative_statement_count ?? 0;
+    // Statement counts are a sample of the cluster, not the cluster itself.
+    const volume = (positive + negative) * 12;
+    perClaim[claim.id] = volume;
+    clustered += volume;
+  }
+
+  // Unclustered climate conversation — neutral chatter, general coverage, and
+  // content the pipeline never grouped into a claim. Roughly 45% of the whole.
+  const total = Math.round(clustered / 0.55);
+  const neutral = total - clustered;
+  // Opposing content outweighs supporting on flagged claims, but the wider
+  // conversation is not as negative as the claim repository alone suggests.
+  const negative = Math.round(clustered * 0.62);
+  const positive = clustered - negative;
+
+  return { total, positive, negative, neutral, perClaim };
 }
 
 export function buildSeed(): Seed {
@@ -281,19 +445,24 @@ export function buildSeed(): Seed {
     const dormant = i === 11;
     const positive = dormant ? 0 : 8 + ((i * 5) % 40);
     const negative = dormant ? 0 : 40 + ((i * 11) % 120);
+    /* The spread is chosen so that roughly a third of the seeded claims land
+       above the default threshold of 70. Below that, mock mode would show an
+       all-clear Overview, an empty Over-Threshold column on F3 and a treemap
+       whose count half is uniformly zero — and none of those paths would ever
+       be exercised by anyone developing against it. */
     const score = buildScore({
-      reach: dormant ? 8 : 35 + ((i * 13) % 55),
-      velocity: dormant ? 4 : 20 + ((i * 29) % 70),
-      falseness: 55 + ((i * 7) % 40),
-      emotionalIntensity: 30 + ((i * 23) % 60),
+      reach: dormant ? 8 : 48 + ((i * 13) % 48),
+      velocity: dormant ? 4 : 38 + ((i * 29) % 58),
+      falseness: 60 + ((i * 7) % 40),
+      emotionalIntensity: 42 + ((i * 23) % 50),
       emotionalIntensityOpposing: 20 + ((i * 19) % 50),
       harmParts: {
-        publicSafety: 45 + ((i * 17) % 50),
-        institutionalTrust: 40 + ((i * 23) % 55),
-        economic: 35 + ((i * 29) % 60),
-        policyDisruption: 30 + ((i * 31) % 65),
+        publicSafety: 55 + ((i * 17) % 45),
+        institutionalTrust: 50 + ((i * 23) % 48),
+        economic: 46 + ((i * 29) % 48),
+        policyDisruption: 40 + ((i * 31) % 55),
       },
-      npr: (i % 5) * 0.12,
+      npr: (i % 5) * 0.07,
       dormant,
     });
     claims.push({
@@ -316,6 +485,9 @@ export function buildSeed(): Seed {
         content: debunkDraft(statement),
         generated_at: daysAgo(2 + i),
         available: true,
+        // Every fourth claim is left unsegmented, so the single-draft
+        // fallback stays reachable without touching the code.
+        segments: debunkSegments(statement, i % 4 === 3 ? 0 : 1 + (i % 3)),
       },
       policies: [],
       score_breakdown: score,
@@ -340,6 +512,8 @@ export function buildSeed(): Seed {
         content: prebunkDraft(statement),
         generated_at: daysAgo(i),
         available: true,
+        // Synthetic claims are never segmented — their prebunk stays flat.
+        segments: [],
       },
       policies: [],
       statements: [],
@@ -376,12 +550,33 @@ export function buildSeed(): Seed {
 
   const watchlist: WatchEntry[] = claims
     .filter((c) => c.is_on_alert)
-    .map((c, i) => ({
-      claim_id: c.id,
-      alert_id: `d0000000-0000-0000-0000-${String(i + 1).padStart(12, "0")}`,
-      added_at: new Date(MOCK_NOW - (i + 1) * 3_600_000).toISOString(),
-      chart_visible: i < 2,
-    }));
+    .map((c, i) => {
+      const score = c.score_breakdown?.final_claim_score ?? null;
+      const status =
+        score !== null && score >= DEFAULT_THRESHOLD
+          ? ("over_threshold" as const)
+          : ("under_threshold" as const);
+      // The first row is seeded as having *just* crossed, so the US29 row
+      // highlight and the US71 badge are both visible on a fresh mock. Its
+      // stored previous status is the opposite of where it now sits, which is
+      // exactly the shape a real transition leaves behind.
+      const justCrossed = i === 0;
+      return {
+        claim_id: c.id,
+        alert_id: `d0000000-0000-0000-0000-${String(i + 1).padStart(12, "0")}`,
+        added_at: new Date(MOCK_NOW - (i + 1) * 3_600_000).toISOString(),
+        chart_visible: i < 2,
+        last_threshold_status: status,
+        crossed_at: justCrossed
+          ? new Date(MOCK_NOW - 30 * 60_000).toISOString()
+          : null,
+        crossed_direction: justCrossed
+          ? status === "over_threshold"
+            ? ("up" as const)
+            : ("down" as const)
+          : null,
+      };
+    });
 
   const snapshots: Snapshot[] = [];
   watchlist.forEach((entry, seedIndex) => {
@@ -408,6 +603,8 @@ export function buildSeed(): Seed {
     claims,
     policies,
     watchlist,
+    aiSnapshots: buildAiSnapshots(claims),
+    contentVolume: buildContentVolume(claims),
     settings: [
       {
         key: "alert_threshold",
@@ -415,6 +612,24 @@ export function buildSeed(): Seed {
         value_type: "number",
         description:
           "Global FinalClaimScore threshold (0-100) deciding Over/Under Threshold.",
+        updated_at: daysAgo(9),
+        updated_by: null,
+      },
+      {
+        key: "city",
+        value: CITY_CATALOG[0].name,
+        value_type: "string",
+        description:
+          "The single Indonesian city this instance monitors (PRD US65). Scopes every figure on the Overview page.",
+        updated_at: daysAgo(9),
+        updated_by: null,
+      },
+      {
+        key: "city_timezone",
+        value: CITY_CATALOG[0].timezone,
+        value_type: "string",
+        description:
+          "IANA zone, written by the city selection so detector report footers and the Overview cannot disagree.",
         updated_at: daysAgo(9),
         updated_by: null,
       },
@@ -530,6 +745,9 @@ export function createGeneratedClaim(topicId?: string): MockClaim {
       content: debunkDraft(statement),
       generated_at: new Date().toISOString(),
       available: true,
+      // PRD v1.5 §8.2 — the demo claim must exercise both v1.5 changes, so it
+      // always carries at least one segment as well as its harm sub-scores.
+      segments: debunkSegments(statement, 2),
     },
     policies: [],
     score_breakdown: score,
@@ -561,11 +779,62 @@ export function createPredictedClaim(policyId: string, policyName: string): Mock
       content: prebunkDraft(statement),
       generated_at: new Date().toISOString(),
       available: true,
+      segments: [],
     },
     policies: [],
     statements: [],
     policy_ids: [policyId],
   };
+}
+
+/**
+ * The audience segments US12 (v1.5) asks the AI to identify, most-exposed
+ * first. Deterministic per claim so the mock is stable across reloads.
+ *
+ * Deliberately not generated for every claim: a deployment whose AI service
+ * has not shipped segmentation returns an empty array and the page falls back
+ * to the single draft, and that path has to be exercisable in mock mode too.
+ */
+const SEGMENT_SEEDS: { segment: string; rationale: string; angle: string }[] = [
+  {
+    segment: "Kampung residents in flood-prone kelurahan",
+    rationale:
+      "Highest exposure, and the strongest distrust signal in the supporting cluster.",
+    angle:
+      "Lead with the safeguard that touches their street directly, and name the drainage works already funded. Abstract reassurance reads as evasion to a household that has been flooded twice.",
+  },
+  {
+    segment: "Commuters on the affected corridor",
+    rationale:
+      "Second-largest share of engagement; their concern is journey time, not safety.",
+    angle:
+      "Answer the travel-time question first with the published modelling, then the exemption schedule. Safety framing does not land with an audience that is not worried about safety.",
+  },
+  {
+    segment: "Small business owners inside the zone",
+    rationale:
+      "Smaller volume, but the highest share of content that other accounts quote.",
+    angle:
+      "Open with the delivery and trade-vehicle exemptions and the rebate window. This segment amplifies whatever it reads, so what it reads should be the specific rule.",
+  },
+];
+
+/** One tailored draft per segment. `count` of 0 is the unsegmented case. */
+function debunkSegments(statement: string, count: number) {
+  return SEGMENT_SEEDS.slice(0, count).map((seed, i) => ({
+    segment: seed.segment,
+    rationale: seed.rationale,
+    content: [
+      `**For ${seed.segment.toLowerCase()}:**`,
+      "",
+      seed.angle,
+      "",
+      `**The claim being addressed:** "${statement}"`,
+      "",
+      "_AI-generated draft — review before use._",
+    ].join("\n"),
+    generated_at: daysAgo(2 + i),
+  }));
 }
 
 function debunkDraft(statement: string): string {

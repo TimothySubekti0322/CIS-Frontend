@@ -28,6 +28,53 @@ export interface WatchlistItem {
   /** The global threshold echoed back, so the row can explain itself. */
   threshold: number | null;
   isDormant: boolean;
+  /**
+   * US29/US71, new in v1.5. `true` while this claim's Over/Under status has
+   * flipped **since this reader last opened F3** — it drives the light row
+   * tint, which is distinct from and lighter than the standing
+   * `over_threshold` colour.
+   *
+   * Per-reader: one operator acknowledging must not clear a colleague's
+   * highlight. Only this flag clears on acknowledgment; `crossedAt` and
+   * `crossedDirection` stay on the row as a "last moved" record.
+   */
+  justCrossed: boolean;
+  /** `up` = below → above, `down` = above → below. */
+  crossedDirection: CrossingDirection | null;
+  crossedAt: string | null;
+}
+
+/** Which way a watched claim crossed the global threshold. */
+export type CrossingDirection = "up" | "down";
+
+/**
+ * One claim behind the sidebar badge (US71). Newest first, capped at 20 by the
+ * backend — a watchlist where dozens crossed at once is a threshold problem,
+ * not a paging problem.
+ */
+export interface ThresholdCrossing {
+  claimId: string;
+  claimStatement: string;
+  finalClaimScore: number | null;
+  thresholdStatus: ThresholdStatus;
+  justCrossed: boolean;
+  crossedDirection: CrossingDirection | null;
+  crossedAt: string | null;
+}
+
+/**
+ * `GET /alerts/notifications` — the counter on the Alert sidebar item (US71).
+ *
+ * Acknowledgment is per user, and opening F3 is what acknowledges. The
+ * acknowledge call must run **after** the rows have rendered: acknowledging is
+ * what makes the *next* render unhighlighted, so calling it first would clear
+ * the very highlights the user was just told about.
+ */
+export interface AlertNotifications {
+  unacknowledgedCount: number;
+  acknowledgedAt: string | null;
+  threshold: number | null;
+  crossings: ThresholdCrossing[];
 }
 
 /** One plotted claim in `GET /alerts/chart`. */
