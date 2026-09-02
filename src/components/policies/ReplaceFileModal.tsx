@@ -9,6 +9,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Modal } from "@/components/ui/Modal";
 import { Button } from "@/components/ui/Button";
 import { FileDropzone } from "@/components/ui/FileDropzone";
+import { LargeFileWarning } from "./LargeFileWarning";
 
 /**
  * `PUT /policies/:id/file`. The policy keeps its id, its `aiPolicyId` and every
@@ -78,6 +79,7 @@ export function ReplaceFileModal({
           rejectMessage={strings.policies.fileReject}
           hint={strings.policies.fileHint}
         />
+        <LargeFileWarning file={file} />
       </div>
     </Modal>
   );

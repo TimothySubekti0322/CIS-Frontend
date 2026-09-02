@@ -298,7 +298,29 @@ export interface ReportViewDto {
   audit_id?: string | null;
   generated_by?: string | null;
   generated_at?: string;
+  /** The API path. Behind the JWT middleware, so NOT navigable. */
   download_url?: string;
+  /** Signed storage link — navigable, short-lived. Generate responses only. */
+  file_url?: string | null;
+  file_url_expires_at?: string | null;
+}
+
+/**
+ * `GET /reports/:id/file?mode=json` — the link, not the bytes.
+ *
+ * `is_signed_url` is false only when the backend runs `STORAGE_DRIVER=local`
+ * (a developer's machine): `url` is then the API path itself and the bytes
+ * have to be proxied through an authenticated request.
+ */
+export interface ReportDownloadDto {
+  report_id?: string;
+  file_name?: string;
+  mime_type?: string;
+  size_bytes?: number;
+  sha256?: string;
+  url?: string;
+  is_signed_url?: boolean;
+  expires_at?: string | null;
 }
 
 /* ------------------------------ allowlist ------------------------------- */

@@ -69,6 +69,11 @@ export const queryKeys = {
     all: ["settings"] as const,
     list: ["settings", "list"] as const,
     alertThreshold: ["settings", "alert-threshold"] as const,
+    /** The F4 dynamic-parameter catalog. One key: every write returns the
+     *  whole refreshed catalog, so there is nothing to key per section. */
+    parameters: ["settings", "parameters"] as const,
+    history: (params?: { key?: string; page?: number }) =>
+      ["settings", "history", params ?? {}] as const,
     detector: ["settings", "detector"] as const,
     detectorRanges: ["settings", "detector", "ranges"] as const,
     detectorHistory: ["settings", "detector", "history"] as const,

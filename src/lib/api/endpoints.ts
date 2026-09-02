@@ -115,6 +115,18 @@ export const ENDPOINTS = {
   /** F4 — Admin settings and utilities. No roles exist in this build. */
   settings: {
     list: def({ method: "GET", path: "/settings" }),
+    /** The whole dynamic-parameter surface — two tiers, their sections, and
+     *  every parameter's definition beside its current value. F4 renders its
+     *  form from this rather than from a second copy of the specification. */
+    parameters: def({ method: "GET", path: "/settings/parameters" }),
+    /** Partial: `{ parameters: { key: "value" } }`, values as strings whatever
+     *  their declared type. Returns the full refreshed catalog, so a form that
+     *  saves one weight re-renders its group total without a second request. */
+    updateParameters: def({ method: "PUT", path: "/settings/parameters" }),
+    /** Restores one parameter to its documented default by deleting its row —
+     *  a row holding a copy of yesterday's default would not follow a revised
+     *  specification, and an absent one does. Also returns the catalog. */
+    resetParameter: def({ method: "DELETE", path: "/settings/parameters/:key" }),
     getAlertThreshold: def({ method: "GET", path: "/settings/alert-threshold" }),
     /** Applies globally and takes effect at read time, immediately. */
     updateAlertThreshold: def({ method: "PUT", path: "/settings/alert-threshold" }),
@@ -239,7 +251,12 @@ export const ENDPOINTS = {
 
   /** Addressed by report id: a report outlives the page it came from. */
   reports: {
-    /** Carries `X-Content-SHA256` so a recipient can verify the download. */
+    /**
+     * `?mode=json` answers with a signed storage link instead of the bytes —
+     * the only form a browser navigation can follow, since this route needs
+     * the Bearer header. Without it the route `307`s to that same link.
+     * Carries `X-Content-SHA256` so a recipient can verify the download.
+     */
     file: def({ method: "GET", path: "/reports/:reportId/file" }),
   },
 

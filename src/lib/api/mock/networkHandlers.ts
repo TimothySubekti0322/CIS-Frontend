@@ -499,8 +499,9 @@ function makeReport(
 ): ReportViewDto {
   const now = new Date();
   const stamp = now.toISOString().slice(0, 16).replace(/[-:T]/g, "");
+  const id = `rep_${Date.now()}`;
   return {
-    id: `rep_${Date.now()}`,
+    id,
     network_id: network.id,
     run_id: network.run_id,
     report_type: reportType,
@@ -521,9 +522,47 @@ function makeReport(
     audit_id: `aud_${Date.now()}`,
     generated_by: "d0000000-0000-0000-0000-000000000001",
     generated_at: now.toISOString(),
-    download_url: `/api/v1/reports/rep_${Date.now()}/file`,
+    download_url: `/api/v1/reports/${id}/file`,
+    // No storage driver behind the mock, so nothing can be signed. The file
+    // route below says so with `is_signed_url: false`, which is the same
+    // branch a locally-stored backend takes.
+    file_url: null,
+    file_url_expires_at: null,
   };
 }
+
+/**
+ * `GET /reports/:reportId/file?mode=json` — the link, not the bytes.
+ *
+ * The mock has no bytes to give, and says so plainly rather than handing back
+ * a URL that would open a broken tab: `is_signed_url: false` sends the caller
+ * down the proxy branch, where the client reports that downloads need a real
+ * backend.
+ */
+const reportFile: Handler = async (ctx) => {
+  await sleep(180);
+  const reportId = String(ctx.params.reportId);
+  const report = f5()
+    .networks.flatMap((n) => n.reports)
+    .find((r) => r.id === reportId);
+  if (!report) fail("report not found", 404, "NOT_FOUND");
+
+  return ok(
+    {
+      report_id: report.id,
+      file_name: report.file_name,
+      mime_type: report.file_name?.endsWith(".zip")
+        ? "application/zip"
+        : "application/pdf",
+      size_bytes: report.file_size_bytes,
+      sha256: report.file_sha256,
+      url: report.download_url,
+      is_signed_url: false,
+      expires_at: null,
+    },
+    "report download",
+  );
+};
 
 const generateReport: Handler = async (ctx) => {
   await sleep(900);
@@ -992,6 +1031,7 @@ export const networkMockHandlers: Record<string, Handler> = {
   "POST /networks/:id/reports": generateReport,
   "GET /networks/:id/reports": listReports,
   "POST /networks/:id/evidence-bundle": evidenceBundle,
+  "GET /reports/:reportId/file": reportFile,
 
   "GET /detection-runs": listRuns,
   "GET /detection-runs/:id": getRun,

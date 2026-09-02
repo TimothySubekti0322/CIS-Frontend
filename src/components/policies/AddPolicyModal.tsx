@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/Button";
 import { Field } from "@/components/ui/Field";
 import { TextArea } from "@/components/ui/TextArea";
 import { FileDropzone } from "@/components/ui/FileDropzone";
+import { LargeFileWarning } from "./LargeFileWarning";
 
 /**
  * "Add Public Policy". Uploads multipart/form-data — the File itself, not a
@@ -91,6 +92,10 @@ export function AddPolicyModal({
             rejectMessage={strings.policies.fileReject}
             hint={strings.policies.fileHint}
           />
+          {/* Advisory only — Confirm stays enabled whatever the size. */}
+          <div className="mt-2">
+            <LargeFileWarning file={file} />
+          </div>
         </div>
         <Field
           label={strings.policies.policyName}

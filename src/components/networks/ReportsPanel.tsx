@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Download, Eye, FileArchive, FileText, Lock, ShieldCheck } from "lucide-react";
-import type { NetworkDetail, ReportType } from "@/types/network";
+import type { NetworkDetail, ReportType, ReportView } from "@/types/network";
 import { formatDateTime } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
 import {
@@ -10,7 +10,7 @@ import {
   useGenerateReport,
   useNetworkReports,
 } from "@/lib/hooks/useNetworks";
-import { reportFileUrl } from "@/lib/api/networks";
+import { downloadGeneratedReport, reportsApi } from "@/lib/api/networks";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -48,8 +48,13 @@ export function NetworkActions({
 
   async function exportBundle() {
     try {
-      await bundle.mutateAsync();
+      const report = await bundle.mutateAsync();
       toast(strings.networks.bundleGenerated);
+      // The generate response carries the signed link for the artefact it just
+      // created, so the bundle is handed over without a second round trip.
+      // Generation is what succeeded above; a failure to hand the bytes over is
+      // reported separately, since the artefact exists either way.
+      await handOver(report, toast);
     } catch (err) {
       toast(err instanceof Error ? err.message : strings.errors.generic, "error");
     }
@@ -116,13 +121,7 @@ export function NetworkActions({
                   <span className="text-sm font-bold text-regal-navy">
                     {report.fileName}
                   </span>
-                  <a
-                    href={reportFileUrl(report.id)}
-                    className="inline-flex items-center gap-1 text-sm font-bold text-sea-green hover:underline"
-                  >
-                    <Download className="size-4" aria-hidden />
-                    {strings.networks.download}
-                  </a>
+                  <DownloadReportButton reportId={report.id} />
                 </div>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-regal-navy/60">
                   <StatusPill tone="muted">
@@ -158,6 +157,66 @@ export function NetworkActions({
 }
 
 /**
+ * Hand a freshly generated artefact to the browser, reporting a failure to do
+ * so on its own rather than as a failure to generate — the report is on the
+ * server and in the list below regardless.
+ */
+async function handOver(
+  report: ReportView,
+  toast: (message: string, tone?: "success" | "error") => void,
+): Promise<void> {
+  try {
+    await downloadGeneratedReport(report);
+  } catch (err) {
+    toast(
+      err instanceof Error ? err.message : strings.networks.downloadFailed,
+      "error",
+    );
+  }
+}
+
+/**
+ * The download is a two-step action, not a link.
+ *
+ * `GET /reports/:id/file` sits behind the JWT middleware, and a navigation —
+ * `<a href>`, `window.open`, an `<iframe>` — cannot carry an `Authorization`
+ * header, which is what produced the `401`. So: one authenticated JSON request
+ * for a signed storage link, then a plain navigation to it. The link is
+ * resolved on each click and never held in state; it expires within the hour,
+ * and a stale one fails as a Supabase error page rather than a readable one.
+ */
+function DownloadReportButton({ reportId }: { reportId: string }) {
+  const { toast } = useToast();
+  const [pending, setPending] = useState(false);
+
+  async function download() {
+    setPending(true);
+    try {
+      await reportsApi.download(reportId);
+    } catch (err) {
+      toast(
+        err instanceof Error ? err.message : strings.networks.downloadFailed,
+        "error",
+      );
+    } finally {
+      setPending(false);
+    }
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={download}
+      disabled={pending}
+      className="inline-flex items-center gap-1 text-sm font-bold text-sea-green hover:underline disabled:opacity-60 disabled:hover:no-underline"
+    >
+      <Download className="size-4" aria-hidden />
+      {pending ? strings.networks.downloadPreparing : strings.networks.download}
+    </button>
+  );
+}
+
+/**
  * US59's pre-generation modal.
  *
  * The account annex is mandatory in a Platform referral and cannot be toggled
@@ -186,7 +245,7 @@ function GenerateReportModal({
 
   async function submit() {
     try {
-      await generate.mutateAsync({
+      const report = await generate.mutateAsync({
         reportType,
         includeGraph: graph,
         includeContentClusters: contentClusters,
@@ -196,6 +255,7 @@ function GenerateReportModal({
       });
       toast(strings.networks.reportGenerated);
       onClose();
+      await handOver(report, toast);
     } catch (err) {
       toast(err instanceof Error ? err.message : strings.errors.generic, "error");
     }

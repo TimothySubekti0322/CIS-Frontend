@@ -147,6 +147,8 @@ export const strings = {
     file: "Policy document",
     fileHint: "PDF or Word document",
     fileReject: "Only PDF or Word documents are accepted.",
+    largeFileWarning:
+      "This document is {size} MB, above the {limit} MB the administrator flags as unusually large. The upload will still go ahead — it may simply take a while.",
     search: "Search policies…",
     rolledOut: "Rolled Out",
     notRolledOut: "Not Rolled Out",
@@ -294,6 +296,63 @@ export const strings = {
     citySaved: "Monitored city updated — the Overview page has been re-scoped.",
     cityTimezoneNote: "Timezone",
     cityUnset: "No city selected yet",
+
+    /* --- v1.6 — dynamic parameters (F4) --- */
+    tabOperational: "Operational",
+    tabAnalytics: "Model & analytics",
+    tabUtilities: "Utilities",
+  },
+  parameters: {
+    analyticsWarning:
+      "These values define how claims are scored and ranked. Changing one re-ranks every claim in the system. Coordinate with the engineering team before saving.",
+    groupTotal: "Group total",
+    groupTotalMustBe: "must be 1.00",
+    save: "Save changes",
+    discard: "Discard changes",
+    saved: "Settings saved.",
+    noChanges: "Nothing has changed.",
+    blocked: "Fix the highlighted values before saving.",
+    reset: "Reset to default",
+    resetDone: "Reset to its documented default.",
+    isDefault: "At its default",
+    defaultIs: "Default",
+    readOnly: "Read-only",
+    derived: "Derived",
+    managedElsewhere: "Written by",
+    range: "Range",
+    unbounded: "No bound",
+    loadFailed:
+      "The parameter catalog could not be loaded, so this form has no bounds to render from. Nothing is editable until it returns.",
+
+    confirmTitle: "Confirm these consequences",
+    thresholdConfirmTitle: "Lower the alert threshold?",
+    thresholdConfirmBody:
+      "Lowering the threshold flips claims to Over Threshold all at once, on the Alert page and the Overview alike, and each crossing can raise a notification.",
+    thresholdCurrent: "Currently over threshold",
+    thresholdWouldBe: "Over threshold at the new value",
+
+    retentionConfirmTitle: "Give up score history?",
+    retentionConfirmBody:
+      "The next hourly prune deletes the snapshots outside the shorter window, and they do not come back. The Alert page chart can only plot as far back as this.",
+    retentionGivingUp: "Days of history given up",
+
+    rescoreTitle: "Stored scores are now behind the new weighting",
+    rescoreBody:
+      "Ranking follows the new weights immediately, but each claim's stored score was computed under the old ones. Rescore to bring them back in line.",
+    rescoreAction: "Rescore now",
+    rescoreDismiss: "Later",
+    rescoreDone: "claims rescored.",
+
+    bandPreview: "Gauge bands",
+    bandOverlap: "The bands overlap — a score would fall in two colours at once.",
+
+    historyTitle: "Change history",
+    historyDesc:
+      "Every governed change, with who made it and when. No roles exist in this build, so attribution is the safety property, not access control.",
+    historyEmpty: "Nothing has been changed yet.",
+    historyFrom: "From",
+    historyTo: "To",
+    historyBy: "by",
   },
   overview: {
     pageTitle: "Overview",
@@ -539,6 +598,8 @@ export const strings = {
     reportChecksum: "SHA-256",
     reportAudit: "Audit entry",
     download: "Download",
+    downloadPreparing: "Preparing…",
+    downloadFailed: "The download link could not be prepared. Please try again.",
     allowlistNetwork: "Mark as legitimate coordination",
     allowlistAccount: "Mark this account as legitimate coordination",
     allowlistTitle: "Declare legitimate coordination",

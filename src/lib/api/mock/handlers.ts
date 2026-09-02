@@ -40,6 +40,7 @@ import {
   type MockState,
 } from "./store";
 import { networkBadgeFor, networkMockHandlers } from "./networkHandlers";
+import { parameterMockHandlers } from "./parameterHandlers";
 
 export interface MockContext {
   method: string;
@@ -1506,4 +1507,8 @@ export const mockHandlers: Record<string, MockHandler> = {
 
   // F5 — Coordinated-Network Detector, in its own module.
   ...networkMockHandlers,
+
+  // F4 — the dynamic-parameter catalog, likewise. In mock mode that module is
+  // the server: it is the one place a copy of the registry's bounds belongs.
+  ...parameterMockHandlers,
 };

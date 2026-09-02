@@ -42,6 +42,7 @@ import type {
   PriorAnchor,
   RecurrenceInfo,
   RepresentativeContent,
+  ReportDownload,
   ReportView,
   RunContext,
   SettingHistoryEntry,
@@ -84,6 +85,7 @@ import type {
   PriorAnchorRefDto,
   RecurrenceInfoDto,
   RepresentativeContentDto,
+  ReportDownloadDto,
   ReportViewDto,
   RunContextDto,
   SettingHistoryEntryDto,
@@ -479,6 +481,23 @@ export function mapReport(dto: ReportViewDto): ReportView {
     generatedBy: str(dto.generated_by),
     generatedAt: text(dto.generated_at),
     downloadUrl: text(dto.download_url),
+    fileUrl: str(dto.file_url),
+    fileUrlExpiresAt: str(dto.file_url_expires_at),
+  };
+}
+
+export function mapReportDownload(dto: ReportDownloadDto): ReportDownload {
+  return {
+    reportId: text(dto.report_id),
+    fileName: text(dto.file_name),
+    mimeType: text(dto.mime_type, "application/octet-stream"),
+    sizeBytes: count(dto.size_bytes),
+    sha256: text(dto.sha256),
+    url: text(dto.url),
+    // Absent means signed: only the local storage driver says otherwise, and
+    // it says so explicitly.
+    isSignedUrl: bool(dto.is_signed_url, true),
+    expiresAt: str(dto.expires_at),
   };
 }
 

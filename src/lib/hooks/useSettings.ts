@@ -1,7 +1,9 @@
 "use client";
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ParameterCatalog, ParameterPatch } from "@/types/settings";
 import { settingsApi } from "@/lib/api/settings";
+import { PARAM, parseValue } from "@/lib/parameters";
 import { queryKeys } from "@/lib/query/keys";
 
 /** Every global setting with its audit metadata. */
@@ -9,6 +11,87 @@ export function useSettings() {
   return useQuery({
     queryKey: queryKeys.settings.list,
     queryFn: () => settingsApi.list(),
+  });
+}
+
+/**
+ * The F4 dynamic-parameter catalog: every bound, unit, default and grouping
+ * the form renders from, alongside each parameter's current value.
+ */
+export function useParameters() {
+  return useQuery({
+    queryKey: queryKeys.settings.parameters,
+    queryFn: () => settingsApi.parameters(),
+  });
+}
+
+/**
+ * A parameter's current value, for a screen that consumes one rather than
+ * edits it — the policy upload warning, for instance. Served from the same
+ * cached catalog the admin form uses, so no screen holds its own copy.
+ */
+export function useParameterValue(key: string): number | null {
+  const { data } = useParameters();
+  for (const section of data?.sections ?? []) {
+    const param = section.parameters.find((p) => p.key === key);
+    if (param) return parseValue(param.value);
+  }
+  return null;
+}
+
+/**
+ * US40 — the size above which the Add Public Policy modal warns. A warning,
+ * never a block: the backend enforces no upload limit, and this only flags an
+ * unusually large file before the uploader waits on it.
+ */
+export function usePolicyUploadWarnMb(): number | null {
+  return useParameterValue(PARAM.policyUploadWarnMb);
+}
+
+/**
+ * A partial write. The response is the whole refreshed catalog, so it is
+ * written straight into the cache rather than triggering a refetch.
+ *
+ * Everything downstream is invalidated because these values decide what a
+ * score means: the alert threshold reclassifies every watched claim at read
+ * time, the weights move every Overview aggregate, and the CSI bands recolour
+ * the gauge. None of it is recomputable on the client.
+ */
+function applyCatalog(qc: ReturnType<typeof useQueryClient>, catalog: ParameterCatalog) {
+  qc.setQueryData(queryKeys.settings.parameters, catalog);
+  // Deliberately not `settings.all`: that prefix covers the catalog itself,
+  // and invalidating it would throw away the response just written and refetch
+  // what the server already sent back.
+  qc.invalidateQueries({ queryKey: queryKeys.settings.list });
+  qc.invalidateQueries({ queryKey: queryKeys.settings.alertThreshold });
+  qc.invalidateQueries({ queryKey: ["settings", "history"] });
+  qc.invalidateQueries({ queryKey: queryKeys.alerts.all });
+  qc.invalidateQueries({ queryKey: queryKeys.overview.all });
+  qc.invalidateQueries({ queryKey: queryKeys.claims.all });
+}
+
+export function useUpdateParameters() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: ParameterPatch) => settingsApi.updateParameters(patch),
+    onSuccess: (catalog) => applyCatalog(qc, catalog),
+  });
+}
+
+/** Back to the documented default. Idempotent, and recorded in the history. */
+export function useResetParameter() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (key: string) => settingsApi.resetParameter(key),
+    onSuccess: (catalog) => applyCatalog(qc, catalog),
+  });
+}
+
+/** US62 — who changed what, when, across the whole F4 surface. */
+export function useSettingHistory(params: { key?: string; page?: number } = {}) {
+  return useQuery({
+    queryKey: queryKeys.settings.history(params),
+    queryFn: () => settingsApi.history({ ...params, limit: 20 }),
   });
 }
 
@@ -29,6 +112,9 @@ export function useUpdateAlertThreshold() {
       qc.invalidateQueries({ queryKey: queryKeys.settings.all });
       // `threshold_status` is derived at read time — refetch, don't recompute.
       qc.invalidateQueries({ queryKey: queryKeys.alerts.all });
+      // The Overview counts above/below against the same cutoff, and the CSI
+      // risk threshold is derived from it — both move the moment this does.
+      qc.invalidateQueries({ queryKey: queryKeys.overview.all });
     },
   });
 }

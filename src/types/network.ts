@@ -357,7 +357,31 @@ export interface ReportView {
   auditId: string | null;
   generatedBy: string | null;
   generatedAt: string;
+  /** The API path (`/api/v1/reports/:id/file`). Needs a bearer token, so it
+   *  cannot be put in an `<a href>` — use `reportsApi.download()` instead. */
   downloadUrl: string;
+  /** A signed storage link, returned by the generate endpoints only. Navigable
+   *  without a header, and expires within the hour — never persist it. */
+  fileUrl: string | null;
+  fileUrlExpiresAt: string | null;
+}
+
+/**
+ * `GET /reports/:id/file?mode=json` — a time-limited link to the artefact,
+ * resolved at the moment of the click and never cached.
+ *
+ * `isSignedUrl` is false only against a locally-stored backend, where `url` is
+ * the API path and the bytes must be proxied through an authenticated request.
+ */
+export interface ReportDownload {
+  reportId: string;
+  fileName: string;
+  mimeType: string;
+  sizeBytes: number;
+  sha256: string;
+  url: string;
+  isSignedUrl: boolean;
+  expiresAt: string | null;
 }
 
 export interface GenerateReportPayload {
