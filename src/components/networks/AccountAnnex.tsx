@@ -39,9 +39,12 @@ const COLUMNS: { key: AccountSort | null; label: string; numeric?: boolean }[] =
 export function AccountAnnex({
   networkId,
   onSelectAccount,
+  embedded,
 }: {
   networkId: string;
   onSelectAccount: (accountId: string) => void;
+  /** Rendered as a section of the cluster sheet rather than as its own card. */
+  embedded?: boolean;
 }) {
   const { toast } = useToast();
   const [search, setSearch] = useState("");
@@ -84,15 +87,29 @@ export function AccountAnnex({
     }
   }
 
+  const Shell = embedded ? PlainShell : CardShell;
+
   return (
-    <Card className="space-y-3">
+    <Shell>
       <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h2 className="text-h3">{strings.networks.annexTitle}</h2>
-          <p className="mt-1 max-w-2xl text-xs text-regal-navy/60">
-            {strings.networks.annexNote}
-          </p>
-        </div>
+        {embedded ? (
+          <SearchBar
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder={strings.networks.annexSearch}
+            className="max-w-xs flex-1"
+          />
+        ) : (
+          <div>
+            <h2 className="text-h3">{strings.networks.annexTitle}</h2>
+            <p className="mt-1 max-w-2xl text-xs text-regal-navy/60">
+              {strings.networks.annexNote}
+            </p>
+          </div>
+        )}
         <Button
           variant="secondary"
           size="sm"
@@ -104,17 +121,19 @@ export function AccountAnnex({
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center gap-2">
-        <SearchBar
-          value={search}
-          onChange={(v) => {
-            setSearch(v);
-            setPage(1);
-          }}
-          placeholder={strings.networks.annexSearch}
-          className="max-w-xs flex-1"
-        />
-      </div>
+      {!embedded && (
+        <div className="flex flex-wrap items-center gap-2">
+          <SearchBar
+            value={search}
+            onChange={(v) => {
+              setSearch(v);
+              setPage(1);
+            }}
+            placeholder={strings.networks.annexSearch}
+            className="max-w-xs flex-1"
+          />
+        </div>
+      )}
 
       {isPending ? (
         <Skeleton className="h-48 w-full" />
@@ -122,7 +141,14 @@ export function AccountAnnex({
         <EmptyState title={strings.networks.annexEmpty} />
       ) : (
         <>
-          <div className="scroll-x -mx-4 px-4">
+          <div
+            className={cn(
+              "scroll-x",
+              embedded
+                ? "max-h-80 overflow-y-auto rounded-xl border border-pale-sky"
+                : "-mx-4 px-4",
+            )}
+          >
             <table className="w-full min-w-[900px] border-collapse text-sm">
               <thead>
                 <tr className="border-b border-pale-sky text-left">
@@ -133,6 +159,9 @@ export function AccountAnnex({
                       className={cn(
                         "whitespace-nowrap px-2 py-2 text-xs font-bold text-regal-navy/70",
                         col.numeric && "text-right",
+                        // The list scrolls inside its own box on the cluster
+                        // sheet, so the header has to travel with it.
+                        embedded && "sticky top-0 z-1 bg-white",
                       )}
                     >
                       {col.key ? (
@@ -210,8 +239,16 @@ export function AccountAnnex({
           <Pagination meta={data.meta} onPageChange={setPage} />
         </>
       )}
-    </Card>
+    </Shell>
   );
+}
+
+function CardShell({ children }: { children: React.ReactNode }) {
+  return <Card className="space-y-3">{children}</Card>;
+}
+
+function PlainShell({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-3">{children}</div>;
 }
 
 /** Null when a single-post account has no interval to measure. */

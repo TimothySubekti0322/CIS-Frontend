@@ -4,14 +4,13 @@ import { useRouter } from "next/navigation";
 import { CalendarClock, FileText, History, Users } from "lucide-react";
 import type { NetworkCard as NetworkCardModel } from "@/types/network";
 import { cn, formatDate } from "@/lib/utils";
+import { scoreTextClasses } from "@/lib/scoring";
 import { strings } from "@/lib/constants/strings";
 import { Card } from "@/components/ui/Card";
-import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import {
   ConfidencePill,
   LowConfidenceTag,
   NetworkStatusPill,
-  SignalBreadthPill,
   TruncatedRunPill,
 } from "./NetworkPills";
 
@@ -45,16 +44,28 @@ export function NetworkCard({ network }: NetworkCardProps) {
         network.lowConfidence && "opacity-75",
       )}
     >
-      <div className="flex items-start justify-between gap-2">
+      {/* The score leads the card: triage on this list is a ranking exercise,
+          and a number read at a glance is what makes it one. */}
+      <div className="flex items-start justify-between gap-3">
         <div className="flex flex-wrap items-center gap-1.5">
           <ConfidencePill band={network.confidenceBand} />
-          <SignalBreadthPill breadth={network.signalBreadth} />
         </div>
-        <ScoreBadge
-          score={network.coordinationScore}
-          size="sm"
-          label={strings.networks.coordinationScore}
-        />
+        <div
+          className="shrink-0 text-right"
+          title={`${strings.networks.coordinationScore} ${network.coordinationScore.toFixed(1)} / 100`}
+        >
+          <span
+            className={cn(
+              "block text-3xl leading-none font-bold tabular-nums",
+              scoreTextClasses(network.coordinationScore),
+            )}
+          >
+            {network.coordinationScore.toFixed(1)}
+          </span>
+          <span className="mt-1 block text-[10px] font-bold tracking-wider text-regal-navy/50 uppercase">
+            {strings.networks.scoreCaption}
+          </span>
+        </div>
       </div>
 
       <p className="line-clamp-2 flex-none text-sm font-bold text-regal-navy">

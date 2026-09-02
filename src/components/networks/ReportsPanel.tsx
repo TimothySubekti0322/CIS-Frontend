@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, FileArchive, FileText, Lock } from "lucide-react";
+import { Download, Eye, FileArchive, FileText, Lock, ShieldCheck } from "lucide-react";
 import type { NetworkDetail, ReportType } from "@/types/network";
 import { formatDateTime } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
@@ -11,26 +11,37 @@ import {
   useNetworkReports,
 } from "@/lib/hooks/useNetworks";
 import { reportFileUrl } from "@/lib/api/networks";
-import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 import { Modal } from "@/components/ui/Modal";
-import { Skeleton } from "@/components/ui/Skeleton";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * US58–US60 — report generation and the evidence bundle.
+ * US58–US60 — the foot of the cluster sheet: what can be produced from it, and
+ * what has been.
  *
  * The export gate is a fail-closed allowlist evaluated on the server: only a
  * network under review, confirmed, or acted on may be exported. An unreviewed
- * export is an unreviewed accusation. The button is disabled from
- * `network.export`, so the UI refuses for the server's stated reason rather
- * than re-deriving the rule and drifting from it.
+ * export is an unreviewed accusation. The buttons are disabled from
+ * `network.export` and the block states the server's own reason, so the UI
+ * never re-derives the rule and drifts from it.
+ *
+ * Previewing is deliberately *not* gated. Reading what the report would say is
+ * how an analyst decides what assessment to record, and locking that behind
+ * the assessment would invert the order the work actually happens in.
  */
-export function ReportsPanel({ network }: { network: NetworkDetail }) {
+export function NetworkActions({
+  network,
+  onPreview,
+  onAllowlist,
+}: {
+  network: NetworkDetail;
+  onPreview: () => void;
+  onAllowlist: () => void;
+}) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const { data: reports, isPending } = useNetworkReports(network.id);
+  const { data: reports } = useNetworkReports(network.id);
   const bundle = useGenerateEvidenceBundle(network.id);
 
   const allowed = network.export.allowed;
@@ -45,29 +56,34 @@ export function ReportsPanel({ network }: { network: NetworkDetail }) {
   }
 
   return (
-    <Card className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <h2 className="text-h3">{strings.networks.reportsTitle}</h2>
-        <div className="flex flex-wrap gap-2">
-          <Button size="sm" disabled={!allowed} onClick={() => setOpen(true)}>
-            <FileText className="size-4" aria-hidden />
-            {strings.networks.generateReport}
-          </Button>
-          <Button
-            size="sm"
-            variant="secondary"
-            disabled={!allowed}
-            loading={bundle.isPending}
-            onClick={exportBundle}
-          >
-            <FileArchive className="size-4" aria-hidden />
-            {strings.networks.evidenceBundle}
-          </Button>
-        </div>
+    <div className="mt-6 border-t border-pale-sky pt-5">
+      <div className="flex flex-wrap items-center gap-2">
+        <Button size="sm" variant="secondary" onClick={onPreview}>
+          <Eye className="size-4" aria-hidden />
+          {strings.networks.previewReport}
+        </Button>
+        <Button size="sm" disabled={!allowed} onClick={() => setOpen(true)}>
+          <FileText className="size-4" aria-hidden />
+          {strings.networks.generateReport}
+        </Button>
+        <Button
+          size="sm"
+          variant="secondary"
+          disabled={!allowed}
+          loading={bundle.isPending}
+          onClick={exportBundle}
+        >
+          <FileArchive className="size-4" aria-hidden />
+          {strings.networks.evidenceBundle}
+        </Button>
+        <Button size="sm" variant="secondary" onClick={onAllowlist}>
+          <ShieldCheck className="size-4" aria-hidden />
+          {strings.networks.allowlistNetwork}
+        </Button>
       </div>
 
       {!allowed && (
-        <p className="flex items-start gap-2 rounded-lg border border-pale-sky bg-mint-cream px-3 py-2 text-xs text-regal-navy/70">
+        <p className="mt-2.5 flex items-start gap-2 text-xs text-regal-navy/60">
           <Lock className="mt-0.5 size-3.5 shrink-0" aria-hidden />
           <span>
             {network.export.reason ?? strings.networks.exportBlocked}
@@ -85,53 +101,51 @@ export function ReportsPanel({ network }: { network: NetworkDetail }) {
         </p>
       )}
 
-      <p className="text-xs text-regal-navy/60">
-        {strings.networks.evidenceBundleHint}
-      </p>
-
-      {isPending ? (
-        <Skeleton className="h-20 w-full" />
-      ) : !reports || reports.length === 0 ? (
-        <p className="text-sm text-regal-navy/60">{strings.networks.noReports}</p>
-      ) : (
-        <ul className="space-y-2">
-          {reports.map((report) => (
-            <li
-              key={report.id}
-              className="rounded-lg border border-pale-sky px-3 py-2"
-            >
-              <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-sm font-bold text-regal-navy">
-                  {report.fileName}
-                </span>
-                <a
-                  href={reportFileUrl(report.id)}
-                  className="inline-flex items-center gap-1 text-sm font-bold text-sea-green hover:underline"
-                >
-                  <Download className="size-4" aria-hidden />
-                  {strings.networks.download}
-                </a>
-              </div>
-              <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-regal-navy/60">
-                <StatusPill tone="muted">
-                  {report.reportType === "platform_referral"
-                    ? strings.networks.reportTypePlatform
-                    : strings.networks.reportTypeInternal}
-                </StatusPill>
-                <span>{formatDateTime(report.generatedAt)}</span>
-                {report.redactAnalystNames && (
-                  <span>{strings.networks.redactAnalysts}</span>
-                )}
-              </div>
-              {/* Chain of custody: the hash is what lets a recipient prove the
-                  file they hold is the file that was generated. */}
-              <p className="mt-1 break-all font-mono text-[11px] text-regal-navy/40">
-                {strings.networks.reportChecksum} {report.fileSha256}
-                {report.auditId && ` · ${strings.networks.reportAudit} ${report.auditId}`}
-              </p>
-            </li>
-          ))}
-        </ul>
+      {reports && reports.length > 0 && (
+        <div className="mt-4">
+          <p className="text-[11px] font-bold tracking-[0.06em] text-regal-navy/60 uppercase">
+            {strings.networks.generatedReports}
+          </p>
+          <ul className="mt-2 space-y-2">
+            {reports.map((report) => (
+              <li
+                key={report.id}
+                className="rounded-xl border border-pale-sky px-3 py-2"
+              >
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <span className="text-sm font-bold text-regal-navy">
+                    {report.fileName}
+                  </span>
+                  <a
+                    href={reportFileUrl(report.id)}
+                    className="inline-flex items-center gap-1 text-sm font-bold text-sea-green hover:underline"
+                  >
+                    <Download className="size-4" aria-hidden />
+                    {strings.networks.download}
+                  </a>
+                </div>
+                <div className="mt-1 flex flex-wrap items-center gap-2 text-xs text-regal-navy/60">
+                  <StatusPill tone="muted">
+                    {report.reportType === "platform_referral"
+                      ? strings.networks.reportTypePlatform
+                      : strings.networks.reportTypeInternal}
+                  </StatusPill>
+                  <span>{formatDateTime(report.generatedAt)}</span>
+                  {report.redactAnalystNames && (
+                    <span>{strings.networks.redactAnalysts}</span>
+                  )}
+                </div>
+                {/* Chain of custody: the hash is what lets a recipient prove the
+                    file they hold is the file that was generated. */}
+                <p className="mt-1 font-mono text-[11px] break-all text-regal-navy/40">
+                  {strings.networks.reportChecksum} {report.fileSha256}
+                  {report.auditId &&
+                    ` · ${strings.networks.reportAudit} ${report.auditId}`}
+                </p>
+              </li>
+            ))}
+          </ul>
+        </div>
       )}
 
       <GenerateReportModal
@@ -139,7 +153,7 @@ export function ReportsPanel({ network }: { network: NetworkDetail }) {
         open={open}
         onClose={() => setOpen(false)}
       />
-    </Card>
+    </div>
   );
 }
 

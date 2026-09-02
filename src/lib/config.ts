@@ -2,7 +2,9 @@ import type { ApiMode } from "@/types/common";
 
 /** Runtime configuration derived from public env vars. */
 export const config = {
-  appName: process.env.NEXT_PUBLIC_APP_NAME ?? "Climate Immune System",
+  appName:
+    process.env.NEXT_PUBLIC_APP_NAME ??
+    "Climate Action & Narrative Validation System",
   /** Backend origin, e.g. `http://localhost:8080`. No trailing slash needed. */
   apiBaseUrl: (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, ""),
   /** Version prefix every route sits behind, except the health probes. */

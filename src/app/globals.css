@@ -97,3 +97,72 @@ body {
   overflow-x: auto;
   scrollbar-width: thin;
 }
+
+/* ==========================================================================
+   F5 report preview — print / "Save as PDF"
+   The preview is a fixed overlay nested deep in the React tree, so the print
+   isolation uses visibility rather than display: a `display:none` on an
+   ancestor would take the overlay with it.
+   ========================================================================== */
+@media print {
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+  }
+
+  body:has(#report-print-root) * {
+    visibility: hidden !important;
+  }
+
+  /* The `:has()` above takes its argument's specificity, so re-showing the
+     sheet has to out-specify it — a bare `#report-print-root *` loses and the
+     printed page comes out blank. */
+  body:has(#report-print-root) #report-print-root,
+  body:has(#report-print-root) #report-print-root * {
+    visibility: visible !important;
+  }
+
+  #report-print-root {
+    position: absolute !important;
+    inset: 0 auto auto 0 !important;
+    width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    background: #fff !important;
+    overflow: visible !important;
+  }
+
+  /* Toolbar above the sheet is screen chrome, not part of the document. */
+  #report-print-root .report-chrome {
+    display: none !important;
+  }
+
+  #report-print-root .report-paper {
+    max-width: none !important;
+    max-height: none !important;
+    margin: 0 !important;
+    overflow: visible !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+  }
+
+  /* The cover band and the meters carry meaning through colour. */
+  #report-print-root .report-paper * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .report-sec {
+    break-inside: avoid;
+  }
+
+  .report-break-before {
+    break-before: page;
+  }
+
+  @page {
+    margin: 14mm;
+  }
+}

@@ -175,7 +175,7 @@ async function fetchOnce(
   } catch (err) {
     if (err instanceof DOMException && err.name === "AbortError") throw err;
     throw new ApiError(
-      "Network error — the CIS backend could not be reached.",
+      "Network error — the CANVAS backend could not be reached.",
       0,
       null,
       err,

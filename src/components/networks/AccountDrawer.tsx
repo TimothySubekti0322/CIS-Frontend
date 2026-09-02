@@ -11,7 +11,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { useToast } from "@/components/ui/Toast";
 import { PostRow } from "./ContentClusters";
 import { AllowlistForm, type AllowlistDraft } from "./AllowlistForm";
-import { formatValue, humanise } from "./WhyFlaggedPanel";
+import { formatValue, humanise } from "./format";
 
 /**
  * The per-account drawer.

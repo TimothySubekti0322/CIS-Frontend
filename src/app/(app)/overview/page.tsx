@@ -49,10 +49,7 @@ export default function OverviewPage() {
   return (
     <div className="space-y-6">
       <header className="space-y-2">
-        <div>
-          <h1 className="text-h1">{strings.overview.pageTitle}</h1>
-          <p className="text-sm text-regal-navy/60">{strings.overview.subtitle}</p>
-        </div>
+        <h1 className="text-h1">{strings.overview.pageTitle}</h1>
         <CityContextBar city={data.city} generatedAt={data.generatedAt} />
       </header>
 

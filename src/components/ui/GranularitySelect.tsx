@@ -15,6 +15,13 @@ const OPTIONS: { value: Granularity; label: string }[] = [
 export interface GranularitySelectProps {
   value: Granularity;
   onChange: (value: Granularity) => void;
+  /**
+   * Render the "Granularity" caption beside the control. Day/Week/Month/Year
+   * name themselves, so a surface that has no room for the word can drop it —
+   * the accessible name is carried by the hidden `<label>` and the group's
+   * `aria-label` either way, never by the visible text alone.
+   */
+  showLabel?: boolean;
   className?: string;
 }
 
@@ -33,6 +40,7 @@ export interface GranularitySelectProps {
 export function GranularitySelect({
   value,
   onChange,
+  showLabel = true,
   className,
 }: GranularitySelectProps) {
   const selectId = useId();
@@ -40,15 +48,23 @@ export function GranularitySelect({
 
   return (
     <div className={cn("flex items-center gap-2", className)}>
+      {/* The dropdown's accessible name. Visually hidden rather than removed
+          when the caption is off: an unlabelled select is a real defect, not a
+          tidier one. */}
       <label
         htmlFor={selectId}
-        className="text-xs text-regal-navy/60 sm:hidden"
+        className={cn("text-xs text-regal-navy/60", showLabel ? "sm:hidden" : "sr-only")}
       >
         {label}
       </label>
-      <span className="hidden text-xs text-regal-navy/60 sm:inline" aria-hidden>
-        {label}
-      </span>
+      {showLabel && (
+        <span
+          className="hidden text-xs text-regal-navy/60 sm:inline"
+          aria-hidden
+        >
+          {label}
+        </span>
+      )}
 
       {/* Below tablet: a native dropdown — four inline buttons crowd out the
           chart on a phone, and the native picker is the better touch target. */}

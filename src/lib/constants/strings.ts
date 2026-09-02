@@ -4,14 +4,16 @@
  */
 export const strings = {
   app: {
-    name: process.env.NEXT_PUBLIC_APP_NAME ?? "Climate Immune System",
-    shortName: "CIS",
+    name:
+      process.env.NEXT_PUBLIC_APP_NAME ??
+      "Climate Action & Narrative Validation System",
+    shortName: "CANVAS",
     tagline: "A structured immune system for your information environment.",
   },
   nav: {
     overview: "Overview",
     claims: "Claim Repository Bank",
-    policies: "Public Policy Bank",
+    policies: "Policy & Project Bank",
     alerts: "Alert Page",
     admin: "Admin Settings",
     coordinatedNetwork: "Coordinated-Network Detector",
@@ -135,7 +137,7 @@ export const strings = {
     debunkSegmentCount: "audience segments",
   },
   policies: {
-    pageTitle: "Public Policy Bank",
+    pageTitle: "Policy & Project Bank",
     listTitle: "Public Policies",
     addPolicy: "Add Public Policy",
     addPolicyTitle: "Add a public policy",
@@ -295,16 +297,11 @@ export const strings = {
   },
   overview: {
     pageTitle: "Overview",
-    subtitle:
-      "The information environment at a glance, across the whole claim repository.",
     generatedAt: "Computed",
     cityLabel: "Monitoring",
     cityUnset: "No city configured",
     cityUnsetHint:
       "Set the monitored city on Admin Settings to scope this page.",
-    notPartitioned: "City labels this instance",
-    notPartitionedHint:
-      "Content is not yet tagged with a city, so the selection names this deployment rather than filtering it. Every figure below covers the whole repository.",
 
     ratioTitle: "Claims above the alert threshold",
     ratioSubtitle:
@@ -370,7 +367,7 @@ export const strings = {
     colAbove: "Over threshold",
     colAverage: "Avg. score",
     colScore: "Hotness",
-    policyAiOnly: "Not in the Public Policy Bank",
+    policyAiOnly: "Not in the Policy & Project Bank",
   },
 
   bell: {
@@ -563,6 +560,138 @@ export const strings = {
       "This changes whether the team publicly rebuts the claim or refers it. Rebutting a claim only a handful of accounts are actually making hands it the reach it was engineered to obtain.",
     othersQualify: "other qualifying networks",
     viewNetwork: "View network",
+
+    /* ---------------- [S4] cluster detail ---------------- */
+    scoreCaption: "Score",
+    clusterDetail: "Cluster detail",
+    amplifying: "amplifying",
+    policyPrefix: "policy",
+    windowAnalysed: "Window analysed",
+    accountsLabel: "Accounts",
+    postsLabel: "Flagged posts",
+    yourAssessment: "Your assessment",
+    assessmentGate: "A written reason of at least 20 characters is required.",
+    dismissedNoteTitle: "Assessed as organic",
+    signalProfile: "Signal profile",
+    signalProfileNote:
+      "Each family is scored 0–100 and measured independently. What each one measures, the counts behind it, and its weight in the composite are set out in the report.",
+    relevanceHeading: "Is this cluster actually about our claim?",
+    shapeHeading: "Shape of the cluster",
+    postsHeading: "The posts",
+    memberAccounts: "Member accounts",
+    memberAccountsHint:
+      "Select a row to see that account's posts and the links that put it here.",
+    relLinkStrength: "Link strength",
+    relLinkStrengthNote: "of the cluster's posting sits inside this claim",
+    relAnchoring: "Anchoring",
+    relAnchoringNote: "of members post about this claim repeatedly",
+    relEvidence: "Evidence",
+    relEvidenceNote: "posts inside the claim's own cluster",
+    relSecondary: "Secondary",
+    relSecondaryNote: "other claims this cluster is also linked to",
+    gateShort: "gate",
+    detailMovedToReport:
+      "Method notes, underlying counts, the posting timeline, run parameters and the stated limitations are all in the report.",
+    previewReport: "Preview report",
+    generatedReports: "Generated reports",
+  },
+  networkReport: {
+    org: "Climate Action & Narrative Validation System",
+    title: "Report on coordinated posting behaviour",
+    previewTitle: "Report preview",
+    previewNote:
+      "Rendered from the same snapshot the generated PDF is built from. Nothing here is filled in where the detector recorded no measurement.",
+    print: "Print / Save as PDF",
+    close: "Close preview",
+    reportType: "Report type",
+    coverAccounts: "Accounts",
+    coverPosts: "Flagged posts",
+    coverPeriod: "Period examined",
+    coverPlatforms: "Platforms",
+    coverBreadth: "Families agreeing",
+    coverDetected: "Detected",
+    coverIssuedBy: "Reviewed by",
+    coverStatus: "Review status",
+    pleaseReadFirst: "Please read first",
+
+    secHowToRead: "How to read this report",
+    howBehaviour: "It measures behaviour, not opinion",
+    howBehaviourBody:
+      "Nothing here uses what the posts say, which side they take, or whether they are true. A group coordinating in favour of a city policy is measured exactly the same way.",
+    howBreadth: "One number is never enough",
+    howBreadthBody:
+      "Five behaviours are checked independently. Each has an innocent explanation on its own, so how many agree is reported alongside how high the score is.",
+    howNoBots: "No account is called automated",
+    howNoBotsBody:
+      "The system does not state that any account is automated, inauthentic or malicious, and makes no claim about who operates it. The finding is that these accounts moved together.",
+    howSignedOff: "A person signs it off",
+    howSignedOffBody:
+      "No report is produced automatically. A network must carry a recorded human assessment before it can be exported at all.",
+
+    secFindings: "What was found, in plain words",
+    findingsNotSaying: "What this does not say",
+    findingsNotSayingBody:
+      "This is not a finding that the claim is false, and not a finding that these accounts are fake. It is a finding that they acted together to a degree ordinary coincidence does not explain.",
+
+    secSignals: "The behaviours that were checked",
+    signalsIntro:
+      "Each family is scored out of 100. Underneath each one is what the detector actually measured.",
+    whatWeSaw: "What was measured",
+    breadthCaption: "signal families independently scored 50 or above.",
+    bandingRule: "Banding rule applied",
+    notMeasured: "Could not be measured this run",
+
+    secSignup: "When the accounts were created",
+    signupIntro:
+      "Each dot is one member account, placed on the date its platform profile was opened.",
+    signupMissing: "accounts have no creation date recorded by the platform.",
+    signupOldest: "oldest",
+    signupNewest: "newest",
+
+    secRelevance: "Is this cluster about our claim?",
+    relevanceIntro:
+      "A coordinated group may have touched this claim only in passing. These are the figures it had to clear before it could be surfaced at all.",
+    shareThisClaim: "this claim",
+    shareEverythingElse: "everything else they posted",
+    shareGate: "minimum required",
+
+    secTimeline: "When the posting happened",
+    timelineIntro:
+      "Posts per bin across the detection window. Bins marked in red sit far enough above this cluster's own normal level to be statistically anomalous; the z figure says how far.",
+
+    secGraph: "How the accounts connect",
+    graphIntro:
+      "Filled marks are cluster members, drawn larger the closer they sit to the centre of the activity. Hollow marks are unclustered accounts posting about the same claim in the same window.",
+
+    secContent: "The posts themselves",
+    contentIntro:
+      "The largest groups of near-identical posts. The shared span is highlighted so the repetition is visible without reading closely.",
+
+    secAccounts: "The accounts",
+    accountsIntro:
+      "Member accounts by public handle only. No attempt is made to identify who operates any of them.",
+    accountsMore: "further accounts continue in the exported spreadsheet.",
+
+    secInternal: "Internal assessment",
+    internalStatus: "Status",
+    internalClaim: "Claim record",
+    internalPolicies: "Policies affected",
+    internalNote: "Assessment note",
+    internalHistory: "Assessment history",
+
+    secSettings: "Settings used",
+    settingsIntro:
+      "The detector configuration in force when this run executed, copied at run time rather than looked up now.",
+
+    secLimits: "What this report cannot tell you",
+
+    secEvidence: "Where the evidence is kept",
+    evidenceRun: "Analysis run",
+    evidenceSnapshot: "Sealed evidence copy",
+    evidenceSnapshotHash: "Fingerprint of that copy",
+    evidenceAudit: "Record of this export",
+    evidenceNote:
+      "The posts and account details were copied and sealed at the moment of detection, before anything could be deleted. The fingerprint lets a recipient confirm the file has not been altered since.",
   },
   networkStatus: {
     unreviewed: "Unreviewed",
