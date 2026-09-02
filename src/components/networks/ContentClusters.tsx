@@ -21,16 +21,27 @@ import { StatusPill } from "@/components/ui/StatusPill";
 export function ContentClusters({
   content,
   isPending,
+  embedded,
+  maxPosts,
 }: {
   content: RepresentativeContent | undefined;
   isPending: boolean;
+  /** Rendered as a section of the cluster sheet rather than as its own card. */
+  embedded?: boolean;
+  /**
+   * Cap the flat post list on the cluster sheet. The full duplicate-group
+   * analysis — canonical text, every variant, the shared spans — belongs in
+   * the report; the sheet only has to show that the duplication is real.
+   */
+  maxPosts?: number;
 }) {
+  const Shell = embedded ? PlainShell : CardShell;
+
   if (isPending) {
     return (
-      <Card className="space-y-3">
-        <h2 className="text-h3">{strings.networks.contentTitle}</h2>
+      <Shell>
         <Skeleton className="h-40 w-full" />
-      </Card>
+      </Shell>
     );
   }
 
@@ -39,21 +50,45 @@ export function ContentClusters({
 
   if (!hasContent) {
     return (
-      <Card className="space-y-3">
-        <h2 className="text-h3">{strings.networks.contentTitle}</h2>
+      <Shell>
         <EmptyState title={strings.networks.contentEmpty} />
-      </Card>
+      </Shell>
+    );
+  }
+
+  if (maxPosts) {
+    const flat = [
+      ...content.groups.flatMap((group) => group.variants),
+      ...content.ungrouped,
+    ];
+    const shown = flat.slice(0, maxPosts);
+    return (
+      <Shell>
+        <ul className="space-y-2">
+          {shown.map((post) => (
+            <PostRow key={post.id} post={post} />
+          ))}
+        </ul>
+        {flat.length > shown.length && (
+          <p className="text-xs text-regal-navy/50">
+            {flat.length - shown.length} more captured posts, grouped by shared
+            wording, are in the report.
+          </p>
+        )}
+      </Shell>
     );
   }
 
   return (
-    <Card className="space-y-4">
-      <div>
-        <h2 className="text-h3">{strings.networks.contentTitle}</h2>
-        <p className="mt-1 max-w-2xl text-xs text-regal-navy/60">
-          {content.note ?? strings.networks.contentNote}
-        </p>
-      </div>
+    <Shell>
+      {!embedded && (
+        <div>
+          <h2 className="text-h3">{strings.networks.contentTitle}</h2>
+          <p className="mt-1 max-w-2xl text-xs text-regal-navy/60">
+            {content.note ?? strings.networks.contentNote}
+          </p>
+        </div>
+      )}
 
       {content.groups.map((group, index) => (
         <section
@@ -96,8 +131,16 @@ export function ContentClusters({
           </ul>
         </section>
       )}
-    </Card>
+    </Shell>
   );
+}
+
+function CardShell({ children }: { children: React.ReactNode }) {
+  return <Card className="space-y-4">{children}</Card>;
+}
+
+function PlainShell({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-3">{children}</div>;
 }
 
 /**

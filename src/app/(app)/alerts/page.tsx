@@ -93,7 +93,11 @@ export default function AlertsPage() {
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-h1">{strings.alerts.pageTitle}</h1>
         {!watchlistEmpty && (
-          <GranularitySelect value={granularity} onChange={setGranularity} />
+          <GranularitySelect
+            value={granularity}
+            onChange={setGranularity}
+            showLabel={false}
+          />
         )}
       </div>
 

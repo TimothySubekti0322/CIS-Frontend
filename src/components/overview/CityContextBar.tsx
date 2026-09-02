@@ -1,20 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { Info, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import type { OverviewCity } from "@/types/overview";
 import { strings } from "@/lib/constants/strings";
 import { formatDateTime } from "@/lib/utils";
 
-/**
- * Names the scope the page's figures were computed under.
- *
- * `partitioned: false` is surfaced, not hidden: it means the AI service does
- * not yet tag content with a city, so the F4 selection labels this deployment
- * rather than filtering it. A leadership page must not imply a city breakdown
- * the data cannot support — and the honest version of that is a quiet note,
- * not a silent one.
- */
+/** Names the scope the page's figures were computed under. */
 export function CityContextBar({
   city,
   generatedAt,
@@ -56,15 +48,6 @@ export function CityContextBar({
         </p>
       )}
 
-      {city && !city.partitioned && (
-        <p className="inline-flex items-start gap-1.5 rounded-lg bg-frosted-blue-soft px-3 py-2 text-xs text-regal-navy/70">
-          <Info className="mt-px size-3.5 shrink-0" aria-hidden />
-          <span>
-            <span className="font-bold">{strings.overview.notPartitioned}.</span>{" "}
-            {strings.overview.notPartitionedHint}
-          </span>
-        </p>
-      )}
     </div>
   );
 }

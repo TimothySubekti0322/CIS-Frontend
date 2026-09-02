@@ -101,3 +101,20 @@ export function scoreBadgeClasses(score: number): string {
       return "bg-glaucous-soft text-regal-navy";
   }
 }
+
+/**
+ * Text colour for a score rendered as a large bare number rather than a filled
+ * badge. Gold is unreadable as text on white, so the high band uses the
+ * functional negative colour — the same one the signal meters already use for
+ * scores at or above 70.
+ */
+export function scoreTextClasses(score: number): string {
+  switch (scoreBand(score)) {
+    case "high":
+      return "text-danger";
+    case "medium":
+      return "text-regal-navy";
+    case "low":
+      return "text-regal-navy/50";
+  }
+}

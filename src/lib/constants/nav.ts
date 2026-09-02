@@ -17,8 +17,6 @@ export interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
-  /** F-code from the PRD, shown as a small badge in the sidebar. */
-  code: string;
   /** Present only where a counter is defined; see `Sidebar`. */
   badge?: NavBadge;
 }
@@ -29,27 +27,20 @@ export interface NavItem {
  * picture before drilling into individual claims.
  */
 export const NAV_ITEMS: NavItem[] = [
-  {
-    href: HOME_HREF,
-    label: strings.nav.overview,
-    icon: LayoutDashboard,
-    code: "F6",
-  },
-  { href: "/claims", label: strings.nav.claims, icon: LayoutList, code: "F1" },
-  { href: "/policies", label: strings.nav.policies, icon: ShieldAlert, code: "F2" },
+  { href: HOME_HREF, label: strings.nav.overview, icon: LayoutDashboard },
+  { href: "/claims", label: strings.nav.claims, icon: LayoutList },
+  { href: "/policies", label: strings.nav.policies, icon: ShieldAlert },
   {
     href: "/alerts",
     label: strings.nav.alerts,
     icon: Bell,
-    code: "F3",
-    // US71 — threshold crossings since this user last opened F3.
+    // US71 — threshold crossings since this user last opened the Alert page.
     badge: "alertCrossings",
   },
-  { href: "/admin", label: strings.nav.admin, icon: Settings, code: "F4" },
+  { href: "/admin", label: strings.nav.admin, icon: Settings },
   {
     href: "/coordinated-network",
     label: strings.nav.coordinatedNetwork,
     icon: Network,
-    code: "F5",
   },
 ];

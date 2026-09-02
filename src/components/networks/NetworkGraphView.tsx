@@ -14,6 +14,12 @@ export interface NetworkGraphViewProps {
   graph: NetworkGraph | undefined;
   isPending: boolean;
   onSelectAccount: (accountId: string) => void;
+  /**
+   * Rendered as a section of the cluster sheet rather than as its own card:
+   * the sheet already supplies the border, the heading and the caption, and a
+   * card nested inside a card reads as two separate objects.
+   */
+  embedded?: boolean;
 }
 
 const VIEW = 640;
@@ -36,27 +42,28 @@ export function NetworkGraphView({
   graph,
   isPending,
   onSelectAccount,
+  embedded,
 }: NetworkGraphViewProps) {
   const [hovered, setHovered] = useState<GraphNode | null>(null);
   const [hoveredEdge, setHoveredEdge] = useState<GraphEdge | null>(null);
 
   const placed = useMemo(() => placeNodes(graph?.nodes ?? []), [graph?.nodes]);
 
+  const Shell = embedded ? PlainShell : CardShell;
+
   if (isPending) {
     return (
-      <Card className="space-y-3">
-        <h2 className="text-h3">{strings.networks.graphTitle}</h2>
+      <Shell>
         <Skeleton className="h-80 w-full" />
-      </Card>
+      </Shell>
     );
   }
 
   if (!graph || graph.nodes.length === 0) {
     return (
-      <Card className="space-y-3">
-        <h2 className="text-h3">{strings.networks.graphTitle}</h2>
+      <Shell>
         <EmptyState title={strings.networks.graphEmpty} />
-      </Card>
+      </Shell>
     );
   }
 
@@ -67,27 +74,48 @@ export function NetworkGraphView({
   );
 
   return (
-    <Card className="space-y-3">
-      <div className="flex flex-wrap items-start justify-between gap-2">
-        <div>
-          <h2 className="text-h3">{strings.networks.graphTitle}</h2>
-          <p className="mt-1 max-w-xl text-xs text-regal-navy/60">
-            {strings.networks.graphNote}
-          </p>
+    <Shell>
+      {!embedded && (
+        <div className="flex flex-wrap items-start justify-between gap-2">
+          <div>
+            <h2 className="text-h3">{strings.networks.graphTitle}</h2>
+            <p className="mt-1 max-w-xl text-xs text-regal-navy/60">
+              {strings.networks.graphNote}
+            </p>
+          </div>
+          {graph.reduced && (
+            <StatusPill tone="warn">
+              <span title={graph.reductionNote ?? undefined}>
+                {strings.networks.graphReduced}
+              </span>
+            </StatusPill>
+          )}
         </div>
-        {graph.reduced && (
-          <StatusPill tone="warn">
-            <span title={graph.reductionNote ?? undefined}>
-              {strings.networks.graphReduced}
-            </span>
-          </StatusPill>
-        )}
-      </div>
+      )}
+      {embedded && graph.reduced && (
+        <StatusPill tone="warn">
+          <span title={graph.reductionNote ?? undefined}>
+            {strings.networks.graphReduced}
+          </span>
+        </StatusPill>
+      )}
 
-      <div className="overflow-x-auto rounded-lg border border-pale-sky bg-mint-cream">
+      {/* The stored square layout is letterboxed rather than rescaled: the
+          coordinates are never recomputed (PRD 10.8), so the figure is fitted
+          to a band the sheet can carry without stretching the geometry. */}
+      <div
+        className={cn(
+          "overflow-x-auto rounded-xl border border-pale-sky bg-mint-cream",
+          embedded && "h-64",
+        )}
+      >
         <svg
           viewBox={`0 0 ${VIEW} ${VIEW}`}
-          className="mx-auto block h-auto w-full max-w-[640px]"
+          preserveAspectRatio="xMidYMid meet"
+          className={cn(
+            "mx-auto block",
+            embedded ? "h-full w-full" : "h-auto w-full max-w-[640px]",
+          )}
           role="img"
           aria-label={`Coordination graph: ${graph.memberCount} members, ${graph.comparisonCount} comparison accounts`}
         >
@@ -166,8 +194,16 @@ export function NetworkGraphView({
 
       {hovered && <NodeSummary node={hovered} />}
       {hoveredEdge && <EdgeSummary edge={hoveredEdge} />}
-    </Card>
+    </Shell>
   );
+}
+
+function CardShell({ children }: { children: React.ReactNode }) {
+  return <Card className="space-y-3">{children}</Card>;
+}
+
+function PlainShell({ children }: { children: React.ReactNode }) {
+  return <div className="space-y-3">{children}</div>;
 }
 
 function Legend({

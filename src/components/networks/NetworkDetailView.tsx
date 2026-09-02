@@ -1,56 +1,61 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
-import {
-  AlertTriangle,
-  CalendarClock,
-  FileText,
-  Info,
-  Loader2,
-  Users,
-} from "lucide-react";
+import { History, Loader2 } from "lucide-react";
 import type { NetworkDetail } from "@/types/network";
-import { formatDateTime } from "@/lib/utils";
+import { formatDate } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
+import { CONFIDENCE_MAP } from "@/lib/constants/networkStatuses";
 import {
   useNetwork,
   useNetworkContent,
   useNetworkGraph,
-  useNetworkTimeline,
 } from "@/lib/hooks/useNetworks";
 import { BackLink } from "@/components/ui/BackLink";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
-import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { AccountAnnex } from "./AccountAnnex";
 import { AccountDrawer } from "./AccountDrawer";
-import { BurstTimelineChart } from "./BurstTimelineChart";
+import { ClaimRelevanceGrid, DetBlock, SignalProfile } from "./ClusterSections";
 import { ContentClusters } from "./ContentClusters";
 import { DetectorUnavailable, isDetectorUnavailable } from "./DetectorUnavailable";
 import { NetworkGraphView } from "./NetworkGraphView";
 import {
   CappedPill,
-  ConfidencePill,
   LowConfidenceTag,
   NetworkStatusPill,
-  SignalBreadthPill,
   TruncatedRunPill,
 } from "./NetworkPills";
-import { NetworkReviewPanel } from "./NetworkReviewPanel";
-import { ReportsPanel } from "./ReportsPanel";
-import { ClaimLink, WhyFlaggedPanel } from "./WhyFlaggedPanel";
+import { NetworkReportView } from "./NetworkReportView";
+import { AllowlistNetworkDialog, NetworkReviewBar } from "./NetworkReviewPanel";
+import { NetworkActions } from "./ReportsPanel";
 
-/** [S4] — US49/US50. Everything needed to assess one network in one place. */
+/**
+ * [S4] — one cluster, as a single sheet rather than a wall of panels.
+ *
+ * The page answers one question: does this cluster need a person's attention,
+ * and on what evidence? So it carries the score, the five signal scores, the
+ * relevance gate, the shape of the cluster, a sample of the posts, and the
+ * member list — and stops there. Everything an analyst needs *after* deciding
+ * that, and everything a recipient outside the team needs, lives in the report:
+ * method sentences, underlying counts, the banding rule, the posting timeline,
+ * run parameters and the stated limitations.
+ *
+ * That split is not only about density. The report is the artefact that leaves
+ * the building, so it is the one that has to be complete and self-explaining;
+ * the sheet is a triage surface for people who already know what conductance
+ * means.
+ */
 export function NetworkDetailView({ id }: { id: string }) {
   const { data: network, isPending, error } = useNetwork(id);
   const [openAccount, setOpenAccount] = useState<string | null>(null);
+  const [preview, setPreview] = useState(false);
+  const [allowlisting, setAllowlisting] = useState(false);
 
-  // The three evidence surfaces are separate calls: each is large, and a
-  // network can be triaged from the header and the signal panel alone.
+  // Both evidence surfaces on the sheet are separate calls: each is large, and
+  // a cluster can be triaged from the header and the signal profile alone.
   const graph = useNetworkGraph(id, Boolean(network));
-  const timeline = useNetworkTimeline(id, Boolean(network));
   const content = useNetworkContent(id, Boolean(network));
 
   if (isPending) {
@@ -75,234 +80,237 @@ export function NetworkDetailView({ id }: { id: string }) {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <BackLink href="/coordinated-network" label={strings.networks.pageTitle} />
 
-      <Header network={network} />
+      <Card className="overflow-hidden p-0">
+        <ClusterHeader network={network} />
 
-      {/* PRD 10.9.2's standing text, served rather than hard-coded so the page
-          and the PDF cannot drift apart. */}
-      {network.disclaimer && (
-        <Card className="border-glaucous bg-white">
-          <p className="flex items-start gap-2 text-xs text-regal-navy/80">
-            <Info className="mt-0.5 size-4 shrink-0 text-glaucous" aria-hidden />
-            <span>
-              <span className="font-bold">{strings.networks.disclaimerTitle}: </span>
+        <div className="px-5 pt-5 pb-6 sm:px-6">
+          <ClusterStrip network={network} />
+
+          <NetworkReviewBar network={network} />
+
+          <DetBlock
+            heading={strings.networks.signalProfile}
+            note={strings.networks.signalProfileNote}
+          >
+            <SignalProfile why={network.whyFlagged} />
+          </DetBlock>
+
+          {network.whyFlagged.claimRelevance.primaryClaim && (
+            <DetBlock heading={strings.networks.relevanceHeading}>
+              <ClaimRelevanceGrid why={network.whyFlagged} />
+            </DetBlock>
+          )}
+
+          {(graph.isPending || (graph.data && graph.data.nodes.length > 0)) && (
+            <DetBlock
+              heading={strings.networks.shapeHeading}
+              note={strings.networks.graphNote}
+            >
+              <NetworkGraphView
+                graph={graph.data}
+                isPending={graph.isPending}
+                onSelectAccount={setOpenAccount}
+                embedded
+              />
+            </DetBlock>
+          )}
+
+          <DetBlock
+            heading={strings.networks.postsHeading}
+            note={content.data?.note ?? strings.networks.contentNote}
+          >
+            <ContentClusters
+              content={content.data}
+              isPending={content.isPending}
+              embedded
+              maxPosts={4}
+            />
+          </DetBlock>
+
+          <DetBlock
+            heading={strings.networks.memberAccounts}
+            count={network.accountCount.toLocaleString()}
+            note={strings.networks.memberAccountsHint}
+          >
+            <AccountAnnex
+              networkId={network.id}
+              onSelectAccount={setOpenAccount}
+              embedded
+            />
+          </DetBlock>
+
+          {/* PRD 10.9.2's standing text, served rather than hard-coded so the
+              sheet and the report cannot drift apart. */}
+          {network.disclaimer && (
+            <p className="mt-6 rounded-xl bg-mint-cream px-3.5 py-3 text-xs leading-relaxed text-regal-navy/70">
+              <span className="font-bold text-regal-navy">
+                {strings.networks.disclaimerTitle}.{" "}
+              </span>
               {network.disclaimer}
-            </span>
+            </p>
+          )}
+
+          <p className="mt-2.5 text-xs text-regal-navy/50">
+            {strings.networks.detailMovedToReport}
           </p>
-        </Card>
-      )}
 
-      <NetworkReviewPanel network={network} />
-
-      <div className="grid grid-cols-1 gap-6 xl:grid-cols-3">
-        <div className="space-y-6 xl:col-span-2">
-          <WhyFlaggedPanel why={network.whyFlagged} />
-          <NetworkGraphView
-            graph={graph.data}
-            isPending={graph.isPending}
-            onSelectAccount={setOpenAccount}
+          <NetworkActions
+            network={network}
+            onPreview={() => setPreview(true)}
+            onAllowlist={() => setAllowlisting(true)}
           />
-          <BurstTimelineChart
-            timeline={timeline.data}
-            isPending={timeline.isPending}
-          />
-          <ContentClusters content={content.data} isPending={content.isPending} />
-          <AccountAnnex networkId={network.id} onSelectAccount={setOpenAccount} />
         </div>
-
-        <aside className="space-y-6">
-          <RunPanel network={network} />
-          <LinkedPanel network={network} />
-          <ReportsPanel network={network} />
-        </aside>
-      </div>
+      </Card>
 
       <AccountDrawer
         networkId={network.id}
         accountId={openAccount}
         onClose={() => setOpenAccount(null)}
       />
-    </div>
-  );
-}
 
-function Header({ network }: { network: NetworkDetail }) {
-  return (
-    <div className="space-y-3">
-      <div className="flex flex-wrap items-center gap-2">
-        <ConfidencePill band={network.confidenceBand} />
-        <SignalBreadthPill breadth={network.signalBreadth} />
-        <NetworkStatusPill status={network.reviewStatus} />
-        {network.fromTruncatedRun && (
-          <TruncatedRunPill note={network.run.truncationNote} />
-        )}
-        {network.run.confidenceCappedAtMedium && <CappedPill />}
-        {network.lowConfidence && <LowConfidenceTag />}
-      </div>
+      <AllowlistNetworkDialog
+        network={network}
+        open={allowlisting}
+        onClose={() => setAllowlisting(false)}
+      />
 
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-        <h1 className="text-h1">{network.label}</h1>
-        <ScoreBadge
-          score={network.coordinationScore}
-          size="lg"
-          showScale
-          label={strings.networks.coordinationScore}
-        />
-      </div>
-
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-regal-navy/60">
-        <span className="inline-flex items-center gap-1.5">
-          <Users className="size-4" aria-hidden />
-          {network.accountCount.toLocaleString()} {strings.networks.accounts}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <FileText className="size-4" aria-hidden />
-          {network.postCount.toLocaleString()} {strings.networks.posts}
-        </span>
-        <span className="inline-flex items-center gap-1.5">
-          <CalendarClock className="size-4" aria-hidden />
-          {strings.networks.detected} {formatDateTime(network.detectedAt)}
-        </span>
-        {network.platforms.length > 0 && (
-          <span>
-            {strings.networks.platforms}: {network.platforms.join(", ")}
-          </span>
-        )}
-      </div>
-
-      {/* Rendered verbatim so a client that forgot to check the boolean cannot
-          drop the caveat. */}
-      {network.run.truncated && network.run.truncationNote && (
-        <p className="flex items-start gap-2 rounded-lg border border-gold bg-gold-soft px-3 py-2 text-xs text-regal-navy">
-          <AlertTriangle className="mt-0.5 size-3.5 shrink-0" aria-hidden />
-          {network.run.truncationNote}
-        </p>
-      )}
+      <NetworkReportView
+        network={network}
+        open={preview}
+        onClose={() => setPreview(false)}
+      />
     </div>
   );
 }
 
 /**
- * Run context. A truncated candidate set and unavailable signal families are
- * what answer "why is everything Medium this week?", which is a question about
- * runs rather than about this network.
+ * The header band. The score sits opposite the label at the top of the page
+ * because it is the first thing the reader is deciding on — and the confidence
+ * band sits directly under it because the two are read together: a 90 with one
+ * signal family agreeing is the shape of a mistake, not of a campaign.
  */
-function RunPanel({ network }: { network: NetworkDetail }) {
-  const { run } = network;
+function ClusterHeader({ network }: { network: NetworkDetail }) {
+  const claim = network.primaryClaim;
+  const band = CONFIDENCE_MAP[network.confidenceBand];
+
   return (
-    <Card className="space-y-2">
-      <h2 className="text-h3">{strings.networks.detectionRun}</h2>
-      <dl className="space-y-1.5 text-xs">
-        <Row label={strings.networks.trigger} value={run.triggerSource || "—"} />
-        <Row
-          label={strings.networks.detectionWindow}
-          value={`${formatDateTime(run.windowStart)} — ${formatDateTime(run.windowEnd)}`}
-        />
-        <Row
-          label={strings.networks.candidates}
-          value={run.candidatesCount.toLocaleString()}
-        />
-        {run.signalsUnavailable.length > 0 && (
-          <Row
-            label={strings.networks.signalsUnavailable}
-            value={run.signalsUnavailable.join(", ")}
-          />
-        )}
-      </dl>
-      {run.runId && (
-        <p className="break-all font-mono text-[11px] text-regal-navy/40">
-          {run.runId}
+    <header className="bg-regal-navy px-5 py-5 text-white sm:px-6">
+      <div className="flex flex-wrap items-start justify-between gap-x-6 gap-y-4">
+        <div className="min-w-0 flex-1">
+          <p className="text-[10px] font-bold tracking-[0.09em] text-frosted-blue uppercase">
+            {strings.networks.clusterDetail}
+          </p>
+          <h1 className="mt-1.5 text-xl leading-tight font-bold sm:text-2xl">
+            {network.label}
+          </h1>
+          <p className="mt-1.5 max-w-[68ch] text-xs leading-relaxed text-white/70">
+            <span className="font-mono">{network.id}</span>
+            {claim && (
+              <>
+                {" · "}
+                {strings.networks.amplifying} “{claim.claimStatement}”
+              </>
+            )}
+            {network.linkedPolicies.length > 0 && (
+              <>
+                {" · "}
+                {strings.networks.policyPrefix}:{" "}
+                {network.linkedPolicies.map((p) => p.name).join(", ")}
+              </>
+            )}
+          </p>
+
+          <div className="mt-3 flex flex-wrap items-center gap-1.5">
+            {/* A recurrence inherits history but not relevance, so the count
+                and the date it starts from are both stated. */}
+            {network.recurrence.isRecurrence && network.recurrence.count > 1 && (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-white/12 px-2.5 py-1 font-mono text-[11px] text-white">
+                <History className="size-3" aria-hidden />
+                {strings.networks.recurrenceSeen} {network.recurrence.count}×
+                {network.recurrence.firstSeenAt && (
+                  <>
+                    {" "}
+                    {strings.networks.recurrenceSince}{" "}
+                    {formatDate(network.recurrence.firstSeenAt)}
+                  </>
+                )}
+              </span>
+            )}
+            <NetworkStatusPill status={network.reviewStatus} />
+            {network.fromTruncatedRun && (
+              <TruncatedRunPill note={network.run.truncationNote} />
+            )}
+            {network.run.confidenceCappedAtMedium && <CappedPill />}
+            {/* The band pill beside the score already reads "Low confidence";
+                the tag only earns its place when the flag and the band
+                disagree — a network the server suppressed for some other
+                reason. */}
+            {network.lowConfidence && network.confidenceBand !== "low" && (
+              <LowConfidenceTag />
+            )}
+          </div>
+        </div>
+
+        <div className="shrink-0 text-right">
+          <p className="text-4xl leading-none font-bold text-frosted-blue tabular-nums">
+            {network.coordinationScore.toFixed(1)}
+          </p>
+          <p className="mt-1.5 text-[9.5px] font-bold tracking-[0.06em] text-white/60 uppercase">
+            {strings.networks.coordinationScore}
+          </p>
+          <StatusPill tone={band.tone} className="mt-2">
+            {band.label}
+          </StatusPill>
+        </div>
+      </div>
+
+      {/* Rendered verbatim so a client that forgot to check the boolean cannot
+          drop the caveat. */}
+      {network.run.truncated && network.run.truncationNote && (
+        <p className="mt-4 rounded-xl bg-gold/20 px-3.5 py-2.5 text-xs leading-relaxed text-white">
+          {network.run.truncationNote}
         </p>
       )}
-      {network.recurrence.priorClaims.length > 0 && (
-        <div className="border-t border-pale-sky pt-2">
-          <p className="text-xs font-bold text-regal-navy">
-            Prior detections in this chain
-          </p>
-          <ul className="mt-1 space-y-1">
-            {network.recurrence.priorClaims.map((prior) => (
-              <li key={prior.networkId} className="text-xs">
-                <Link
-                  href={`/coordinated-network/${prior.networkId}`}
-                  className="text-sea-green hover:underline"
-                >
-                  {prior.label}
-                </Link>
-                <span className="ml-1 text-regal-navy/50">
-                  {formatDateTime(prior.detectedAt)}
-                </span>
-                {prior.claimStatement && (
-                  <span className="block text-regal-navy/60">
-                    {prior.claimStatement}
-                  </span>
-                )}
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
-    </Card>
+    </header>
   );
 }
 
-/** Linked claims and policies navigate to F1/F2 — F5 builds no claim UI. */
-function LinkedPanel({ network }: { network: NetworkDetail }) {
-  return (
-    <Card className="space-y-3">
-      <div>
-        <h2 className="text-h3">{strings.networks.linkedClaims}</h2>
-        <div className="mt-2 space-y-1.5">
-          {network.linkedClaims.length === 0 ? (
-            <p className="text-xs text-regal-navy/60">—</p>
-          ) : (
-            network.linkedClaims.map((claim) => (
-              <ClaimLink key={claim.claimId} claim={claim} />
-            ))
-          )}
-        </div>
-      </div>
+/** The four counts that frame everything below them. */
+function ClusterStrip({ network }: { network: NetworkDetail }) {
+  const items: { label: string; value: string }[] = [
+    {
+      label: strings.networks.accountsLabel,
+      value: network.accountCount.toLocaleString(),
+    },
+    {
+      label: strings.networks.postsLabel,
+      value: network.postCount.toLocaleString(),
+    },
+    {
+      label: strings.networks.windowAnalysed,
+      value: `${formatDate(network.run.windowStart)} — ${formatDate(network.run.windowEnd)}`,
+    },
+  ];
+  if (network.platforms.length > 0) {
+    items.push({
+      label: strings.networks.platforms,
+      value: network.platforms.join(", "),
+    });
+  }
 
-      <div className="border-t border-pale-sky pt-3">
-        <h2 className="text-h3">{strings.networks.linkedPolicies}</h2>
-        <div className="mt-2 space-y-1.5">
-          {network.linkedPolicies.length === 0 ? (
-            <p className="text-xs text-regal-navy/60">
-              {strings.networks.noLinkedPolicies}
-            </p>
-          ) : (
-            network.linkedPolicies.map((policy) => (
-              <Link
-                key={policy.id}
-                href={`/policies/${policy.id}`}
-                className="block rounded-lg border border-pale-sky bg-white px-3 py-2 text-xs text-regal-navy transition-colors hover:border-sea-green hover:text-sea-green"
-              >
-                {policy.name}
-                {policy.status && (
-                  <StatusPill
-                    tone={policy.status === "rolled_out" ? "success" : "neutral"}
-                    className="ml-2"
-                  >
-                    {policy.status === "rolled_out"
-                      ? strings.policies.rolledOut
-                      : strings.policies.notRolledOut}
-                  </StatusPill>
-                )}
-              </Link>
-            ))
-          )}
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function Row({ label, value }: { label: string; value: string }) {
   return (
-    <div className="flex flex-wrap justify-between gap-2">
-      <dt className="text-regal-navy/60">{label}</dt>
-      <dd className="text-right font-bold text-regal-navy">{value}</dd>
-    </div>
+    <dl className="flex flex-wrap gap-x-10 gap-y-3 border-b border-pale-sky pb-4">
+      {items.map((item) => (
+        <div key={item.label}>
+          <dd className="text-[15px] font-bold text-regal-navy tabular-nums">
+            {item.value}
+          </dd>
+          <dt className="mt-0.5 text-[11px] text-regal-navy/60">{item.label}</dt>
+        </div>
+      ))}
+    </dl>
   );
 }

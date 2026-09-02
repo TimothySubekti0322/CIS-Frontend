@@ -83,31 +83,24 @@ export function Sidebar({
               >
                 <Icon className="size-4 shrink-0" aria-hidden />
                 <span className="flex-1">{item.label}</span>
-                {count > 0 ? (
+                {count > 0 && (
                   <NavCounter count={count} label={strings.alerts.notificationsLabel} />
-                ) : (
-                  <span className="text-[10px] font-bold text-white/40">
-                    {item.code}
-                  </span>
                 )}
               </Link>
             );
           })}
         </nav>
-
-        <p className="px-4 py-3 text-[11px] text-white/40">PRD v1.5 · Phase 1</p>
       </aside>
     </>
   );
 }
 
 /**
- * The Gold counter §5.5 specifies. It replaces the F-code rather than sitting
- * beside it: two small badges on one row read as one confusing cluster, and
- * the count is the thing the user is meant to notice.
+ * The Gold counter §5.5 specifies — the only trailing mark on a nav row, so it
+ * is unambiguously the thing the user is meant to notice.
  *
  * Capped at 99+ — an exact figure past that is a threshold problem to solve on
- * F4, not a number to render.
+ * Admin Settings, not a number to render.
  */
 function NavCounter({ count, label }: { count: number; label: string }) {
   return (
