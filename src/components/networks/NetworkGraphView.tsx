@@ -192,6 +192,10 @@ export function NetworkGraphView({
         </span>
       </div>
 
+      <p className="text-xs leading-relaxed text-regal-navy/60">
+        {strings.networks.graphPlainNote}
+      </p>
+
       {hovered && <NodeSummary node={hovered} />}
       {hoveredEdge && <EdgeSummary edge={hoveredEdge} />}
     </Shell>

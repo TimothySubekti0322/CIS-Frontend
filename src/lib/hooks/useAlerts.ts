@@ -1,6 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type { AlertChartParams, WatchlistParams } from "@/types/alert";
 import { alertsApi } from "@/lib/api/alerts";
 import { queryKeys } from "@/lib/query/keys";
@@ -12,6 +17,9 @@ export function useWatchlist(params?: WatchlistParams) {
   return useQuery({
     queryKey: queryKeys.alerts.list(params),
     queryFn: () => alertsApi.list(params),
+    // Keep the current rows on screen while a search/page change refetches, so
+    // the table fades to the new result rather than flashing empty.
+    placeholderData: keepPreviousData,
   });
 }
 

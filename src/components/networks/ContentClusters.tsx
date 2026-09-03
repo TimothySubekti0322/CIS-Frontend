@@ -171,9 +171,8 @@ export function PostRow({ post }: { post: EvidencePost }) {
           end={post.sharedSpanEnd}
         />
       </p>
-      <p className="mt-1 font-mono text-[11px] text-regal-navy/40">
-        {strings.networks.capturedAt} {formatDateTime(post.capturedAt)} ·{" "}
-        {post.contentSha256.slice(0, 16)}
+      <p className="mt-1 text-[11px] text-regal-navy/40">
+        {strings.networks.capturedAt} {formatDateTime(post.capturedAt)}
       </p>
     </li>
   );

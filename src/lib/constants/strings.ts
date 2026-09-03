@@ -13,7 +13,7 @@ export const strings = {
   nav: {
     overview: "Overview",
     claims: "Claim Repository Bank",
-    policies: "Policy & Project Bank",
+    policies: "Policy and Climate Project Bank",
     alerts: "Alert Page",
     admin: "Admin Settings",
     coordinatedNetwork: "Coordinated-Network Detector",
@@ -61,11 +61,13 @@ export const strings = {
   claims: {
     pageTitle: "Claim Repository Bank",
     s1Title: "Existing Claims",
-    s1Subtitle: "Generic Claim — confirmed circulating in public discourse",
-    s2Title: "Non-Existing Claims",
-    s2Subtitle: "Synthetic Claim — predicted by AI as likely to emerge",
+    s1Subtitle:
+      "Existing misinformation and disinformation circulating in public discourse, whether through social media or news articles",
+    s2Title: "Predicted Claims",
+    s2Subtitle:
+      "Possible misinformation and disinformation predicted by AI as likely to emerge following a climate policy or project rollout",
     genericTag: "Existing Claim",
-    syntheticTag: "Synthetic Claim",
+    syntheticTag: "Predicted Claim",
     searchS1: "Search existing claims…",
     searchS2: "Search predicted claims…",
     searchAll: "Search claim statements…",
@@ -109,36 +111,26 @@ export const strings = {
     harmHumanConfirmed: "Human confirmed",
     loadMore: "Load more",
     reviewTitle: "Review",
-    reviewNotes: "Reviewer notes",
-    reviewNotesPlaceholder: "Why this status? Max 2000 characters.",
     reviewNever: "No review recorded yet — set a status to add one.",
-    reviewOverlayNote:
-      "One note is kept per claim: saving replaces the previous one rather than adding to a history.",
-    reviewSaved: "Review saved",
-    reviewBy: "by",
 
     /* --- v1.5 --- */
     scoreFormulaLabel: "How this score is calculated",
     scoreFormulaFallback:
       "FinalClaimScore combines five weighted parameters — Reach, Velocity, Falseness Confidence, Harm Severity and Emotional Intensity — into a ClaimScore, then discounts it by the Net Pushback Ratio, which lowers the score of a claim the public is already pushing back on.",
-    harmRowEdit: "Edit",
-    harmRowEditLabel: "Edit the four Harm sub-scores",
-    harmEditTitle: "Harm sub-scores",
-    harmEditSlow:
-      "Saving rescores the claim through the AI service, so this takes a few seconds. Only values you changed are sent; the rest keep the AI's own classification.",
     harmEdited: "Edited",
     harmEditedTag: "Harm edited by a reviewer",
     harmEditedBy: "Edited by",
     harmEditedPrevious: "AI's original values",
-    harmRangeError: "Each sub-score must be between 0 and 100.",
     debunkSegmentsTitle: "Debunk Activity — segmented recommendations",
     debunkSegmentsHint:
       "One tailored draft per audience segment, most-exposed first. Each is written for that segment's own framing — copy the one you are actually addressing.",
     debunkSegmentCount: "audience segments",
   },
   policies: {
-    pageTitle: "Policy & Project Bank",
+    pageTitle: "Policy and Climate Project Bank",
     listTitle: "Public Policies",
+    listBody:
+      "Below are compiled public policies and projects that are in-force (rolled out) and drafts (not-rolled out). The bank should constantly be updated with available public information to ensure accurate pre-bunking and debunking works. Within each available policy / project, AI will predict possible claims (synthetic claims) and link current existing claims to said policy/project.",
     addPolicy: "Add Public Policy",
     addPolicyTitle: "Add a public policy",
     policyName: "Public policy name",
@@ -246,7 +238,7 @@ export const strings = {
     generateClaimAnyTopic: "Any topic",
     snapshotTitle: "Snapshot scores now",
     snapshotDesc:
-      "Captures a FinalClaimScore snapshot for every watched claim immediately, building Alert-page chart history without waiting for the hourly job.",
+      "Captures a FinalClaimScore snapshot for every watched claim immediately.",
     snapshotAction: "Snapshot scores",
     snapshotDone: "score snapshots captured.",
     settingsTitle: "All settings",
@@ -256,12 +248,12 @@ export const strings = {
     colUpdated: "Updated",
     rescoreTitle: "Rescore all claims",
     rescoreDesc:
-      "A claim's score moves with wall-clock time even when nothing new arrives — NPR drifts as opposing posts age out of the window. Without a rescore the Alert chart plots the same number every hour.",
+      "A claim's score can change over time even when no new posts arrive, because older posts eventually fall outside the scoring window. Without periodic rescoring, the Alert chart would show the same score every hour even though the underlying score has changed.",
     rescoreAction: "Rescore claims",
     rescoreDone: "claims rescored.",
     sampleTitle: "Generate sample data",
     sampleDesc:
-      "Populates the databank with fabricated but realistic content, run through the same pipeline real crawled content would be. Until a live crawler exists this is the only way content enters the system.",
+      "Populates the databank with simulated content processed through the same pipeline as live crawled content.",
     sampleCount: "How many items (1–50)",
     sampleTopicHint: "Topic hint (optional)",
     sampleTopicHintPlaceholder: "e.g. road pricing",
@@ -273,11 +265,11 @@ export const strings = {
     sampleDoneNoCluster: "content items generated. Nothing was clustered.",
     clusterTitle: "Force a clustering pass",
     clusterDesc:
-      "Groups content the AI service has ingested but not yet turned into claims. Normally unnecessary — ingestion triggers clustering on its own.",
+      "Groups content the AI service has ingested but not yet turned into claims.",
     clusterAction: "Cluster now",
     reconcileTitle: "Reconcile orphaned rows",
     reconcileDesc:
-      "Clears reviews, watchlist entries and snapshots pointing at AI-side claims that no longer exist, and re-queues policies whose AI record is gone. Needed after a reseed on the AI side.",
+      "Clears reviews, watchlist entries and snapshots pointing at AI-side claims that no longer exist.",
     reconcileDryRun: "Preview (dry run)",
     reconcileApply: "Apply reconciliation",
     reconcileIrreversible:
@@ -362,12 +354,12 @@ export const strings = {
     cityUnsetHint:
       "Set the monitored city on Admin Settings to scope this page.",
 
-    ratioTitle: "Claims above the alert threshold",
+    ratioTitle: "Claims on Watchlist",
     ratioSubtitle:
-      "Every existing claim, whatever its review status. An unscored claim counts as below — a claim is never escalated on missing data.",
-    ratioAbove: "Over threshold",
-    ratioBelow: "Under threshold",
-    ratioTotal: "existing claims",
+      "Every existing claim, whatever its review status. An unscored claim counts as safe — a claim is never escalated on missing data.",
+    ratioAbove: "On Alert",
+    ratioBelow: "Safe",
+    ratioTotal: "identified claims",
     ratioEmpty: "No existing claims have been captured yet.",
     ratioThreshold: "Threshold",
 
@@ -390,21 +382,21 @@ export const strings = {
     csiBcsHint: "Positive minus negative conversation, rescaled to 0–100.",
     csiRiskLoad: "Risk load",
     csiRiskLoadHint:
-      "Score-weighted volume of claims at or above the risk cutoff. Higher is worse, which is why the index inverts it.",
+      "Score-weighted volume of claims at or above the alert cutoff threshold. Higher is worse, which is why the index inverts it.",
     csiMomentum: "vs. 24h earlier",
     csiVolume: "Conversation volume",
     csiVolumePositive: "Positive",
     csiVolumeNegative: "Negative",
     csiVolumeNeutral: "Neutral",
     csiWindow: "Window",
-    csiRiskCutoff: "Risk cutoff",
+    csiRiskCutoff: "Alert cutoff threshold",
 
     topicsTitle: "Hot topics",
     topicsSubtitle:
       "One box per existing-claim topic, sized by above-threshold count and average score together. Sizes compare topics with each other right now, not with last week.",
     topicsEmpty: "No existing-claim topics to map yet.",
     topicsClaims: "claims",
-    topicsAbove: "above threshold",
+    topicsAbove: "On Alert",
     topicsAverage: "Average score",
     topicsWeight: "Box weight",
     topicModalTitle: "Topic detail",
@@ -423,7 +415,7 @@ export const strings = {
     colRank: "#",
     colPolicy: "Public policy",
     colClaims: "Claims",
-    colAbove: "Over threshold",
+    colAbove: "On Alert",
     colAverage: "Avg. score",
     colScore: "Hotness",
     policyAiOnly: "Not in the Policy & Project Bank",
@@ -444,7 +436,7 @@ export const strings = {
   networks: {
     pageTitle: "Coordinated-Network Detector",
     subtitle:
-      "Clusters of accounts that behaved as one unit while amplifying a tracked claim. Behaviour only — never the stance, sentiment or viewpoint of the content.",
+      "Uses artificial intelligence and graph theory to detect groups of bots that may be working together to rapidly spread climate disinformation across social media in a city.",
     search: "Search label, claim or member handle…",
     showLowConfidence: "Show low-confidence networks",
     lowConfidenceHint:
@@ -517,6 +509,8 @@ export const strings = {
       "Layout coordinates come from the stored snapshot, so this figure and the PDF render identically.",
     graphMember: "Cluster member",
     graphComparison: "Unclustered account on the same claim",
+    graphPlainNote:
+      "A genuine public conversation branches outward — people reply to strangers and get pulled into other threads. A tight, mostly self-contained cluster with few links to the surrounding accounts is the shape this figure is showing.",
     graphAllowlisted: "Declared coordination",
     graphEmpty: "No graph snapshot was stored for this network.",
     graphReduced: "Reduced to k-core",
@@ -528,7 +522,7 @@ export const strings = {
     timelineEmpty: "No timeline was captured for this network.",
     contentTitle: "Representative content",
     contentNote:
-      "Rendered from the evidence snapshot rather than re-fetched, so a post deleted since capture is still shown, marked.",
+      "Posts are shown using the evidence captured when the coordinated activity was detected. The system does not re-fetch or update the posts afterward. If a post has since been deleted, it remains visible in the evidence record but is clearly marked as no longer publicly available.",
     contentEmpty: "No representative content was captured for this network.",
     duplicateGroup: "Duplicate group",
     variants: "variants",
@@ -573,7 +567,7 @@ export const strings = {
     generateReport: "Generate report",
     generateReportTitle: "Generate a network report",
     reportType: "Report type",
-    reportTypePlatform: "Platform referral",
+    reportTypePlatform: "Platform Referral",
     reportTypePlatformHint:
       "Behavioural sections and the account annex, no internal commentary. The annex is mandatory here — a referral without the account list is not actionable.",
     reportTypeInternal: "Internal briefing",
@@ -635,7 +629,7 @@ export const strings = {
     dismissedNoteTitle: "Assessed as organic",
     signalProfile: "Signal profile",
     signalProfileNote:
-      "Each family is scored 0–100 and measured independently. What each one measures, the counts behind it, and its weight in the composite are set out in the report.",
+      "A signal is a measurable behavioural pattern that helps identify whether social media accounts may be acting in a coordinated way. Each signal family is scored independently on a 0–100 scale. The underlying counts and the weight each signal contributes to the overall score are defined in the report.",
     relevanceHeading: "Is this cluster actually about our claim?",
     shapeHeading: "Shape of the cluster",
     postsHeading: "The posts",
@@ -657,7 +651,7 @@ export const strings = {
     generatedReports: "Generated reports",
   },
   networkReport: {
-    org: "Climate Action & Narrative Validation System",
+    org: "Climate Information Immune System",
     title: "Report on coordinated posting behaviour",
     previewTitle: "Report preview",
     previewNote:
@@ -776,7 +770,7 @@ export const strings = {
   allowlist: {
     title: "Declared-coordination allowlist",
     description:
-      "Accounts the team has declared as legitimately coordinating. Seed this during onboarding with the city's known civil-society partners — before the first detection run, not after the first false positive.",
+      "Ensure the city's known civil-society partners are within the allowlist so the program does not flag official channels that are coordinating as a false positive.",
     search: "Search handles…",
     add: "Add account",
     addTitle: "Add an account to the allowlist",
@@ -808,7 +802,7 @@ export const strings = {
     other: "Other",
     phrasesTitle: "Common-phrase exclusions",
     phrasesDescription:
-      "Slogans and civic boilerplate excluded from duplication scoring, so a shared campaign hashtag is not read as content duplication.",
+      "Exclude common phrases (e.g. slogans, civic boilerplate) so a shared campaign hashtag is not read as content duplication.",
     phrase: "Phrase",
     phraseNotes: "Notes",
     addPhrase: "Add phrase",
@@ -825,7 +819,7 @@ export const strings = {
     noChanges: "No parameters have been changed.",
     weightsSum: "Signal fusion weights",
     weightsSumHint:
-      "The five weights must sum to 1.00 — a composite built from weights summing to 0.9 is not on the 0–100 scale it claims to be on.",
+      "The five signal weights must sum to 1.00 to ensure the composite score remains on the intended 0–100 scale.",
     weightsSumCurrent: "Current sum",
     cadenceHint:
       "Consecutive windows must overlap by 50%, so the cadence may not exceed half the window. Otherwise behaviour straddling a boundary is split across two runs and missed by both.",
@@ -855,13 +849,12 @@ export const strings = {
     runTruncated: "Truncated",
     offtopicTitle: "Off-topic clusters",
     offtopicDescription:
-      "Genuinely coordinated clusters that failed the claim-relevance gate — spam rings, engagement farms, unrelated amplification. They are never surfaced in F5 and never exported; a rising rate means the gate needs recalibration.",
+      "Coordinated clusters that failed the claim-relevance gate can be screened below to see if the detection parameters need recalibration.",
     offtopicEmpty: "No cluster has been rejected by the relevance gate.",
     offtopicFailedTest: "Failed test",
     offtopicRate: "Off-topic rate",
     dismissalsTitle: "False-positive analysis",
-    dismissalsDescription:
-      "Which signals over-trigger. These endpoints report; an admin decides. Automatic weight adjustment risks silent drift in a system whose defensibility rests on stated parameters.",
+    dismissalsDescription: "The analysis below reports posts that signal over-triggers.",
     precision: "Precision",
     precisionTarget: "target",
     precisionMet: "Meets target",

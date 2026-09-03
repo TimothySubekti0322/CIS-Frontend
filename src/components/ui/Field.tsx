@@ -29,7 +29,7 @@ export const Field = forwardRef<HTMLInputElement, FieldProps>(
           {...props}
         />
         {hint && !error && (
-          <p className="text-xs text-regal-navy/60">{hint}</p>
+          <p className="mt-4 text-xs text-regal-navy/60">{hint}</p>
         )}
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>

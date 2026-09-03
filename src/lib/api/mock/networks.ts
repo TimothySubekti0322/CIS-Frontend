@@ -62,7 +62,7 @@ export const RUN_VELOCITY = "e0000000-0000-0000-0000-000000000002";
 export const RUN_TRUNCATED = "e0000000-0000-0000-0000-000000000003";
 
 const DISCLAIMER =
-  "This report documents measurable coordinated behaviour by a set of accounts within a defined time window. It does not establish that any individual account is automated, inauthentic, or malicious, and it makes no claim about who operates these accounts or why. Coordination is not by itself evidence of wrongdoing — civic campaigns, newsrooms and government bodies coordinate openly and legitimately. Human assessment is required before any action is taken.";
+  "This report identifies statistical patterns in publicly available account behaviour, including posting times, content duplication, and content provenance. These patterns do not prove that an account is automated, inauthentic, or acting in bad faith. They also do not reveal an account holder's identity, affiliation, or intent. Coordinated behaviour can have legitimate explanations, such as civic campaigns, news syndication, or community mobilisation. Findings are indicators, not conclusions, and require human review before action is taken.";
 
 const SIGNAL_METHODS: Record<string, { name: string; method: string }> = {
   SY: {
@@ -836,7 +836,7 @@ export function contentFor(network: MockNetwork): RepresentativeContentDto {
         availability: "Publicly available",
       },
     ],
-    note: "Rendered from the evidence snapshot captured at detection time. Posts removed since capture remain listed and are marked; the snapshot is the evidence.",
+    note: "Posts are shown using the evidence captured when the coordinated activity was detected. The system does not re-fetch or update the posts afterward. If a post has since been deleted, it remains visible in the evidence record but is clearly marked as no longer publicly available.",
   };
 }
 

@@ -29,7 +29,9 @@ export const TextArea = forwardRef<HTMLTextAreaElement, TextAreaProps>(
           aria-invalid={Boolean(error)}
           {...props}
         />
-        {hint && !error && <p className="text-xs text-regal-navy/60">{hint}</p>}
+        {hint && !error && (
+          <p className="mt-4 text-xs text-regal-navy/60">{hint}</p>
+        )}
         {error && <p className="text-xs text-danger">{error}</p>}
       </div>
     );

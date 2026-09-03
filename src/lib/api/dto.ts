@@ -239,6 +239,10 @@ export interface ClaimRepositorySectionDto {
   claim_type?: string;
   sorted_by?: string;
   total_in_pool?: number;
+  /** Pagination window for this section (PAGINATION_FOR_FE.md §2). */
+  page?: number;
+  limit?: number;
+  total_pages?: number;
   claims?: ClaimDto[] | null;
 }
 

@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { ShieldHalf, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { strings } from "@/lib/constants/strings";
 import { NAV_ITEMS, type NavBadge } from "@/lib/constants/nav";
@@ -39,19 +39,20 @@ export function Sidebar({
       )}
       <aside
         className={cn(
-          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-regal-navy text-white transition-transform lg:static lg:translate-x-0",
+          "fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-regal-navy text-white transition-transform",
+          "lg:sticky lg:top-0 lg:h-dvh lg:translate-x-0 lg:self-start",
           mobileOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
         <div className="flex items-center justify-between gap-2 px-4 py-4">
-          <Link href={HOME_HREF} className="flex items-center gap-2" onClick={onCloseMobile}>
-            <ShieldHalf className="size-6 text-mint-leaf" aria-hidden />
-            <span className="font-bold leading-tight">
-              {strings.app.shortName}
-              <span className="block text-[11px] font-normal text-white/60">
-                {strings.app.name}
-              </span>
-            </span>
+          <Link href={HOME_HREF} className="flex items-center" onClick={onCloseMobile}>
+            {/* The logo carries the wordmark, so no accompanying text. */}
+            {/* eslint-disable-next-line @next/next/no-img-element -- static SVG mark, no optimisation benefit */}
+            <img
+              src="/brand/ciis_logo_2.svg"
+              alt="Climate Immune System"
+              className="h-10 w-auto"
+            />
           </Link>
           <IconButton
             label="Close menu"
@@ -62,7 +63,7 @@ export function Sidebar({
           </IconButton>
         </div>
 
-        <nav className="flex-1 space-y-1 px-2 py-2">
+        <nav className="flex-1 space-y-1 overflow-y-auto px-2 py-2">
           {NAV_ITEMS.map((item) => {
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);

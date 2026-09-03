@@ -267,8 +267,12 @@ export interface ClaimRepositorySection {
   section: string;
   claimType: ClaimType;
   sortedBy: string;
-  /** Size of the pool behind "See all" — the section itself caps at 10. */
+  /** Total claims matching the current filters, ignoring paging. */
   totalInPool: number;
+  /** Pagination window for this section (PAGINATION_FOR_FE.md §2). */
+  page: number;
+  limit: number;
+  totalPages: number;
   claims: ClaimSummary[];
 }
 
@@ -305,6 +309,10 @@ export interface ClaimRepositoryParams {
    * single `q`, so the F1 page has one search box rather than one per section.
    */
   q?: string;
+  /** 1-based page for the S1 (Existing) section. Page size is fixed at 10. */
+  existingPage?: number;
+  /** 1-based page for the S2 (Non-Existing) section. Page size is fixed at 10. */
+  nonExistingPage?: number;
 }
 
 export interface ClaimListParams extends PageParams {
