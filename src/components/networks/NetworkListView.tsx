@@ -90,7 +90,7 @@ export function NetworkListView() {
         aria-label={strings.networks.reviewStatus}
       />
 
-      <div className="flex flex-wrap items-center gap-3">
+      <div className="flex flex-wrap items-end gap-3">
         <SearchBar
           value={search}
           onChange={withReset(setSearch)}
