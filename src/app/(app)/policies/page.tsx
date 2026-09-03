@@ -4,7 +4,6 @@ import { useState } from "react";
 import { Plus } from "lucide-react";
 import { strings } from "@/lib/constants/strings";
 import { Button } from "@/components/ui/Button";
-import { SectionHeader } from "@/components/ui/SectionHeader";
 import { PolicyList } from "@/components/policies/PolicyList";
 import { AddPolicyModal } from "@/components/policies/AddPolicyModal";
 
@@ -22,12 +21,14 @@ export default function PoliciesPage() {
         </Button>
       </div>
 
-      <SectionHeader
-        title={strings.policies.listTitle}
-        seeAllHref="/policies/all"
-      />
+      <div>
+        <h2 className="text-h2">{strings.policies.listTitle}</h2>
+        <p className="mt-1 max-w-3xl text-sm text-regal-navy/60">
+          {strings.policies.listBody}
+        </p>
+      </div>
 
-      <PolicyList limit={12} />
+      <PolicyList limit={10} paginated />
 
       <AddPolicyModal open={addOpen} onClose={() => setAddOpen(false)} />
     </div>

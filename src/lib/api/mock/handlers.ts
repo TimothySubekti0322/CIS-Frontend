@@ -400,6 +400,28 @@ const claimRepository: MockHandler = async (ctx) => {
     (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
   );
 
+  // Each section paginates independently at a caller-set page size
+  // (PAGINATION_FOR_FE.md §2).
+  const pageWindow = (rows: MockClaim[], pageParam: string, limitParam: string) => {
+    const limit = Math.min(
+      Math.max(Math.trunc(qsNum(ctx, limitParam, 10)), 1),
+      200,
+    );
+    const totalPages = Math.max(Math.ceil(rows.length / limit), 1);
+    const page = Math.min(
+      Math.max(Math.trunc(qsNum(ctx, pageParam, 1)), 1),
+      totalPages,
+    );
+    const start = (page - 1) * limit;
+    return {
+      total_in_pool: rows.length,
+      page,
+      limit,
+      total_pages: totalPages,
+      claims: rows.slice(start, start + limit).map((c) => summaryOf(s, c)),
+    };
+  };
+
   return ok(
     {
       last_fetched_at: getSetting(s, CLAIMS_LAST_FETCHED_KEY)?.value ?? null,
@@ -409,15 +431,13 @@ const claimRepository: MockHandler = async (ctx) => {
         section: "S1",
         claim_type: "existing",
         sorted_by: "final_claim_score DESC",
-        total_in_pool: existing.length,
-        claims: existing.slice(0, 10).map((c) => summaryOf(s, c)),
+        ...pageWindow(existing, "existing_page", "existing_limit"),
       },
       non_existing: {
         section: "S2",
         claim_type: "non_existing",
         sorted_by: "created_at DESC",
-        total_in_pool: nonExisting.length,
-        claims: nonExisting.slice(0, 10).map((c) => summaryOf(s, c)),
+        ...pageWindow(nonExisting, "non_existing_page", "non_existing_limit"),
       },
     },
     "claim repository",

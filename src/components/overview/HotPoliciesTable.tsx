@@ -17,7 +17,11 @@ import { StatusPill } from "@/components/ui/StatusPill";
  * is a link: sending a reader to an F2 detail page that does not exist is
  * worse than showing the name plainly and saying why it is not clickable.
  */
+/** O3 shows at most five policies (PAGINATION_FOR_FE.md §1). */
+const MAX_ROWS = 5;
+
 export function HotPoliciesTable({ policies }: { policies: OverviewPolicy[] }) {
+  const rows = policies.slice(0, MAX_ROWS);
   return (
     <section className="rounded-xl border border-pale-sky bg-white p-5">
       <div className="flex items-center gap-1.5">
@@ -25,7 +29,7 @@ export function HotPoliciesTable({ policies }: { policies: OverviewPolicy[] }) {
         <InfoTooltip content={strings.overview.policiesSubtitle} align="start" />
       </div>
 
-      {policies.length === 0 ? (
+      {rows.length === 0 ? (
         <EmptyState
           title={strings.overview.policiesEmpty}
           className="mt-4 border-0 bg-transparent"
@@ -44,7 +48,7 @@ export function HotPoliciesTable({ policies }: { policies: OverviewPolicy[] }) {
               </tr>
             </thead>
             <tbody>
-              {policies.map((row) => (
+              {rows.map((row) => (
                 <tr
                   key={`${row.policy.id}-${row.rank}`}
                   className="border-b border-pale-sky last:border-0"

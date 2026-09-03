@@ -206,22 +206,22 @@ function ClusterHeader({ network }: { network: NetworkDetail }) {
           <h1 className="mt-1.5 text-xl leading-tight font-bold sm:text-2xl">
             {network.label}
           </h1>
-          <p className="mt-1.5 max-w-[68ch] text-xs leading-relaxed text-white/70">
-            <span className="font-mono">{network.id}</span>
-            {claim && (
-              <>
-                {" · "}
-                {strings.networks.amplifying} “{claim.claimStatement}”
-              </>
-            )}
-            {network.linkedPolicies.length > 0 && (
-              <>
-                {" · "}
-                {strings.networks.policyPrefix}:{" "}
-                {network.linkedPolicies.map((p) => p.name).join(", ")}
-              </>
-            )}
-          </p>
+          {(claim || network.linkedPolicies.length > 0) && (
+            <p className="mt-1.5 max-w-[68ch] text-xs leading-relaxed text-white/70">
+              {claim && (
+                <>
+                  {strings.networks.amplifying} “{claim.claimStatement}”
+                </>
+              )}
+              {network.linkedPolicies.length > 0 && (
+                <>
+                  {claim && " · "}
+                  {strings.networks.policyPrefix}:{" "}
+                  {network.linkedPolicies.map((p) => p.name).join(", ")}
+                </>
+              )}
+            </p>
+          )}
 
           <div className="mt-3 flex flex-wrap items-center gap-1.5">
             {/* A recurrence inherits history but not relevance, so the count

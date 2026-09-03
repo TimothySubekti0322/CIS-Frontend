@@ -87,12 +87,6 @@ export function NetworkReviewBar({ network }: { network: NetworkDetail }) {
         {network.review?.reviewedAt && (
           <span className="ml-auto text-xs text-regal-navy/50">
             {formatDateTime(network.review.reviewedAt)}
-            {network.review.reviewedBy && (
-              <>
-                {" "}
-                · {strings.claims.reviewBy} {network.review.reviewedBy}
-              </>
-            )}
           </span>
         )}
       </div>

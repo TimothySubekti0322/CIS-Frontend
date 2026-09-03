@@ -67,19 +67,27 @@ export function SegmentedDebunkActivity({
         </span>
       </div>
 
-      <ol className="space-y-3">
+      {/* A responsive grid so the segment cards fill the column width instead
+          of leaving a wide gutter on the right. */}
+      <ol
+        className={
+          segments.length > 1
+            ? "grid gap-3 md:grid-cols-2"
+            : "space-y-3"
+        }
+      >
         {segments.map((segment, index) => (
           <li
             key={`${segment.segment}-${index}`}
             /* Its own bordered card, so no two segments can read as one
                continuous message. */
-            className="rounded-xl border border-pale-sky bg-white p-4"
+            className="flex flex-col rounded-xl border border-pale-sky bg-white p-4"
           >
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div className="min-w-0">
                 <h4 className="font-bold text-regal-navy">{segment.segment}</h4>
                 {segment.rationale && (
-                  <p className="mt-0.5 max-w-xl text-xs text-regal-navy/60">
+                  <p className="mt-0.5 text-xs text-regal-navy/60">
                     {segment.rationale}
                   </p>
                 )}

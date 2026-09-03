@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth/AuthContext";
 import { NAV_ITEMS } from "@/lib/constants/nav";
 import { Sidebar } from "./Sidebar";
 import { TopBar } from "./TopBar";
+import { PageBanner } from "./PageBanner";
 
 function usePageTitle(): string {
   const pathname = usePathname();
@@ -42,8 +43,11 @@ export function AppShell({ children }: { children: ReactNode }) {
       />
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar title={title} onOpenMobileNav={() => setMobileNavOpen(true)} />
-        <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6 sm:px-6 lg:px-8">
-          {children}
+        <main className="flex-1">
+          <PageBanner />
+          <div className="mx-auto w-full max-w-[1400px] px-4 py-6 sm:px-6 lg:px-8">
+            {children}
+          </div>
         </main>
       </div>
     </div>

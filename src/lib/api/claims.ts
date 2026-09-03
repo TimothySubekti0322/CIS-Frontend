@@ -36,13 +36,16 @@ import {
   mapTopAccount,
 } from "./mappers";
 
+/** Fixed page size for both Claim Repository sections (PAGINATION_FOR_FE.md §2). */
+export const REPOSITORY_PAGE_SIZE = 10;
+
 export const claimsApi = {
   /**
    * `GET /claims/repository` — the whole F1 page in one call.
    *
    * Both sections always return regardless of the status tab: the filter
    * narrows claims *within* a section, it never hides one outright. Each
-   * section caps at 10 claims with `totalInPool` behind "See all".
+   * section paginates independently at 10 claims per page.
    *
    * `q` is a single value applied to both sections — there is no per-section
    * search parameter, so the page has one search box.
@@ -55,6 +58,10 @@ export const claimsApi = {
           status: params.status ?? "all",
           topic_ids: params.topicIds,
           q: params.q,
+          existing_page: params.existingPage,
+          existing_limit: REPOSITORY_PAGE_SIZE,
+          non_existing_page: params.nonExistingPage,
+          non_existing_limit: REPOSITORY_PAGE_SIZE,
         },
       },
     );

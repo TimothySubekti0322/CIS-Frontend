@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Loader2 } from "lucide-react";
 import type { Granularity } from "@/types/claim";
 import { strings } from "@/lib/constants/strings";
+import { useDebouncedValue } from "@/lib/hooks/useDebouncedValue";
 import {
   useAcknowledgeAlerts,
   useAlertChart,
@@ -17,7 +18,7 @@ import { ScoreLineChart } from "@/components/alerts/ScoreLineChart";
 import { ChartLegend } from "@/components/alerts/ChartLegend";
 import { WatchlistTable } from "@/components/alerts/WatchlistTable";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 10;
 
 /**
  * F3 — Alert Page. Existing/Generic claims only; there is deliberately no
@@ -32,11 +33,15 @@ export default function AlertsPage() {
   const [page, setPage] = useState(1);
   const [granularity, setGranularity] = useState<Granularity>("week");
 
-  useEffect(() => setPage(1), [search]);
+  // The search box drives a server call, so hold off until typing pauses for
+  // ~1s, then load once. `search` still updates the input instantly.
+  const q = useDebouncedValue(search.trim(), 1000);
+
+  useEffect(() => setPage(1), [q]);
 
   const listParams = useMemo(
-    () => ({ q: search.trim() || undefined, page, limit: PAGE_SIZE }),
-    [search, page],
+    () => ({ q: q || undefined, page, limit: PAGE_SIZE }),
+    [q, page],
   );
 
   const watchlist = useWatchlist(listParams);
@@ -66,7 +71,10 @@ export default function AlertsPage() {
 
   // Only an unfiltered, first-page empty result means the watchlist is empty.
   const watchlistEmpty =
-    !search.trim() && page === 1 && watchlist.data?.meta.total === 0;
+    !q && page === 1 && watchlist.data?.meta.total === 0;
+
+  // A refetch triggered by search/paging while rows are already on screen.
+  const tableRefetching = watchlist.isFetching && !watchlist.isPending;
 
   if (watchlist.isPending) {
     return (
@@ -127,23 +135,33 @@ export default function AlertsPage() {
           <div className="space-y-3">
             <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <h2 className="text-h2">{strings.alerts.watchlistTitle}</h2>
-              <SearchBar
-                value={search}
-                onChange={setSearch}
-                placeholder={strings.alerts.search}
-                className="sm:w-72"
-              />
+              <div className="flex items-center gap-2 sm:w-72">
+                <SearchBar
+                  value={search}
+                  onChange={setSearch}
+                  placeholder={strings.alerts.search}
+                  className="flex-1"
+                />
+                {tableRefetching && (
+                  <Loader2
+                    className="size-4 shrink-0 animate-spin text-sea-green"
+                    aria-label={strings.common.loading}
+                  />
+                )}
+              </div>
             </div>
 
             {items.length === 0 ? (
               <EmptyState title={strings.common.noResults} />
             ) : (
-              <>
+              <div
+                className={tableRefetching ? "opacity-60 transition-opacity" : undefined}
+              >
                 <WatchlistTable items={items} />
                 {watchlist.data && (
                   <Pagination meta={watchlist.data.meta} onPageChange={setPage} />
                 )}
-              </>
+              </div>
             )}
           </div>
         </>

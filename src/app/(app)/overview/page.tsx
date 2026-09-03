@@ -30,7 +30,8 @@ import { HotPoliciesTable } from "@/components/overview/HotPoliciesTable";
  */
 export default function OverviewPage() {
   const [openTopicId, setOpenTopicId] = useState<string | null>(null);
-  const { data, isPending, isError } = useOverview();
+  // O3 "Top Policies" is capped at 5 rows (PAGINATION_FOR_FE.md §1).
+  const { data, isPending, isError } = useOverview({ limit: 5 });
 
   if (isPending) return <OverviewSkeleton />;
 

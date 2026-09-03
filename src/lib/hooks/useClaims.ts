@@ -1,6 +1,11 @@
 "use client";
 
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import {
+  keepPreviousData,
+  useMutation,
+  useQuery,
+  useQueryClient,
+} from "@tanstack/react-query";
 import type {
   ClaimListParams,
   ClaimRepositoryParams,
@@ -17,6 +22,9 @@ export function useClaimRepository(params?: ClaimRepositoryParams) {
   return useQuery({
     queryKey: queryKeys.claims.repository(params),
     queryFn: () => claimsApi.repository(params),
+    // Paging one section refetches the whole page — keep the old rows visible
+    // so the other section does not flash back to skeletons.
+    placeholderData: keepPreviousData,
   });
 }
 

@@ -54,6 +54,9 @@
    ========================================================================== */
 html {
   color-scheme: light;
+  /* Nudge every rem-based size up ~1px so text (and the spacing around it)
+     reads a touch larger app-wide without any per-component change. */
+  font-size: 106.25%;
 }
 
 body {

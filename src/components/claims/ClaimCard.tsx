@@ -40,7 +40,7 @@ export function ClaimCard({ claim }: ClaimCardProps) {
       }}
       className="flex h-full flex-col gap-3"
     >
-      <div className="flex items-start justify-between gap-2">
+      <div className="flex items-center justify-between gap-2">
         <StatusPill tone={isExisting ? "info" : "neutral"}>
           {isExisting ? strings.claims.genericTag : strings.claims.syntheticTag}
         </StatusPill>

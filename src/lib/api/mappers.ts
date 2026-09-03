@@ -438,11 +438,16 @@ function mapRepositorySection(
   fallbackSection: string,
 ): ClaimRepositorySection {
   const claims = (dto?.claims ?? []).map(mapClaimSummary);
+  const totalInPool = count(dto?.total_in_pool, claims.length);
+  const limit = count(dto?.limit, 10) || 10;
   return {
     section: str(dto?.section) ?? fallbackSection,
     claimType: dto?.claim_type ? mapClaimType(dto.claim_type) : fallbackType,
     sortedBy: str(dto?.sorted_by) ?? "",
-    totalInPool: count(dto?.total_in_pool, claims.length),
+    totalInPool,
+    page: count(dto?.page, 1) || 1,
+    limit,
+    totalPages: count(dto?.total_pages, Math.max(Math.ceil(totalInPool / limit), 1)),
     claims,
   };
 }

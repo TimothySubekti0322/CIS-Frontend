@@ -111,10 +111,8 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="space-y-6 lg:col-span-2">
-          {/* v1.5: the Harm edit lives inside this panel — there is no separate
-              "Harm Assessment" section any more (US12/US23). */}
           {claim.scoreBreakdown && (
-            <ScoreBreakdownPanel score={claim.scoreBreakdown} claimId={claim.id} />
+            <ScoreBreakdownPanel score={claim.scoreBreakdown} />
           )}
 
           <ScoreHistoryCard claimId={claim.id} />

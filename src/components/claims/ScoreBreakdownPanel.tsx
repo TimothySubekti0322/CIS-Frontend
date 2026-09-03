@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
-import { Pencil } from "lucide-react";
+import type { ReactNode } from "react";
 import type { HarmEdit, ScoreBreakdown } from "@/types/claim";
 import { strings } from "@/lib/constants/strings";
 import { cn, formatDateTime } from "@/lib/utils";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
-import { HarmRowEditor } from "./HarmRowEditor";
 
 /**
  * The full transparent score breakdown. Every component the backend sends is
@@ -20,25 +18,20 @@ import { HarmRowEditor } from "./HarmRowEditor";
  * formula sentence: it is generated from the same constants as the arithmetic,
  * so the explanation cannot drift away from the number it explains.
  *
- * v1.5 also folds the Harm edit into this panel. There is no separate "Harm
- * Assessment" section any more — the Harm row is the one place the four
- * sub-scores can be corrected, and R, V, F and EI stay AI-only.
+ * The Harm sub-scores are displayed read-only: R, V, F, H and EI are all
+ * AI-owned here, and any prior human override still shows through the audit
+ * trail below.
  */
 export function ScoreBreakdownPanel({
   score,
-  claimId,
 }: {
   score: ScoreBreakdown;
-  /** Enables the Harm row's edit control. Omit for a read-only rendering. */
-  claimId?: string;
 }) {
-  const [editingHarm, setEditingHarm] = useState(false);
   const weights = score.weights;
   const harm = score.harmBreakdown;
   // Presence of the audit trail — not `humanConfirmed`, which an empty
   // confirmation also sets — is what marks the value as human-overridden.
   const harmEdit = harm?.edit ?? null;
-  const canEditHarm = Boolean(claimId && harm);
 
   return (
     <div className="space-y-4 rounded-xl border border-pale-sky bg-white p-4">
@@ -75,36 +68,12 @@ export function ScoreBreakdownPanel({
           weight={weights?.falseness}
         />
 
-        {/* The Harm row carries the edit control (US23, v1.5). */}
-        <div>
-          <ScoreRow
-            label="Harm Severity (H)"
-            value={score.harm}
-            weight={weights?.harm}
-            edited={Boolean(harmEdit)}
-            action={
-              canEditHarm && !editingHarm ? (
-                <button
-                  type="button"
-                  onClick={() => setEditingHarm(true)}
-                  aria-label={strings.claims.harmRowEditLabel}
-                  className="inline-flex cursor-pointer items-center gap-1 rounded-md px-1.5 py-0.5 text-xs font-bold text-sea-green transition-colors hover:bg-sea-green-soft"
-                >
-                  <Pencil className="size-3" aria-hidden />
-                  {strings.claims.harmRowEdit}
-                </button>
-              ) : null
-            }
-          />
-
-          {claimId && harm && editingHarm && (
-            <HarmRowEditor
-              claimId={claimId}
-              harm={harm}
-              onDone={() => setEditingHarm(false)}
-            />
-          )}
-        </div>
+        <ScoreRow
+          label="Harm Severity (H)"
+          value={score.harm}
+          weight={weights?.harm}
+          edited={Boolean(harmEdit)}
+        />
 
         <ScoreRow
           label={strings.claims.eiSupporting}
@@ -136,7 +105,7 @@ export function ScoreBreakdownPanel({
         </div>
       </div>
 
-      {harm && !editingHarm && (
+      {harm && (
         <div className="border-t border-pale-sky pt-3">
           <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
             <p className="text-xs font-bold uppercase tracking-wide text-regal-navy/50">
