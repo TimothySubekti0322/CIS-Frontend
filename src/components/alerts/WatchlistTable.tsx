@@ -66,7 +66,9 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
             <th className="px-4 py-3 font-bold">Score</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colCreatedDate}</th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colAdded}</th>
-            <th className="px-4 py-3 font-bold">{strings.alerts.colStatus}</th>
+            <th className="px-4 py-3 text-center font-bold">
+              {strings.alerts.colStatus}
+            </th>
             <th className="px-4 py-3 font-bold">{strings.alerts.colLastMoved}</th>
             <th className="px-4 py-3 font-bold">
               <span className="sr-only">{strings.alerts.colRemove}</span>
@@ -126,8 +128,8 @@ export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
               <td className="px-4 py-3 text-regal-navy/70">
                 {formatDateTime(item.addedAt)}
               </td>
-              <td className="px-4 py-3">
-                <div className="flex flex-wrap items-center gap-1.5">
+              <td className="px-4 py-3 text-center">
+                <div className="flex flex-wrap items-center justify-center gap-1.5">
                   {item.thresholdStatus === "over_threshold" ? (
                     <StatusPill tone="danger">{strings.alerts.overThreshold}</StatusPill>
                   ) : (
