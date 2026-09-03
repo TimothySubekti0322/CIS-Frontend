@@ -133,9 +133,12 @@ export default function AlertsPage() {
           </div>
 
           <div className="space-y-3">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <h2 className="text-h2">{strings.alerts.watchlistTitle}</h2>
-              <div className="flex items-center gap-2 sm:w-72">
+            <div className="grid grid-cols-1 gap-4 lg:grid-cols-3 lg:items-center">
+              <h2 className="text-h2 lg:col-span-2">
+                {strings.alerts.watchlistTitle}
+              </h2>
+              {/* Matches the [C2] Key box's width — same lg:grid-cols-3 track. */}
+              <div className="flex items-center gap-2">
                 <SearchBar
                   value={search}
                   onChange={setSearch}

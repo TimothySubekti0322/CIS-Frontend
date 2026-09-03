@@ -98,6 +98,9 @@ body {
 /* Thin scrollbars for horizontally scrollable tables (PRD §5.2) */
 .scroll-x {
   overflow-x: auto;
+  /* Setting only overflow-x makes the UA compute overflow-y as `auto` too
+     (CSS overflow spec), which can show a spurious vertical scrollbar. */
+  overflow-y: hidden;
   scrollbar-width: thin;
 }
 

@@ -205,7 +205,7 @@ const REGISTRY: MockParam[] = [
     unit: "policies",
     owner: "backend",
     prd_ref: "§11; US70",
-    description: "How many policies the Overview's O3 leaderboard lists.",
+    description: "How many policies the Overview's policy leaderboard lists.",
     note: 'The spec\'s section heading says "Top 10" and its detail says top 5. This setting is how that open question is answered without a redeploy.',
   },
   {
@@ -221,7 +221,7 @@ const REGISTRY: MockParam[] = [
     owner: "backend",
     prd_ref: "§11; US69",
     description:
-      "The window the O2 topic modal compares against the preceding one for its change figure.",
+      "The window the topic modal compares against the preceding one for its change figure.",
   },
   {
     key: "policy.upload_warn_size_mb",
@@ -282,7 +282,7 @@ const REGISTRY: MockParam[] = [
     managed_by: "PUT /api/v1/settings/city-timezone",
     prd_ref: "§10.8",
     description:
-      "IANA zone for the city-local half of every F5 report footer timestamp.",
+      "IANA zone for the city-local half of every network-detector report footer timestamp.",
     note: "Follows the monitored city automatically; set it directly only to override.",
   },
 

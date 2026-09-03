@@ -63,11 +63,6 @@ export function ParameterField({
         <label htmlFor={inputId} className="text-sm font-bold text-regal-navy">
           {param.label}
         </label>
-        {param.paramId && (
-          <span className="rounded bg-glaucous-soft px-1.5 py-0.5 font-mono text-[10px] text-glaucous-deep">
-            {param.paramId}
-          </span>
-        )}
         {param.description && (
           <InfoTooltip
             content={param.description}

@@ -232,7 +232,7 @@ export function DetectorSettingsForm() {
                     onChange={(e) =>
                       setDraft((prev) => ({ ...prev, [key]: e.target.value }))
                     }
-                    hint={
+                    tooltip={
                       range
                         ? `${range.min}–${range.max}${
                             range.unit ? ` ${range.unit}` : ""
