@@ -30,6 +30,20 @@ function boundsHint(param: ConfigParameter): string | null {
   return unit ? unit : null;
 }
 
+/** Description, bounds/default and caveat note, combined into one tooltip. */
+function tooltipContent(param: ConfigParameter): string | null {
+  const parts: string[] = [];
+  if (param.description) parts.push(param.description);
+  const bounds = boundsHint(param);
+  if (bounds) {
+    parts.push(
+      `${strings.parameters.range}: ${bounds} · ${strings.parameters.defaultIs} ${param.default}`,
+    );
+  }
+  if (param.note) parts.push(param.note);
+  return parts.length > 0 ? parts.join(" ") : null;
+}
+
 /**
  * One parameter's control.
  *
@@ -53,7 +67,7 @@ export function ParameterField({
   disabled,
 }: ParameterFieldProps) {
   const inputId = `param-${param.key}`;
-  const hint = boundsHint(param);
+  const tooltip = tooltipContent(param);
   const numeric = param.type === "number" || param.type === "integer";
   const editable = param.writable && !disabled;
 
@@ -63,12 +77,8 @@ export function ParameterField({
         <label htmlFor={inputId} className="text-sm font-bold text-regal-navy">
           {param.label}
         </label>
-        {param.description && (
-          <InfoTooltip
-            content={param.description}
-            label={param.label}
-            align="start"
-          />
+        {tooltip && (
+          <InfoTooltip content={tooltip} label={param.label} align="start" />
         )}
       </div>
 
@@ -130,15 +140,6 @@ export function ParameterField({
                 : strings.parameters.readOnly}
           </p>
         )}
-        {hint && (
-          <p className="text-xs text-regal-navy/60">
-            {strings.parameters.range}: {hint} · {strings.parameters.defaultIs}{" "}
-            <span className="tabular-nums">{param.default}</span>
-          </p>
-        )}
-        {/* The note carries the caveat the bounds cannot express — several of
-            them explain why a value has the ceiling it has. */}
-        {param.note && <p className="text-xs text-regal-navy/60">{param.note}</p>}
         {advisory && !error && (
           <p className="rounded border border-gold bg-gold-soft px-2 py-1 text-xs text-regal-navy">
             {advisory}

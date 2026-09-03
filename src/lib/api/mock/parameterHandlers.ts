@@ -801,7 +801,7 @@ const REGISTRY: MockParam[] = [
     prd_ref: "§6.6.5; US68",
     description:
       "Index value below which the gauge shows amber, and at or above which it shows green.",
-    note: "Must be greater than the risky ceiling. The spec names the three colours but gives no cut points; the defaults split the scale into equal thirds.",
+    note: "Must be greater than the risky ceiling. Colour bands aren't otherwise prescribed, so the defaults split the scale into equal thirds.",
   },
 
   /* --- Tier 2 — overview ranking --- */
@@ -833,7 +833,7 @@ const REGISTRY: MockParam[] = [
     sum_group: "treemap_weights",
     prd_ref: "§11; US69, US70",
     description: "Share driven by the average score of its claims.",
-    note: "US69 leaves this formula open and proposes an equal split; these two settings are that open question made adjustable.",
+    note: "The exact split between the two ranking weights is a judgment call; these two settings make it adjustable.",
   },
 
   /* --- Tier 2 — retention --- */
