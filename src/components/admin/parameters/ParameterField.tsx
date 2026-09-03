@@ -58,8 +58,8 @@ export function ParameterField({
   const editable = param.writable && !disabled;
 
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex flex-wrap items-center gap-1.5">
+    <div className="flex flex-col">
+      <div className="mb-1 flex flex-wrap items-center gap-1.5">
         <label htmlFor={inputId} className="text-sm font-bold text-regal-navy">
           {param.label}
         </label>
@@ -78,7 +78,7 @@ export function ParameterField({
       </div>
 
       {param.type === "boolean" ? (
-        <label className="flex h-10 items-center gap-2 text-sm text-regal-navy">
+        <label className="mb-4 flex h-10 items-center gap-2 text-sm text-regal-navy">
           <input
             id={inputId}
             type="checkbox"
@@ -90,7 +90,7 @@ export function ParameterField({
           {param.unit ?? ""}
         </label>
       ) : (
-        <div className="flex items-stretch">
+        <div className="mb-4 flex items-stretch">
           <input
             id={inputId}
             type={numeric ? "number" : "text"}
@@ -153,7 +153,7 @@ export function ParameterField({
       </div>
 
       {param.writable && (
-        <div className="min-h-5">
+        <div className="mt-1 min-h-5">
           {param.isSet ? (
             <button
               type="button"
