@@ -473,7 +473,7 @@ export const strings = {
       "This run's candidate set was capped, so recall is known to be incomplete and every network from it is held at Medium confidence.",
     cappedAtMedium: "Capped at Medium",
     cappedAtMediumHint:
-      "Two or more signal families were unavailable this run, so confidence is capped regardless of score (PRD 10.6.3 rule 4).",
+      "Two or more signal families were unavailable this run, so confidence is capped regardless of score.",
     detectionWindow: "Detection window",
     detectionRun: "Detection run",
     trigger: "Trigger",

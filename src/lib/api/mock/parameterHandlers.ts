@@ -206,7 +206,7 @@ const REGISTRY: MockParam[] = [
     owner: "backend",
     prd_ref: "§11; US70",
     description: "How many policies the Overview's O3 leaderboard lists.",
-    note: 'PRD US70\'s section heading says "Top 10" and its detail says top 5. This setting is how that open question is answered without a redeploy.',
+    note: 'The spec\'s section heading says "Top 10" and its detail says top 5. This setting is how that open question is answered without a redeploy.',
   },
   {
     key: "overview.mom_window_days",
@@ -425,7 +425,7 @@ const REGISTRY: MockParam[] = [
     prd_ref: "§6.2.4; US23",
     param_id: "AP-09",
     description: "Share carried by concrete interference with policy execution.",
-    note: "Hard ceiling of 0.25, enforced on save rather than merely recommended. This is PRD 6.2.4's bias guardrail: it stops the system being tuned until criticism of a government's own policy scores as harm.",
+    note: "Hard ceiling of 0.25, enforced on save rather than merely recommended. This is the bias guardrail that stops the system being tuned until criticism of a government's own policy scores as harm.",
   },
 
   /* --- Tier 2 — reach & velocity --- */
@@ -577,7 +577,7 @@ const REGISTRY: MockParam[] = [
     param_id: "AP-14",
     description:
       "The window over which supporting and opposing volume are compared to compute NPR.",
-    note: "PRD 6.4.3 recommends 24-48 hours.",
+    note: "Recommended 24-48 hours.",
   },
   {
     key: "scoring.discount_gamma",
@@ -593,7 +593,7 @@ const REGISTRY: MockParam[] = [
     param_id: "AP-15",
     description:
       "The largest share of a claim's score that organic pushback can remove.",
-    note: "At the default 0.5, even total pushback halves a score rather than erasing it — PRD 6.4.4's design intent that a contested claim is de-prioritised, never hidden.",
+    note: "At the default 0.5, even total pushback halves a score rather than erasing it — the design intent is that a contested claim is de-prioritised, never hidden.",
   },
   {
     key: "scoring.npr_reliability_minimum_posts",
@@ -739,7 +739,7 @@ const REGISTRY: MockParam[] = [
     owner: "backend",
     prd_ref: "§6.6.3",
     description: "The rolling average behind the headline gauge figure.",
-    note: "PRD 6.6.3 fixes this at 7 days to stop a single viral event swinging the index.",
+    note: "Fixed at 7 days to stop a single viral event swinging the index.",
   },
   {
     key: "csi.momentum_lag_hours",
@@ -755,7 +755,7 @@ const REGISTRY: MockParam[] = [
     prd_ref: "§6.6.3",
     description:
       "How far behind the headline window the comparison window sits, giving the direction arrow.",
-    note: "PRD 6.6.3 recommends 24-48 hours.",
+    note: "Recommended 24-48 hours.",
   },
   {
     key: "csi.minimum_volume",
@@ -801,7 +801,7 @@ const REGISTRY: MockParam[] = [
     prd_ref: "§6.6.5; US68",
     description:
       "Index value below which the gauge shows amber, and at or above which it shows green.",
-    note: "Must be greater than the risky ceiling. The PRD names the three colours but gives no cut points; the defaults split the scale into equal thirds.",
+    note: "Must be greater than the risky ceiling. The spec names the three colours but gives no cut points; the defaults split the scale into equal thirds.",
   },
 
   /* --- Tier 2 — overview ranking --- */

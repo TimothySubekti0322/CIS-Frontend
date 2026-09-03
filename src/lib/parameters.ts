@@ -1,4 +1,8 @@
-import type { ConfigParameter, ConfigSection, ParameterCatalog } from "@/types/settings";
+import type {
+  ConfigParameter,
+  ConfigSection,
+  ParameterCatalog,
+} from "@/types/settings";
 
 /**
  * Client-side logic for the F4 dynamic-parameter form.
@@ -120,7 +124,8 @@ export function sumGroupSatisfied(total: number): boolean {
 export function sumGroupsIn(section: ConfigSection): string[] {
   const seen: string[] = [];
   for (const param of section.parameters) {
-    if (param.sumGroup && !seen.includes(param.sumGroup)) seen.push(param.sumGroup);
+    if (param.sumGroup && !seen.includes(param.sumGroup))
+      seen.push(param.sumGroup);
   }
   return seen;
 }
@@ -136,13 +141,17 @@ export function boundError(param: ConfigParameter, raw: string): string | null {
 
   const n = Number(value);
   if (!Number.isFinite(n)) {
-    return param.type === "integer" ? "must be a whole number" : "must be a number";
+    return param.type === "integer"
+      ? "must be a whole number"
+      : "must be a number";
   }
   if (param.type === "integer" && !Number.isInteger(n)) {
     return "must be a whole number";
   }
-  if (param.min !== null && n < param.min) return `must be at least ${param.min}`;
-  if (param.max !== null && n > param.max) return `must be at most ${param.max}`;
+  if (param.min !== null && n < param.min)
+    return `must be at least ${param.min}`;
+  if (param.max !== null && n > param.max)
+    return `must be at most ${param.max}`;
   return null;
 }
 
@@ -166,7 +175,9 @@ export function crossFieldErrors(
   };
 
   const groups = new Set(
-    params.map((param) => param.sumGroup).filter((g): g is string => Boolean(g)),
+    params
+      .map((param) => param.sumGroup)
+      .filter((g): g is string => Boolean(g)),
   );
   for (const group of groups) {
     const total = sumGroupTotal(group, params, draft);
@@ -178,7 +189,8 @@ export function crossFieldErrors(
   const zMin = valueOf(PARAM.velocityZMin);
   const zMax = valueOf(PARAM.velocityZMax);
   if (zMin !== null && zMax !== null && zMin >= zMax) {
-    errors[PARAM.velocityZMax] = "the z-score ceiling must be greater than the floor";
+    errors[PARAM.velocityZMax] =
+      "the z-score ceiling must be greater than the floor";
   }
 
   const risky = valueOf(PARAM.csiBandRiskyCeiling);
@@ -227,11 +239,14 @@ export function needsRescore(
  * An advisory about a pending value that is legal but consequential. Distinct
  * from `boundError`: this never blocks a save.
  */
-export function advisoryFor(param: ConfigParameter, raw: string): string | null {
+export function advisoryFor(
+  param: ConfigParameter,
+  raw: string,
+): string | null {
   const n = parseValue(raw);
   if (n === null) return null;
   if (param.key === PARAM.discountGamma && n > GAMMA_WARN_ABOVE) {
-    return `At ${n}, pushback can remove most of a claim's score. PRD 6.4.4 intends a contested claim to be de-prioritised, never hidden — 1.0 would allow a discount to zero.`;
+    return `At ${n}, pushback can remove most of a claim's score.`;
   }
   return null;
 }
@@ -247,9 +262,12 @@ export function splitValidationDetails(
 ): { fields: Record<string, string>; groups: Record<string, string> } {
   const fields: Record<string, string> = {};
   const groups: Record<string, string> = {};
-  if (typeof details !== "object" || details === null) return { fields, groups };
+  if (typeof details !== "object" || details === null)
+    return { fields, groups };
 
-  for (const [key, message] of Object.entries(details as Record<string, unknown>)) {
+  for (const [key, message] of Object.entries(
+    details as Record<string, unknown>,
+  )) {
     const text = typeof message === "string" ? message : String(message);
     if (parameters.has(key)) fields[key] = text;
     else groups[key] = text;

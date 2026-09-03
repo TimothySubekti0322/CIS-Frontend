@@ -70,11 +70,7 @@ export function ParameterField({
         )}
         {param.description && (
           <InfoTooltip
-            content={
-              param.prdRef
-                ? `${param.description} (${param.prdRef})`
-                : param.description
-            }
+            content={param.description}
             label={param.label}
             align="start"
           />

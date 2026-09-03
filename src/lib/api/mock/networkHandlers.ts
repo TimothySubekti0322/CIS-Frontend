@@ -931,7 +931,7 @@ const updateDetectorSettings: Handler = async (ctx) => {
   const maxCadence = (Number(merged.window_days) * 24) / 2;
   if (Number(merged.cadence_hours) > maxCadence) {
     fail(
-      `consecutive runs must overlap by 50% of the window (PRD 10.5.1), so the cadence may not exceed ${maxCadence} hours for a ${merged.window_days}-day window`,
+      `consecutive runs must overlap by 50% of the window, so the cadence may not exceed ${maxCadence} hours for a ${merged.window_days}-day window`,
       422,
       "UNPROCESSABLE_ENTITY",
     );
@@ -990,7 +990,7 @@ const detectorRanges: Handler = async () => {
       { key: "recurrence_threshold", label: "Recurrence overlap threshold", min: 0.3, max: 0.9, default: 0.6, integer: false },
       { key: "velocity_trigger_threshold", label: "Velocity trigger threshold", min: 1, max: 10, default: 2.5, integer: false },
     ],
-    "detector parameter ranges (PRD 10.11)",
+    "detector parameter ranges",
   );
 };
 

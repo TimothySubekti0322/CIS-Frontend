@@ -620,7 +620,7 @@ export function buildSeed(): Seed {
         value: CITY_CATALOG[0].name,
         value_type: "string",
         description:
-          "The single Indonesian city this instance monitors (PRD US65). Scopes every figure on the Overview page.",
+          "The single Indonesian city this instance monitors. Scopes every figure on the Overview page.",
         updated_at: daysAgo(9),
         updated_by: null,
       },
