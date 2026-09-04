@@ -7,16 +7,16 @@ export interface ScoreBadgeProps {
   showScale?: boolean;
   size?: "sm" | "md" | "lg";
   /**
-   * What the number is, for the tooltip. Defaults to FinalClaimScore; F5
-   * reuses this same badge for the Coordination Score (PRD US46), which is on
-   * the same 0–100 scale and uses the same severity banding.
+   * What the number is, for the tooltip. Defaults to FinalClaimScore; also
+   * reused for the Coordination Score, which is on the same 0–100 scale and
+   * uses the same severity banding.
    */
   label?: string;
   /**
-   * PRD §5.6 (v1.5) — a human has overridden the Harm sub-scores behind this
-   * number, so the ranking reflects a correction rather than the AI's own
-   * classification. Shown as a small dot, and named in the tooltip so it is
-   * not conveyed by a coloured mark alone.
+   * A human has overridden the Harm sub-scores behind this number, so the
+   * ranking reflects a correction rather than the AI's own classification.
+   * Shown as a small dot, and named in the tooltip so it is not conveyed by a
+   * coloured mark alone.
    */
   edited?: boolean;
   editedLabel?: string;
@@ -29,7 +29,7 @@ const SIZES = {
   lg: "px-3 py-1.5 text-base",
 };
 
-/** FinalClaimScore badge (0–100) — existing/generic claims only (PRD US10). */
+/** FinalClaimScore badge (0–100) — existing/generic claims only. */
 export function ScoreBadge({
   score,
   showScale,

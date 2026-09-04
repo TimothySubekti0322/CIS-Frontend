@@ -17,7 +17,7 @@ import { mapParameterCatalog } from "./mappers.settings";
 /** Key of the global Over/Under cutoff inside `GET /settings`. */
 export const ALERT_THRESHOLD_KEY = "alert_threshold";
 
-/** Key of the "last fetched" timestamp shown on the F1 Existing section. */
+/** Key of the "last fetched" timestamp shown on the claim repository's Existing section. */
 export const CLAIMS_LAST_FETCHED_KEY = "claims_last_fetched_at";
 
 export const settingsApi = {
@@ -71,8 +71,8 @@ export const settingsApi = {
   },
 
   /**
-   * `GET /settings/history` — who changed what, when, across the whole F4
-   * surface rather than only the detector. `key` narrows to one parameter.
+   * `GET /settings/history` — who changed what, when, across all of Admin
+   * Settings rather than only the detector. `key` narrows to one parameter.
    */
   async history(
     params: { key?: string; page?: number; limit?: number } = {},
@@ -87,7 +87,7 @@ export const settingsApi = {
 
   /**
    * `GET /settings/alert-threshold` — defaults to 70 on a fresh database, so
-   * F3 never breaks before an admin has saved anything.
+   * the Alert watchlist never breaks before an admin has saved anything.
    */
   async getAlertThreshold(): Promise<number> {
     const dto = await apiClient.call<AlertThresholdDto | number>(
@@ -98,8 +98,9 @@ export const settingsApi = {
 
   /**
    * `PUT /settings/alert-threshold` — applies globally, effective immediately.
-   * Every claim's `threshold_status` on F3 is derived at read time, so
-   * lowering 70 to 60 instantly reclassifies a claim scoring 68.9.
+   * Every claim's `threshold_status` on the Alert watchlist is derived at
+   * read time, so lowering 70 to 60 instantly reclassifies a claim scoring
+   * 68.9.
    */
   async setAlertThreshold(threshold: number): Promise<number> {
     const dto = await apiClient.call<AlertThresholdDto | number>(
@@ -110,7 +111,7 @@ export const settingsApi = {
   },
 
   /**
-   * `GET /settings/cities` (US65) — the dropdown's options and the current
+   * `GET /settings/cities` — the dropdown's options and the current
    * selection in one call, so the form never has to reconcile two responses.
    */
   async cities(): Promise<CityOptions> {
@@ -126,9 +127,10 @@ export const settingsApi = {
 
   /**
    * `PUT /settings/city` — single-select; the new city replaces the old
-   * outright and writes `city_timezone` with it, so F5's report footers and
-   * F6's scope cannot disagree. Changing it re-scopes the Overview page, so
-   * the caller must refetch `GET /overview`. `422` for a city outside the list.
+   * outright and writes `city_timezone` with it, so the detector's report
+   * footers and the Overview page's scope cannot disagree. Changing it
+   * re-scopes the Overview page, so the caller must refetch `GET /overview`.
+   * `422` for a city outside the list.
    */
   async setCity(city: string): Promise<City | null> {
     const dto = await apiClient.call<CityDto>(ENDPOINTS.settings.setCity, {

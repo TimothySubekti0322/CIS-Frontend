@@ -12,8 +12,6 @@ import { networksApi } from "@/lib/api/networks";
 import { queryKeys } from "@/lib/query/keys";
 
 /**
- * F5 read hooks.
- *
  * Every one of these can answer `503 SERVICE_UNAVAILABLE` when the detection
  * pipeline has not been deployed. That is a display case, not a retry case, so
  * nothing here retries on error beyond React Query's default.
@@ -100,7 +98,7 @@ export function useNetworkReports(id: string, enabled = true) {
 /* ------------------------------- mutations ------------------------------ */
 
 /**
- * US52. The review log and the detail both change, and so does every list that
+ * The review log and the detail both change, and so does every list that
  * shows a status pill or a status count.
  */
 export function useUpdateNetworkStatus(id: string) {
@@ -113,15 +111,15 @@ export function useUpdateNetworkStatus(id: string) {
       // A dismissal feeds the recalibration aggregates, and any status change
       // can open or close the export gate.
       qc.invalidateQueries({ queryKey: queryKeys.detection.all });
-      // US61's badge hides a dismissed network from F1.
+      // A dismissed network's badge is hidden on the claim list.
       qc.invalidateQueries({ queryKey: queryKeys.claims.all });
     },
   });
 }
 
 /**
- * US56 at network level. Allowlisting is retroactive: it suppresses historical
- * networks on every surface, F1's badge included, so the invalidation is broad.
+ * Allowlisting is retroactive: it suppresses historical networks on every
+ * surface, claim badges included, so the invalidation is broad.
  */
 export function useAllowlistNetwork(id: string) {
   const qc = useQueryClient();
@@ -136,7 +134,7 @@ export function useAllowlistNetwork(id: string) {
   });
 }
 
-/** US56 for a single member. */
+/** The same allowlisting action, but for a single member. */
 export function useAllowlistAccount(id: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -153,7 +151,7 @@ export function useAllowlistAccount(id: string) {
   });
 }
 
-/** US58/US59. Reports are versioned and never overwritten. */
+/** Reports are versioned and never overwritten. */
 export function useGenerateReport(id: string) {
   const qc = useQueryClient();
   return useMutation({
@@ -167,7 +165,7 @@ export function useGenerateReport(id: string) {
   });
 }
 
-/** US60's ZIP. Same export gate, same audit ordering. */
+/** Same export gate, same audit ordering as report generation. */
 export function useGenerateEvidenceBundle(id: string) {
   const qc = useQueryClient();
   return useMutation({

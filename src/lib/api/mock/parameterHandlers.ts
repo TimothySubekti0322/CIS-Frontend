@@ -10,7 +10,7 @@ import { getSetting, getState, saveState, setSetting } from "./store";
 import type { MockContext } from "./handlers";
 
 /**
- * Mock-mode handlers for the F4 dynamic-parameter surface.
+ * Mock-mode handlers for the dynamic-parameter surface.
  *
  * Mock mode is the default, so without these the whole Admin Settings page is
  * a dead end when the app runs with no backend.
@@ -153,7 +153,7 @@ const SECTIONS: { key: string; tier: string; title: string; description: string 
   },
 ];
 
-/** PRD 6.2.4's bias guardrail. A rule, not a starting value — hence its own name. */
+/** A hard ceiling, not a starting value — hence its own named constant. */
 const HARM_POLICY_DISRUPTION_CEILING = 0.25;
 
 const REGISTRY: MockParam[] = [
@@ -237,7 +237,7 @@ const REGISTRY: MockParam[] = [
     prd_ref: "§7; US40",
     param_id: "AP-17",
     description: "File size above which the Add Public Policy modal warns the uploader.",
-    note: "A soft warning, never a block. US40 requires policy uploads to have no size limit; this flags an unusually large file rather than rejecting it.",
+    note: "A soft warning, never a block. Policy uploads have no hard size limit; this flags an unusually large file rather than rejecting it.",
   },
   {
     key: "ai.debunk_segment_max_count",
@@ -1024,9 +1024,9 @@ function validateSet(values: Map<string, string>): Record<string, string> {
 /* -------------------------------- history -------------------------------- */
 
 /**
- * US62's change log. Module-local rather than in the persisted mock state:
- * it is a demonstration of the audit trail, not something a reload has to
- * carry, and the real one lives in `cis_setting_history` either way.
+ * Module-local rather than in the persisted mock state: this is a
+ * demonstration of the audit trail, not something a reload has to carry,
+ * and the real one lives in `cis_setting_history` either way.
  */
 const history: SettingHistoryEntryDto[] = [];
 
@@ -1139,7 +1139,7 @@ const deleteParameter: Handler = async (ctx) => {
   return ok(buildCatalog(), "parameter reset to its default");
 };
 
-/** US62 — the whole F4 surface's change log, not only the detector's. */
+/** The whole parameter surface's change log, not only the detector's. */
 const settingsHistory: Handler = async (ctx) => {
   await sleep(140);
   const key = ctx.query.key ? String(ctx.query.key) : undefined;

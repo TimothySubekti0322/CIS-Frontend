@@ -46,7 +46,7 @@ interface Consequence {
 }
 
 /**
- * One tier of the F4 dynamic-parameter form.
+ * One tier of the dynamic-parameter form.
  *
  * The two tiers are separate screens rather than one long page because the
  * split is by *who decides*, which is the question a user actually has in

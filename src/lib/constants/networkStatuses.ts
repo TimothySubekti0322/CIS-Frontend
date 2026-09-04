@@ -8,12 +8,12 @@ import type {
 import { strings } from "./strings";
 
 /**
- * F5's review-status set is **deliberately not** F1's four-value claim status
- * model (US52). A network assessment is an evidentiary judgment about a set of
- * real accounts, so "we assessed this and concluded it was organic" (Dismissed
- * — False Positive) has to be recordable distinctly from "we are no longer
- * tracking it". Collapsing them would lose the signal that trains the allowlist
- * under US56 and make the same false positive re-triageable indefinitely.
+ * This review-status set is **deliberately not** the four-value claim status
+ * model. A network assessment is an evidentiary judgment about a set of real
+ * accounts, so "we assessed this and concluded it was organic" (Dismissed —
+ * False Positive) has to be recordable distinctly from "we are no longer
+ * tracking it". Collapsing them would lose the signal that trains the
+ * allowlist and make the same false positive re-triageable indefinitely.
  */
 export interface NetworkStatusMeta {
   value: NetworkReviewStatus;
@@ -39,7 +39,7 @@ export const NETWORK_STATUS_MAP: Record<NetworkReviewStatus, NetworkStatusMeta> 
     NetworkStatusMeta
   >;
 
-/** US44's tab bar: All Status + the five review statuses. */
+/** Tab bar: All Status + the five review statuses. */
 export const NETWORK_STATUS_TABS: {
   value: NetworkReviewStatus | "all";
   label: string;
@@ -51,7 +51,7 @@ export const NETWORK_STATUS_TABS: {
 /**
  * Confidence is computed from the score **and** SignalBreadth, never set by a
  * human, and is an axis orthogonal to review status — the two are never
- * combined into a single condition (US61).
+ * combined into a single condition.
  */
 export const CONFIDENCE_BANDS: {
   value: ConfidenceBand;
@@ -67,7 +67,6 @@ export const CONFIDENCE_MAP = Object.fromEntries(
   CONFIDENCE_BANDS.map((b) => [b.value, b]),
 ) as Record<ConfidenceBand, (typeof CONFIDENCE_BANDS)[number]>;
 
-/** US48's sort control. */
 export const NETWORK_SORTS: { value: NetworkSort; label: string }[] = [
   { value: "score", label: strings.networks.sortScore },
   { value: "detected_at", label: strings.networks.sortDetected },
@@ -77,7 +76,7 @@ export const NETWORK_SORTS: { value: NetworkSort; label: string }[] = [
 ];
 
 /**
- * The five signal families (PRD 10.5.2). Order is fixed so the panel, the graph
+ * The five signal families. Order is fixed so the panel, the graph
  * legend and the report all read the same way.
  */
 export const SIGNAL_ORDER = ["SY", "DU", "CO", "PR", "AU"] as const;
@@ -90,7 +89,7 @@ export const SIGNAL_LABELS: Record<string, string> = {
   AU: strings.signals.AU,
 };
 
-/** US56's required category on any allowlist entry. */
+/** Required category on any allowlist entry. */
 export const ALLOWLIST_CATEGORIES: {
   value: AllowlistCategory;
   label: string;
@@ -108,7 +107,6 @@ export const ALLOWLIST_CATEGORY_LABELS: Record<string, string> = Object.fromEntr
   ALLOWLIST_CATEGORIES.map((c) => [c.value, c.label]),
 );
 
-/** Phrase-list categories (PRD 10.5.2.2). */
 export const PHRASE_CATEGORIES = [
   { value: "slogan", label: "Slogan" },
   { value: "hashtag", label: "Hashtag" },
@@ -117,7 +115,7 @@ export const PHRASE_CATEGORIES = [
   { value: "other", label: "Other" },
 ];
 
-/** The minimum US52 imposes on a status-change reason. */
+/** The minimum length required for a status-change reason. */
 export const MIN_REVIEW_REASON = 20;
 
 /** The minimum an allowlist reason must reach. */

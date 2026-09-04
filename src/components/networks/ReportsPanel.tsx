@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/Button";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * US58–US60 — the foot of the cluster sheet: what can be produced from it, and
- * what has been.
+ * The foot of the cluster sheet: what can be produced from it, and what has
+ * been.
  *
  * The export gate is a fail-closed allowlist evaluated on the server: only a
  * network under review, confirmed, or acted on may be exported. An unreviewed

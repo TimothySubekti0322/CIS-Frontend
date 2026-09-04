@@ -46,7 +46,7 @@ export interface TopAccount {
   totalImpressions: number;
 }
 
-/** §6.3 composite weights, echoed by the backend so the UI never hardcodes them. */
+/** Composite weights, echoed by the backend so the UI never hardcodes them. */
 export interface ScoreWeights {
   reach: number;
   velocity: number;
@@ -63,7 +63,7 @@ export interface HarmWeights {
 }
 
 /**
- * The four Harm sub-scores as they stood before a human override (US23, v1.5).
+ * The four Harm sub-scores as they stood before a human override.
  * `harmScore` is the composite they rolled up to.
  */
 export interface HarmEditPrevious {
@@ -75,7 +75,7 @@ export interface HarmEditPrevious {
 }
 
 /**
- * The human-override audit trail (US23, new in v1.5). **Present only once a
+ * The human-override audit trail. **Present only once a
  * reviewer has actually edited the sub-scores** — that presence is what marks
  * an edited Harm distinctly from an AI-original one wherever the score badge
  * appears. `humanConfirmed` cannot do that job: an empty confirmation
@@ -127,7 +127,7 @@ export interface ScoreBreakdown {
   /** Explanatory note the backend attaches to dormant claims. */
   note: string | null;
   /**
-   * US23's info-tooltip sentence, generated from the same weight constants as
+   * The info-tooltip sentence, generated from the same weight constants as
    * the score itself — served rather than written into the frontend so the
    * words and the arithmetic can never drift apart.
    */
@@ -148,11 +148,9 @@ export interface DebunkBlocks {
 }
 
 /**
- * One audience-segment variant of the Debunk Activity (US12, new in v1.5).
- *
- * v1.5 replaces the single generic draft with one tailored recommendation per
- * segment most exposed to the claim, generated once at claim creation and
- * cached. Ordered most-exposed first.
+ * One audience-segment variant of the Debunk Activity — one tailored
+ * recommendation per segment most exposed to the claim, generated once at
+ * claim creation and cached. Ordered most-exposed first.
  */
 export interface DebunkSegment {
   segment: string;
@@ -181,9 +179,9 @@ export interface ClaimActivity {
 }
 
 /**
- * US61's cross-link from F1 into F5. Absent — not empty — when no network
- * qualifies, which is also what a deployment without the detection pipeline
- * looks like. In both cases there is nothing to show.
+ * Absent — not empty — when no network qualifies, which is also what a
+ * deployment without the detection pipeline looks like. In both cases there
+ * is nothing to show.
  *
  * `reviewStatus` is displayed alongside the band, never folded into it:
  * "Unreviewed, Medium" and "Confirmed, High" must not read identically to an
@@ -204,7 +202,7 @@ export interface CoordinatedNetworkBadge {
 export interface ClaimPolicyRef {
   id: string;
   name: string;
-  /** `cis` — registered through F2. `ai` — created directly by the AI service. */
+  /** `cis` — registered manually by staff. `ai` — created directly by the AI service. */
   source: "cis" | "ai";
   status: "rolled_out" | "not_rolled_out" | null;
   rolledOutDate: string | null;
@@ -212,9 +210,9 @@ export interface ClaimPolicyRef {
 }
 
 /**
- * Claim-card shape, shared by F1's sections, the "See all" lists and the F2
- * policy detail page. Fields a Synthetic claim does not carry are `null`,
- * never `0` — the card must not render a zero score.
+ * Claim-card shape, shared by the repository sections, the "See all" lists
+ * and the policy detail page. Fields a Synthetic claim does not carry are
+ * `null`, never `0` — the card must not render a zero score.
  */
 export interface ClaimSummary {
   id: string;
@@ -230,11 +228,11 @@ export interface ClaimSummary {
   /** When the row was written. On a Synthetic claim this is its "Predicted" date. */
   createdAt: string | null;
   /**
-   * When the AI first detected the claim in the wild — the F1 card's "First
+   * When the AI first detected the claim in the wild — shown as "First
    * caught". Distinct from `createdAt`, and absent on a Synthetic claim.
    */
   firstCaughtAt: string | null;
-  /** US61 — present only when a qualifying network exists. */
+  /** Present only when a qualifying network exists. */
   coordinatedNetwork: CoordinatedNetworkBadge | null;
 }
 
@@ -261,22 +259,22 @@ export interface ClaimDetail extends ClaimSummary {
   topAccounts: TopAccount[];
 }
 
-/** One section of the F1 page returned by `GET /claims/repository`. */
+/** One section of the page returned by `GET /claims/repository`. */
 export interface ClaimRepositorySection {
-  /** "S1" (Existing) or "S2" (Non-Existing). */
+  /** Identifies which section this is: Existing or Non-Existing. */
   section: string;
   claimType: ClaimType;
   sortedBy: string;
   /** Total claims matching the current filters, ignoring paging. */
   totalInPool: number;
-  /** Pagination window for this section (PAGINATION_FOR_FE.md §2). */
+  /** Pagination window for this section. */
   page: number;
   limit: number;
   totalPages: number;
   claims: ClaimSummary[];
 }
 
-/** The whole F1 page in one call. Both sections always return. */
+/** The whole claim repository page in one call. Both sections always return. */
 export interface ClaimRepository {
   lastFetchedAt: string | null;
   appliedStatus: ClaimStatusFilter;
@@ -306,12 +304,12 @@ export interface ClaimRepositoryParams {
   topicIds?: string[];
   /**
    * Free-text search. One value filters BOTH sections — the endpoint takes a
-   * single `q`, so the F1 page has one search box rather than one per section.
+   * single `q`, so the page has one search box rather than one per section.
    */
   q?: string;
-  /** 1-based page for the S1 (Existing) section. Page size is fixed at 10. */
+  /** 1-based page for the Existing section. Page size is fixed at 10. */
   existingPage?: number;
-  /** 1-based page for the S2 (Non-Existing) section. Page size is fixed at 10. */
+  /** 1-based page for the Non-Existing section. Page size is fixed at 10. */
   nonExistingPage?: number;
 }
 
@@ -342,7 +340,7 @@ export interface UpdateClaimStatusPayload {
 }
 
 /**
- * An analyst confirming or overriding the AI's four Harm sub-scores (PRD 6.2.4).
+ * An analyst confirming or overriding the AI's four Harm sub-scores.
  *
  * Every field is optional and 0–100; an omitted one keeps the AI's own
  * classification. **An empty payload is valid** — it is the "I reviewed these

@@ -10,7 +10,7 @@ export interface SearchBarProps {
   className?: string;
 }
 
-/** Live-filter search input — reused on F1 (S1/S2), F2, F3. */
+/** Live-filter search input, reused across several list pages. */
 export function SearchBar({ value, onChange, placeholder, className }: SearchBarProps) {
   return (
     <div className={cn("relative", className)}>

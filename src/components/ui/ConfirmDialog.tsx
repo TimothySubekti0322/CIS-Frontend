@@ -18,7 +18,7 @@ export interface ConfirmDialogProps {
   onCancel: () => void;
 }
 
-/** Lightweight confirm dialog — one affirmative action + cancel (PRD §5.3). */
+/** Lightweight confirm dialog — one affirmative action + cancel. */
 export function ConfirmDialog({
   open,
   title,

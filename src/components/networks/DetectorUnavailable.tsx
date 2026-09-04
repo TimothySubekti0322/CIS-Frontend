@@ -7,10 +7,10 @@ import { EmptyState } from "@/components/ui/EmptyState";
  * "The detector may not exist yet."
  *
  * The detection maths runs in the AI service; this backend reads its output.
- * When the pipeline has not been deployed its tables are absent and every F5
- * route answers `503 SERVICE_UNAVAILABLE` with a display-ready message. That is
- * a state to render, not an error to hide — and F1–F4, including the US61 claim
- * badge, carry on unaffected.
+ * When the pipeline has not been deployed its tables are absent and every
+ * network route answers `503 SERVICE_UNAVAILABLE` with a display-ready
+ * message. That is a state to render, not an error to hide — and the rest of
+ * the app, including the claim badge, carries on unaffected.
  */
 export function isDetectorUnavailable(error: unknown): error is ApiError {
   return error instanceof ApiError && error.status === 503;

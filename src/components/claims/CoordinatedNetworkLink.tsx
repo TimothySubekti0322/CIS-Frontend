@@ -14,19 +14,19 @@ import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
 
 /**
- * US61 — the cross-link from a claim into F5.
+ * Cross-link from a claim into its coordinated-network detail page.
  *
- * This is the point of F5 in daily use: it changes whether the team publicly
- * rebuts a claim or refers it. Rebutting a claim that only forty accounts are
- * actually making hands it the reach it was engineered to obtain.
+ * This changes whether the team publicly rebuts a claim or refers it instead:
+ * rebutting a claim that only forty accounts are actually making hands it the
+ * reach it was engineered to obtain.
  *
  * Both components render nothing when `badge` is absent. There is no empty
- * state by design — a claim with no qualifying network and a deployment with no
- * detector at all look identical here, and both are correct, because in both
- * cases there is nothing to show.
+ * state by design — a claim with no qualifying network and a deployment with
+ * no detector at all look identical here, and both are correct, because in
+ * both cases there is nothing to show.
  */
 
-/** The small triage icon on the claim card (US10). */
+/** The small triage icon on the claim card. */
 export function CoordinatedNetworkIcon({
   badge,
 }: {
@@ -52,7 +52,7 @@ export function CoordinatedNetworkIcon({
   );
 }
 
-/** The full indicator on the existing-claim detail page (US12, amended). */
+/** The full indicator on the existing-claim detail page. */
 export function CoordinatedNetworkPanel({
   badge,
 }: {

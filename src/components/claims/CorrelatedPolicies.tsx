@@ -7,9 +7,9 @@ import { StatusPill } from "@/components/ui/StatusPill";
 
 /**
  * Correlated public policies. `source` matters for navigation: only a `cis`
- * policy was registered through F2 and has a detail page here — an `ai` policy
- * exists solely in the AI service's own table, so it renders as plain text
- * rather than a dead link.
+ * policy was registered in this system and has a detail page here — an `ai`
+ * policy exists solely in the AI service's own table, so it renders as plain
+ * text rather than a dead link.
  */
 export function CorrelatedPolicies({
   title,
@@ -63,7 +63,7 @@ function PolicyRow({ policy }: { policy: ClaimPolicyRef }) {
       {body}
     </Link>
   ) : (
-    <div className={`${className} bg-mint-cream/40`} title="Created by the AI service — no F2 record exists">
+    <div className={`${className} bg-mint-cream/40`} title="Created by the AI service — no policy-bank record exists">
       {body}
     </div>
   );

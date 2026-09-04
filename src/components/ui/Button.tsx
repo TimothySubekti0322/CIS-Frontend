@@ -16,7 +16,7 @@ const VARIANTS: Record<Variant, string> = {
     "bg-sea-green text-white hover:bg-primary-hover hover:shadow-md disabled:bg-sea-green/50",
   secondary:
     "bg-white text-regal-navy border border-pale-sky hover:border-sea-green hover:bg-sea-green-soft hover:text-sea-green hover:shadow-sm disabled:opacity-50",
-  // F4 test/MVP utility button (PRD §5.6)
+  // Test/MVP utility button
   utility:
     "bg-glaucous text-white hover:bg-glaucous/90 hover:shadow-md disabled:opacity-50",
   ghost: "text-regal-navy hover:bg-pale-sky/40 disabled:opacity-50",

@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { HOME_HREF } from "@/lib/constants/routes";
 
-/** US66 puts the Overview first, so it is also where "/" lands. */
+/** The Overview is the default landing page, so "/" redirects there. */
 export default function RootPage() {
   redirect(HOME_HREF);
 }

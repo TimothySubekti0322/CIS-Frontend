@@ -1,5 +1,5 @@
 /**
- * Wire → domain translation for F6 (PRD v1.5 §11).
+ * Wire → domain translation for the overview dashboard.
  *
  * Two rules matter more here than anywhere else in the mapping layer, because
  * this is the page a leadership reader trusts at a glance:
@@ -80,9 +80,9 @@ export function mapCityOptions(dto: CityOptionsDto | null | undefined): CityOpti
 
 /**
  * `partitioned: false` means the AI service does not tag content with a city,
- * so the F4 selection labels this instance rather than filtering it. Defaulting
- * to `false` is the safe direction: it makes the UI say so rather than imply a
- * breakdown the data cannot support.
+ * so the admin city selector labels this instance rather than filtering it.
+ * Defaulting to `false` is the safe direction: it makes the UI say so rather
+ * than imply a breakdown the data cannot support.
  */
 function mapOverviewCity(
   dto: OverviewCityDto | null | undefined,
@@ -92,7 +92,7 @@ function mapOverviewCity(
   return { ...city, partitioned: bool(dto?.partitioned) };
 }
 
-/* ------------------------------- O1a ratio ------------------------------ */
+/* ---------------------------- threshold ratio ---------------------------- */
 
 function mapThresholdRatio(
   dto: ThresholdRatioDto | null | undefined,
@@ -106,7 +106,7 @@ function mapThresholdRatio(
   };
 }
 
-/* -------------------------------- O1b CSI ------------------------------- */
+/* ------------------------------ sentiment index -------------------------- */
 
 function mapSentimentVolume(
   dto: SentimentVolumeDto | null | undefined,
@@ -153,7 +153,7 @@ function mapSentiment(dto: SentimentDto | null | undefined): SentimentIndex {
   };
 }
 
-/* ------------------------------- O2 treemap ----------------------------- */
+/* -------------------------------- treemap -------------------------------- */
 
 function mapOverviewTopic(dto: OverviewTopicDto): OverviewTopic {
   return {
@@ -167,7 +167,7 @@ function mapOverviewTopic(dto: OverviewTopicDto): OverviewTopic {
   };
 }
 
-/* ----------------------------- O3 leaderboard --------------------------- */
+/* ------------------------------ leaderboard ------------------------------ */
 
 function mapOverviewPolicyRef(dto: OverviewPolicyRefDto): OverviewPolicyRef {
   return {

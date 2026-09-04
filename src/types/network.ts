@@ -2,18 +2,17 @@ import type { PageParams } from "./common";
 import type { ClaimPolicyRef, TopicRef } from "./claim";
 
 /**
- * F5 — Coordinated-Network Detector domain types (PRD §10).
+ * Coordinated-Network Detector domain types.
  *
- * One rule shapes every type here, and it is PRD 10.9.1's third hard rule: the
- * system never labels an individual account automated, inauthentic or
- * malicious. There is no `isBot`, no `suspicion`, no `verdict` — the nouns are
- * behaviours and counts, and the single judgement in the whole model is
- * `reviewStatus`, which a person set.
+ * One rule shapes every type here: the system never labels an individual
+ * account automated, inauthentic or malicious. There is no `isBot`, no
+ * `suspicion`, no `verdict` — the nouns are behaviours and counts, and the
+ * single judgement in the whole model is `reviewStatus`, which a person set.
  */
 
 /**
- * A human's assessment of a network. Deliberately NOT the F1 claim status set
- * (US52): "we assessed this and concluded it was organic" must be recordable
+ * A human's assessment of a network. Deliberately NOT the claim status set:
+ * "we assessed this and concluded it was organic" must be recordable
  * distinctly from "we stopped tracking it".
  */
 export type NetworkReviewStatus =
@@ -28,7 +27,7 @@ export type NetworkStatusFilter = NetworkReviewStatus | "all";
 /** Computed from CoordinationScore *and* SignalBreadth — never set by a human. */
 export type ConfidenceBand = "low" | "medium" | "high";
 
-/** The five signal families (PRD 10.5.2). */
+/** The five signal families. */
 export type SignalCode = "SY" | "DU" | "CO" | "PR" | "AU";
 
 export type NetworkSort =
@@ -66,7 +65,7 @@ export interface PriorAnchor {
   claimStatement: string | null;
 }
 
-/** How often this set of accounts has resurfaced (US46, US49). */
+/** How often this set of accounts has resurfaced. */
 export interface RecurrenceInfo {
   /** Includes the current detection, so a first sighting reads 1. */
   count: number;
@@ -80,7 +79,7 @@ export interface RecurrenceInfo {
 /**
  * Run-level context every network inherits. Two fields change how the network
  * must be read: a truncated candidate set means known-incomplete recall, and
- * ≥ 2 unavailable signal families caps the run at Medium (PRD 10.6.3 rule 4).
+ * ≥ 2 unavailable signal families caps the run at Medium confidence.
  */
 export interface RunContext {
   runId: string;
@@ -111,7 +110,7 @@ export interface NetworkCard {
   detectedAt: string;
   primaryClaim: NetworkClaimRef | null;
   recurrence: RecurrenceInfo;
-  /** Revealed only by US43's toggle — render de-emphasised. */
+  /** Revealed only by an explicit toggle — render de-emphasised. */
   lowConfidence: boolean;
   /** The run-level caveat, on the card because triage happens on the list. */
   fromTruncatedRun: boolean;
@@ -119,7 +118,7 @@ export interface NetworkCard {
 
 /* ----------------------------- why flagged ------------------------------ */
 
-/** One signal family with everything US50 requires beside it. */
+/** One signal family and its supporting detail. */
 export interface SignalDetail {
   code: SignalCode | string;
   name: string;
@@ -133,12 +132,12 @@ export interface SignalDetail {
   available: boolean;
 }
 
-/** Which banding rule produced the band, written out (US50). */
+/** Which banding rule produced the band, written out. */
 export interface ConfidenceExplanation {
   band: ConfidenceBand;
   signalBreadth: number;
   rule: string;
-  /** PRD 10.6.3 rule 4 held this below the band its score alone would earn. */
+  /** True when the run-level cap held this below the band its score alone would earn. */
   cappedByRun: boolean;
   note: string | null;
 }
@@ -153,8 +152,8 @@ export interface ClaimRelevanceBlock {
 }
 
 /**
- * The US50 panel — the F5 counterpart of US23's score breakdown, carrying the
- * same hard constraint: the composite is never displayed without it.
+ * Carries the same hard constraint as the claim score breakdown: the
+ * composite is never displayed without it.
  */
 export interface WhyFlagged {
   coordinationScore: number;
@@ -190,7 +189,7 @@ export interface NetworkDetail extends NetworkCard {
   linkedClaims: NetworkClaimRef[];
   linkedPolicies: ClaimPolicyRef[];
   review: NetworkReview | null;
-  /** PRD 10.9.2's standing text — served, never hard-coded, so it cannot drift. */
+  /** Standing disclaimer text — served, never hard-coded, so it cannot drift. */
   disclaimer: string;
   export: ExportEligibility;
 }
@@ -202,7 +201,7 @@ export interface NetworkReviewLogEntry {
   reason: string;
   userId: string | null;
   createdAt: string;
-  /** The scores as they stood at the moment of the decision (PRD 10.9.3). */
+  /** The scores as they stood at the moment of the decision. */
   signalProfile: Record<string, unknown> | null;
 }
 
@@ -225,7 +224,7 @@ export interface GraphNode {
   degreeCentrality: number;
   eigenvectorCentrality: number;
   postsInCluster: number;
-  /** Stored ForceAtlas2 coordinates — never recomputed client-side (PRD 10.8). */
+  /** Stored ForceAtlas2 coordinates — never recomputed client-side. */
   x: number | null;
   y: number | null;
   allowlisted: boolean;
@@ -322,7 +321,7 @@ export interface AccountAnnexRow {
   allowlisted: boolean;
 }
 
-/** "No account may appear in a network without a viewable reason" (US55). */
+/** No account may appear in a network without a viewable reason. */
 export interface AccountDrawer {
   account: AccountAnnexRow;
   posts: EvidencePost[];
@@ -351,7 +350,7 @@ export interface ReportView {
   fileSizeBytes: number;
   sections: ReportSections;
   redactAnalystNames: boolean;
-  /** Chain of custody (PRD 10.8 item 10). */
+  /** Chain of custody. */
   snapshotId: string | null;
   snapshotSha256: string | null;
   auditId: string | null;
@@ -388,7 +387,7 @@ export interface GenerateReportPayload {
   reportType: ReportType;
   includeGraph?: boolean;
   includeContentClusters?: boolean;
-  /** Ignored for a platform referral — the annex is mandatory there (US59). */
+  /** Ignored for a platform referral — the annex is mandatory there. */
   includeAccountAnnex?: boolean;
   includeMethodology?: boolean;
   redactAnalystNames?: boolean;
@@ -533,7 +532,7 @@ export interface AuditLogEntry {
 
 /* --------------------------- detector settings --------------------------- */
 
-/** Every governed detector parameter (PRD 10.11). */
+/** Every governed detector parameter. */
 export interface DetectorSettings {
   windowDays: number;
   binWidthSeconds: number;
@@ -567,11 +566,11 @@ export interface DetectorSettings {
   velocityTriggerEnabled: boolean;
   updatedAt: string | null;
   updatedBy: string | null;
-  /** Accounts excluded as the city's own comms estate (US62). */
+  /** Accounts excluded as the city's own comms estate. */
   selfExclusionCount: number;
 }
 
-/** One parameter's bounds, straight from PRD 10.11 — never hardcode these. */
+/** One parameter's bounds, straight from the backend registry — never hardcode these. */
 export interface DetectorParamRange {
   key: string;
   label: string;
@@ -599,12 +598,12 @@ export interface NetworkListParams extends PageParams {
   status?: NetworkStatusFilter;
   /** Comma-joined bands. Omit for the default Medium + High set. */
   confidence?: ConfidenceBand[];
-  /** US43's toggle. Low networks come back de-emphasised, never mixed in. */
+  /** Low networks come back de-emphasised, never mixed in. */
   showLowConfidence?: boolean;
   claimIds?: string[];
   topicIds?: string[];
   policyIds?: string[];
-  /** Matches label and member handles, partial handles included (US47). */
+  /** Matches label and member handles, partial handles included. */
   q?: string;
   detectedFrom?: string;
   detectedTo?: string;
@@ -635,7 +634,7 @@ export interface AccountAnnexParams extends PageParams {
 
 export interface UpdateNetworkStatusPayload {
   status: NetworkReviewStatus;
-  /** Required, minimum 20 characters — unlike F1's optional claim notes. */
+  /** Required, minimum 20 characters — unlike optional claim notes elsewhere. */
   reason: string;
 }
 

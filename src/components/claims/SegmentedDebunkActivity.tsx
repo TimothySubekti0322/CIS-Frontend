@@ -10,19 +10,18 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 import { CopyableContentBox } from "./CopyableContentBox";
 
 /**
- * US12 (v1.5) — the Debunk Activity as one tailored, individually-copyable
- * draft per audience segment, most-exposed first.
+ * Renders the Debunk Activity as one tailored, individually-copyable draft
+ * per audience segment, most-exposed first.
  *
- * Two rules from the PRD shape the whole component:
+ * Two rules shape the whole component:
  *
- *  - **The variants are never merged.** Targeting is the entire point of the
- *    change, and one box implying it addresses "everyone" is precisely the
- *    generic draft v1.5 removed. Each segment gets its own card, its own
- *    heading and its own copy button.
+ *  - **The variants are never merged.** Targeting is the entire point, and
+ *    one box implying it addresses "everyone" defeats it. Each segment gets
+ *    its own card, its own heading and its own copy button.
  *  - **An empty list is a real state, not an error.** Synthetic claims are not
  *    segmented, and an AI service that has not shipped segmentation returns
- *    nothing — in both cases the page falls back to the single v1.4 draft,
- *    which is a correct rendering rather than a degraded one.
+ *    nothing — in both cases the page falls back to the single draft, which
+ *    is a correct rendering rather than a degraded one.
  */
 export function SegmentedDebunkActivity({
   activity,
@@ -37,8 +36,9 @@ export function SegmentedDebunkActivity({
 }) {
   const segments = activity?.segments ?? [];
 
-  // No segmentation available — render the v1.4 box unchanged. This is also
-  // what a claim with no draft at all hits, and its own empty state applies.
+  // No segmentation available — render the fallback box unchanged. This is
+  // also what a claim with no draft at all hits, and its own empty state
+  // applies.
   if (segments.length === 0) {
     return (
       <CopyableContentBox

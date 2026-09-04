@@ -5,7 +5,7 @@
  */
 
 /**
- * Where an authenticated user lands. US66 puts the Overview first in the
- * sidebar, so it is also the product's home.
+ * Where an authenticated user lands. Overview is first in the sidebar, so it
+ * is also the product's home.
  */
 export const HOME_HREF = "/overview";

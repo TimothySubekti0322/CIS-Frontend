@@ -21,8 +21,8 @@ import { WatchlistTable } from "@/components/alerts/WatchlistTable";
 const PAGE_SIZE = 10;
 
 /**
- * F3 — Alert Page. Existing/Generic claims only; there is deliberately no
- * "add" action here — claims join through the F1/F2 bell icon.
+ * Existing/Generic claims only; there is deliberately no "add" action here —
+ * claims join through the bell icon elsewhere.
  *
  * Search and pagination are server-side (`GET /alerts?q=&page=`), and the
  * chart is its own call (`GET /alerts/chart`) returning only the ticked
@@ -49,7 +49,7 @@ export default function AlertsPage() {
 
   const items = watchlist.data?.items ?? [];
 
-  /* US71 — opening this page IS the acknowledgment.
+  /* Opening this page IS the acknowledgment.
    *
    * It runs once per visit, and only once the first page of rows has actually
    * arrived: acknowledging is what makes the *next* render unhighlighted, so
@@ -113,7 +113,7 @@ export default function AlertsPage() {
         <EmptyState title={strings.alerts.empty} />
       ) : (
         <>
-          {/* C1 + C2 — stack below the tablet breakpoint. */}
+          {/* Chart and legend stack below the tablet breakpoint. */}
           <div className="grid grid-cols-1 gap-4 lg:grid-cols-3">
             <div className="lg:col-span-2">
               {chart.isPending ? (
@@ -137,7 +137,7 @@ export default function AlertsPage() {
               <h2 className="text-h2 lg:col-span-2">
                 {strings.alerts.watchlistTitle}
               </h2>
-              {/* Matches the [C2] Key box's width — same lg:grid-cols-3 track. */}
+              {/* Matches the legend's width — same lg:grid-cols-3 track. */}
               <div className="flex items-center gap-2">
                 <SearchBar
                   value={search}

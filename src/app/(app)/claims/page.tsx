@@ -12,12 +12,11 @@ import { ClaimSection } from "@/components/claims/ClaimSection";
 import { TopicFilter } from "@/components/claims/TopicFilter";
 
 /**
- * F1 — Claim Repository Bank.
- *
  * The whole page is one call: `GET /claims/repository` returns both sections
- * already filtered and ranked. S1 and S2 are ALWAYS both visible — the status
- * tab filters within each section, it never hides one. Each section paginates
- * independently at 10 per page (PAGINATION_FOR_FE.md §2).
+ * already filtered and ranked. The existing and non-existing sections are
+ * ALWAYS both visible — the status tab filters within each section, it never
+ * hides one. Each section paginates independently at 10 per page
+ * (see PAGINATION_FOR_FE.md).
  *
  * Status, topics and search all live here rather than inside a section,
  * because the endpoint takes one set of filters and answers for both halves.

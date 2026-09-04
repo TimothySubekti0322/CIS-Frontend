@@ -17,7 +17,7 @@ import type {
 import { claimsApi } from "@/lib/api/claims";
 import { queryKeys } from "@/lib/query/keys";
 
-/** F1 in one call — both sections, filtered, plus the "last fetched" label. */
+/** Both sections in one call, filtered, plus the "last fetched" label. */
 export function useClaimRepository(params?: ClaimRepositoryParams) {
   return useQuery({
     queryKey: queryKeys.claims.repository(params),
@@ -74,7 +74,7 @@ export function useClaimPolicies(id: string, enabled = true) {
 }
 
 /**
- * Score history. Empty until the claim joins the F3 watchlist — the snapshot
+ * Score history. Empty until the claim joins the watchlist — the snapshot
  * job captures watched claims only.
  */
 export function useClaimScoreHistory(
@@ -104,7 +104,7 @@ export function useUpdateClaimStatus() {
 }
 
 /**
- * An analyst confirming or overriding the four Harm sub-scores (PRD 6.2.4).
+ * An analyst confirming or overriding the four Harm sub-scores.
  *
  * The response is the whole rescored claim, so it is written straight into the
  * detail cache rather than triggering a re-fetch. Every list that carries a

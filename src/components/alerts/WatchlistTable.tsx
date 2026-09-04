@@ -13,18 +13,17 @@ import { IconButton } from "@/components/ui/IconButton";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * [C3] The watchlist table, ordered most-recently-added first by the backend.
+ * The watchlist table, ordered most-recently-added first by the backend.
  *
  * The "Chart" checkbox is server state, not local: `GET /alerts/chart` returns
  * only the ticked claims, so the tick has to persist through
  * `PATCH /alerts/:claimId/chart` before the chart can reflect it.
  *
- * v1.5 (US29/US71) adds the crossing highlight. `justCrossed` is per-reader
- * and clears when this page acknowledges; `crossedAt`/`crossedDirection`
- * persist, which is what the "last moved" column reads. The tint is a light
- * Pale-Sky wash, deliberately lighter than the standing Over-Threshold pill —
- * "this moved" and "this is high" are different statements and must not
- * compete.
+ * The crossing highlight: `justCrossed` is per-reader and clears when this
+ * page acknowledges; `crossedAt`/`crossedDirection` persist, which is what
+ * the "last moved" column reads. The tint is a light Pale-Sky wash,
+ * deliberately lighter than the standing Over-Threshold pill — "this moved"
+ * and "this is high" are different statements and must not compete.
  */
 export function WatchlistTable({ items }: { items: WatchlistItem[] }) {
   const setVisible = useSetChartVisible();

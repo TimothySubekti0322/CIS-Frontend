@@ -27,15 +27,15 @@ export interface GranularitySelectProps {
 
 /**
  * Bucket size for the score-history endpoints, built once and used in both
- * places US27 requires: the per-claim Score History Chart and the F3 chart
- * `[C1]`. Both endpoints take the same parameter and the same four values, and
- * the backend default is `week`.
+ * the per-claim Score History Chart and the alerts chart. Both endpoints take
+ * the same parameter and the same four values, and the backend default is
+ * `week`.
  *
- * PRD §5.2 (v1.5) asks for a segmented control that collapses to a dropdown
- * below tablet width. Both are rendered and swapped with CSS rather than a
- * width listener: a JS breakpoint would flash the wrong control on first paint
- * and could disagree with the CSS breakpoints used everywhere else. Only one is
- * ever visible, so only one is ever announced.
+ * A segmented control that collapses to a dropdown below tablet width. Both
+ * are rendered and swapped with CSS rather than a width listener: a JS
+ * breakpoint would flash the wrong control on first paint and could disagree
+ * with the CSS breakpoints used everywhere else. Only one is ever visible, so
+ * only one is ever announced.
  */
 export function GranularitySelect({
   value,

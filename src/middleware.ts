@@ -7,7 +7,7 @@ const AUTH_PAGES = ["/login", "/register"];
 /**
  * Really simple route gate: presence of the token cookie only.
  * - unauthenticated + protected route  -> /login
- * - authenticated + auth page           -> the Overview (US66)
+ * - authenticated + auth page           -> the Overview
  */
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;

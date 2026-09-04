@@ -75,8 +75,8 @@ function ClaimHeader({
               score={claim.finalClaimScore}
               size="sm"
               showScale
-              // PRD §5.6 — a reviewer elsewhere in the product has to be able
-              // to see that this ranking reflects a human correction.
+              // A reviewer elsewhere in the product needs to see that this
+              // ranking reflects a human correction.
               edited={Boolean(claim.scoreBreakdown?.harmBreakdown?.edit)}
               editedLabel={strings.claims.harmEditedTag}
             />
@@ -105,7 +105,7 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
 
       <ReviewPanel claim={claim} />
 
-      {/* US61 — shown only when a qualifying network exists. There is no empty
+      {/* Shown only when a qualifying network exists. There is no empty
           state: nothing to show and no detector deployed look the same here. */}
       <CoordinatedNetworkPanel badge={claim.coordinatedNetwork} />
 
@@ -117,8 +117,8 @@ function ExistingClaim({ claim }: { claim: ClaimDetail }) {
 
           <ScoreHistoryCard claimId={claim.id} />
 
-          {/* One copyable draft per audience segment (US12, v1.5); falls back
-              to the single draft when the AI service has not segmented it. */}
+          {/* One copyable draft per audience segment; falls back to the
+              single draft when the AI service has not segmented it. */}
           <SegmentedDebunkActivity
             activity={claim.activity}
             title={strings.claims.debunkSegmentsTitle}

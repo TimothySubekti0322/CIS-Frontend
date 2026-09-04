@@ -1,5 +1,5 @@
 /**
- * Centralised UI copy. i18n is deferred (PRD §5.3 asks for EN + Bahasa Indonesia);
+ * Centralised UI copy. i18n is deferred (EN + Bahasa Indonesia are planned);
  * keeping every user-facing string here makes adding `next-intl` later a drop-in.
  */
 export const strings = {
@@ -113,7 +113,7 @@ export const strings = {
     reviewTitle: "Review",
     reviewNever: "No review recorded yet — set a status to add one.",
 
-    /* --- v1.5 --- */
+    /* --- Score formula and debunk activity --- */
     scoreFormulaLabel: "How this score is calculated",
     scoreFormulaFallback:
       "FinalClaimScore combines five weighted parameters — Reach, Velocity, Falseness Confidence, Harm Severity and Emotional Intensity — into a ClaimScore, then discounts it by the Net Pushback Ratio, which lowers the score of a claim the public is already pushing back on.",
@@ -215,7 +215,7 @@ export const strings = {
     removed: "Removed from watchlist",
     chartToggleFailed: "Could not update the chart selection.",
 
-    /* --- v1.5 --- */
+    /* --- Threshold-crossing tracking --- */
     justCrossed: "Just crossed",
     crossedUp: "Crossed above the threshold",
     crossedDown: "Crossed below the threshold",
@@ -280,7 +280,7 @@ export const strings = {
     tabAllowlist: "Allowlist",
     tabRuns: "Runs & governance",
 
-    /* --- v1.5 --- */
+    /* --- Monitored city --- */
     cityTitle: "Monitored city",
     cityDesc:
       "Which single Indonesian city this instance is monitoring. It scopes every figure on the Overview page, and sets the timezone the detector's report footers are stamped in.",
@@ -289,7 +289,7 @@ export const strings = {
     cityTimezoneNote: "Timezone",
     cityUnset: "No city selected yet",
 
-    /* --- v1.6 — dynamic parameters (F4) --- */
+    /* --- Dynamic parameters --- */
     tabOperational: "Operational",
     tabAnalytics: "Model & analytics",
     tabUtilities: "Utilities",
@@ -447,7 +447,7 @@ export const strings = {
       "No coordinated networks have been detected yet. Runs are scheduled, and can also be triggered on demand from Admin Settings.",
     unavailableTitle: "The detector is not available yet",
     unavailableBody:
-      "The detection pipeline has not been deployed for this environment, so there are no networks to review. F1–F4 are unaffected.",
+      "The detection pipeline has not been deployed for this environment, so there are no networks to review. The rest of the app is unaffected.",
     sort: "Sort by",
     sortScore: "Coordination Score",
     sortDetected: "Most recently detected",
@@ -616,7 +616,7 @@ export const strings = {
     othersQualify: "other qualifying networks",
     viewNetwork: "View network",
 
-    /* ---------------- [S4] cluster detail ---------------- */
+    /* ---------------- cluster detail ---------------- */
     scoreCaption: "Score",
     clusterDetail: "Cluster detail",
     amplifying: "amplifying",

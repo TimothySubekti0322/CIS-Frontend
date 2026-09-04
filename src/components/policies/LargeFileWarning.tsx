@@ -7,13 +7,13 @@ import { usePolicyUploadWarnMb } from "@/lib/hooks/useSettings";
 const BYTES_PER_MB = 1024 * 1024;
 
 /**
- * US40 / AP-17 — a warning that a policy document is unusually large.
+ * A warning that a policy document is unusually large.
  *
- * **A warning, never a block.** US40 requires policy uploads to have no size
- * limit and the backend enforces none, so this exists only to tell an uploader
- * a file is unusual before they wait on it. Nothing here disables a submit
- * button, and the threshold is read from the admin setting rather than baked
- * in — an operator who raises it means it.
+ * **A warning, never a block.** Policy uploads have no size limit and the
+ * backend enforces none, so this exists only to tell an uploader a file is
+ * unusual before they wait on it. Nothing here disables a submit button, and
+ * the threshold is read from the admin setting rather than baked in — an
+ * operator who raises it means it.
  */
 export function LargeFileWarning({ file }: { file: File | null }) {
   const warnMb = usePolicyUploadWarnMb();

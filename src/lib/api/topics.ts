@@ -5,7 +5,8 @@ import { ENDPOINTS } from "./endpoints";
 import { mapTopic } from "./mappers";
 
 /**
- * Topics power the filter chips shared by F1's two sections. They are owned
+ * Topics power the filter chips shared by the claim repository's two
+ * sections. They are owned
  * and written by the AI service — including new ones it creates during policy
  * matchmaking — so this backend exposes reads only: no create/update/delete.
  */

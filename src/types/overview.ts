@@ -1,20 +1,20 @@
 import type { ClaimPolicyRef, TopicRef } from "./claim";
 
 /**
- * F6 — Overview (PRD v1.5 §11). The whole page arrives in one call, mirroring
+ * The whole overview page arrives in one call, mirroring
  * `GET /claims/repository`: three sections are always read together, and three
  * round trips to render one screen buys nothing.
  *
  * Nothing here is stored server-side — every figure is computed on request from
- * the same `claims` rows F1 ranks, so the page can never disagree with the page
- * it summarises.
+ * the same `claims` rows the repository ranks, so the page can never disagree
+ * with the page it summarises.
  */
 
-/** One entry of the F4 city catalog (US65). A closed set held in backend code. */
+/** One entry of the city catalog. A closed set held in backend code. */
 export interface City {
   name: string;
   province: string;
-  /** IANA zone — selecting a city also sets it, so F5 report footers follow. */
+  /** IANA zone — selecting a city also sets it, so report footers follow. */
   timezone: string;
 }
 
@@ -35,8 +35,8 @@ export interface OverviewCity extends City {
 }
 
 /**
- * O1a (US67) — every Existing/Generic claim counted against the global
- * threshold, regardless of review status. An unscored claim counts as *below*:
+ * Every Existing/Generic claim counted against the global threshold,
+ * regardless of review status. An unscored claim counts as *below*:
  * escalating on missing data is the one direction that cannot be defended.
  */
 export interface ThresholdRatio {
@@ -50,7 +50,7 @@ export interface ThresholdRatio {
 /**
  * `ok` — computed. `insufficient_data` — below the minimum volume in the
  * window. `unavailable` — the AI service has not provisioned per-item sentiment.
- * `score` is `null` unless `ok`, and O1a/O2/O3 are unaffected either way.
+ * `score` is `null` unless `ok`, and the other sections are unaffected either way.
  */
 export type SentimentStatus = "ok" | "insufficient_data" | "unavailable";
 
@@ -67,7 +67,7 @@ export interface SentimentVolume {
 }
 
 /**
- * O1b — the Climate Sentiment Index (PRD 6.6, US68).
+ * The Climate Sentiment Index.
  *
  * ```
  * CSI            = BCS_normalized × 0.5 + (100 − RiskLoad) × 0.5
@@ -76,9 +76,8 @@ export interface SentimentVolume {
  * RiskLoad       = Σ(FinalClaimScore_i × Volume_i) / total, for claims ≥ 50
  * ```
  *
- * Every component is returned beside the headline number, for the same reason
- * PRD 6.5 requires it of claim scores — the collapsed figure is never served
- * without its inputs.
+ * Every component is returned beside the headline number, same as claim
+ * scores — the collapsed figure is never served without its inputs.
  */
 export interface SentimentIndex {
   status: SentimentStatus;
@@ -104,7 +103,7 @@ export interface SentimentIndex {
 }
 
 /**
- * O2 (US69) — one treemap box per Existing-claim topic, largest first.
+ * One treemap box per Existing-claim topic, largest first.
  * Synthetic-only topics are excluded so predictions cannot dominate the map.
  */
 export interface OverviewTopic {
@@ -121,12 +120,12 @@ export interface OverviewTopic {
   boxSize: number;
 }
 
-/** The policy reference O3 ranks, with the AI-side id the backend shadows. */
+/** The policy reference this ranking uses, with the AI-side id the backend shadows. */
 export interface OverviewPolicyRef extends ClaimPolicyRef {
   aiPolicyId: string | null;
 }
 
-/** O3 (US70) — ranked by the same combined metric that sizes the O2 treemap. */
+/** Ranked by the same combined metric that sizes the topic treemap. */
 export interface OverviewPolicy {
   rank: number;
   policy: OverviewPolicyRef;
@@ -136,7 +135,7 @@ export interface OverviewPolicy {
   score: number;
 }
 
-/** `GET /overview` — the whole F6 page. */
+/** `GET /overview` — the whole overview page. */
 export interface Overview {
   city: OverviewCity | null;
   generatedAt: string | null;
@@ -146,7 +145,7 @@ export interface Overview {
   policies: OverviewPolicy[];
 }
 
-/** `GET /overview/topics/:id` — the treemap's click-through modal (US69). */
+/** `GET /overview/topics/:id` — the treemap's click-through modal. */
 export interface TopicOverview {
   topic: TopicRef;
   claimCount: number;
@@ -164,6 +163,6 @@ export interface TopicOverview {
 }
 
 export interface OverviewParams {
-  /** Size of the O3 leaderboard. Backend default is 5. */
+  /** Size of the policy leaderboard. Backend default is 5. */
   limit?: number;
 }

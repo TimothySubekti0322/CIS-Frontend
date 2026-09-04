@@ -1,5 +1,5 @@
 /**
- * F4 — the dynamic-parameter catalog (`GET /settings/parameters`).
+ * The dynamic-parameter catalog (`GET /settings/parameters`).
  *
  * Every bound, unit, default and grouping on this screen is served by the
  * backend from the registry that also validates the writes. Nothing here
@@ -41,7 +41,6 @@ export interface ConfigParameter {
   /** The endpoint that owns writes for this key, when it is not this one. */
   managedBy: string | null;
   prdRef: string | null;
-  /** The AP-xx id from the Admin Configurable Parameters spec. */
   paramId: string | null;
   description: string;
   /** A caveat the bounds alone cannot express. Shown as help text. */

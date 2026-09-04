@@ -16,7 +16,7 @@ export interface AllowlistDraft {
 }
 
 /**
- * US56's declaration form, shared by the network-level and account-level
+ * The declaration form, shared by the network-level and account-level
  * actions.
  *
  * NGOs, newsrooms, unions and grassroots campaigns coordinate openly and by

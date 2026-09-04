@@ -22,10 +22,10 @@ export interface NavItem {
 }
 
 /**
- * Sidebar order is a product decision, not an implementation detail: US66 puts
- * the Overview first, ahead of F1–F5, because leadership should meet the big
- * picture before drilling into individual claims. Admin Settings sits last as
- * a configuration surface rather than a daily destination.
+ * Sidebar order is a product decision, not an implementation detail: Overview
+ * comes first, ahead of the feature pages, because leadership should meet the
+ * big picture before drilling into individual claims. Admin Settings sits
+ * last as a configuration surface rather than a daily destination.
  */
 export const NAV_ITEMS: NavItem[] = [
   { href: HOME_HREF, label: strings.nav.overview, icon: LayoutDashboard },
@@ -35,7 +35,7 @@ export const NAV_ITEMS: NavItem[] = [
     href: "/alerts",
     label: strings.nav.alerts,
     icon: Bell,
-    // US71 — threshold crossings since this user last opened the Alert page.
+    // Threshold crossings since this user last opened the Alert page.
     badge: "alertCrossings",
   },
   {

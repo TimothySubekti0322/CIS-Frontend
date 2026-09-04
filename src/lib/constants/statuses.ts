@@ -9,7 +9,7 @@ export interface StatusMeta {
   tone: PillTone;
 }
 
-/** Unified 4-value claim status model (PRD v1.3 §4 US1). */
+/** Unified 4-value claim status model. */
 export const CLAIM_STATUSES: StatusMeta[] = [
   { value: "unreviewed", label: strings.status.unreviewed, tone: "neutral" },
   { value: "active", label: strings.status.active, tone: "success" },
@@ -21,7 +21,7 @@ export const CLAIM_STATUS_MAP: Record<ClaimStatus, StatusMeta> = Object.fromEntr
   CLAIM_STATUSES.map((s) => [s.value, s]),
 ) as Record<ClaimStatus, StatusMeta>;
 
-/** F1 page-level status filter tabs (PRD US1) — "All Status" + the 4 statuses. */
+/** Page-level status filter tabs — "All Status" + the 4 statuses. */
 export const STATUS_FILTER_TABS: { value: ClaimStatus | "all"; label: string }[] = [
   { value: "all", label: strings.common.allStatus },
   ...CLAIM_STATUSES.map((s) => ({ value: s.value, label: s.label })),

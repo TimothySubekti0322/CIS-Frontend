@@ -16,10 +16,10 @@ import { formatValue, humanise } from "./format";
 /**
  * The per-account drawer.
  *
- * This component exists because of one sentence in US55 — "No account may
- * appear in a network without a viewable reason" — and the connecting-edges
- * block below is what makes that sentence true: it names the specific edges,
- * with their per-signal weights, that placed this account in the cluster.
+ * This component exists so no account appears in a network without a
+ * viewable reason: the connecting-edges block below names the specific
+ * edges, with their per-signal weights, that placed this account in the
+ * cluster.
  */
 export function AccountDrawer({
   networkId,

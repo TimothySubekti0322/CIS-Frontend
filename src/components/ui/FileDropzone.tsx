@@ -14,7 +14,7 @@ const ACCEPTED_EXT = [".pdf", ".doc", ".docx"];
 export interface FileDropzoneProps {
   file: File | null;
   onFile: (file: File | null) => void;
-  /** Inline error message for a rejected file type (PRD US40). */
+  /** Inline error message for a rejected file type. */
   rejectMessage: string;
   hint?: string;
 }
@@ -25,7 +25,7 @@ function isAccepted(file: File): boolean {
   return ACCEPTED_EXT.some((ext) => name.endsWith(ext));
 }
 
-/** PDF/Word only, no size limit (PRD US40, §5.6 — size not advertised). */
+/** PDF/Word only, no size limit — size not advertised. */
 export function FileDropzone({ file, onFile, rejectMessage, hint }: FileDropzoneProps) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);

@@ -32,7 +32,7 @@ import { AllowlistNetworkDialog, NetworkReviewBar } from "./NetworkReviewPanel";
 import { NetworkActions } from "./ReportsPanel";
 
 /**
- * [S4] — one cluster, as a single sheet rather than a wall of panels.
+ * One cluster, as a single sheet rather than a wall of panels.
  *
  * The page answers one question: does this cluster need a person's attention,
  * and on what evidence? So it carries the score, the five signal scores, the
@@ -142,8 +142,8 @@ export function NetworkDetailView({ id }: { id: string }) {
             />
           </DetBlock>
 
-          {/* PRD 10.9.2's standing text, served rather than hard-coded so the
-              sheet and the report cannot drift apart. */}
+          {/* Standing text served rather than hard-coded so the sheet and the
+              report cannot drift apart. */}
           {network.disclaimer && (
             <p className="mt-6 rounded-xl bg-mint-cream px-3.5 py-3 text-xs leading-relaxed text-regal-navy/70">
               <span className="font-bold text-regal-navy">

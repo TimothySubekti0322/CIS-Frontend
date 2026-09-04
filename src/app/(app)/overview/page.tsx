@@ -13,24 +13,23 @@ import { TopicDetailModal } from "@/components/overview/TopicDetailModal";
 import { HotPoliciesTable } from "@/components/overview/HotPoliciesTable";
 
 /**
- * F6 — Overview (PRD v1.5 §11). First in the sidebar per US66.
- *
  * The whole page is one call. `GET /overview` returns all three sections
  * together for the same reason `GET /claims/repository` does: they are read on
  * every load, and three round trips to render one screen buys nothing.
  *
- * The one thing to keep intact here is the failure boundary. O1b's gauge
- * depends on a content-stream column the AI service may not have provisioned;
- * O1a, O2 and O3 come from `claims` and are unaffected. So a non-`ok`
- * sentiment status costs exactly one card — the gauge renders its own reason
- * and everything else on the page still renders normally.
+ * The one thing to keep intact here is the failure boundary. The sentiment
+ * gauge depends on a content-stream column the AI service may not have
+ * provisioned; the ratio card and the topics/policies sections come from
+ * `claims` and are unaffected. So a non-`ok` sentiment status costs exactly
+ * one card — the gauge renders its own reason and everything else on the
+ * page still renders normally.
  *
- * §5.6 allows this page, and only this page, to be visually bold. It still
- * draws solely on the §5.1 palette plus the one reserved warm red.
+ * This is the one page allowed to be visually bold. It still draws solely
+ * from the shared palette plus the one reserved warm red.
  */
 export default function OverviewPage() {
   const [openTopicId, setOpenTopicId] = useState<string | null>(null);
-  // O3 "Top Policies" is capped at 5 rows (PAGINATION_FOR_FE.md §1).
+  // "Top Policies" is capped at 5 rows (see PAGINATION_FOR_FE.md).
   const { data, isPending, isError } = useOverview({ limit: 5 });
 
   if (isPending) return <OverviewSkeleton />;
@@ -54,17 +53,14 @@ export default function OverviewPage() {
         <CityContextBar city={data.city} generatedAt={data.generatedAt} />
       </header>
 
-      {/* O1 — the ratio and the gauge side by side above tablet, stacked below
-          (PRD §5.2, v1.5). */}
+      {/* Ratio and gauge side by side above tablet, stacked below. */}
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
         <ThresholdRatioCard ratio={data.thresholdRatio} />
         <SentimentGauge sentiment={data.sentiment} />
       </div>
 
-      {/* O2 */}
       <TopicTreemap topics={data.topics} onSelect={setOpenTopicId} />
 
-      {/* O3 */}
       <HotPoliciesTable policies={data.policies} />
 
       <TopicDetailModal

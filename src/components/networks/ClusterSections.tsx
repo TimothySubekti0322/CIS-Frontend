@@ -7,7 +7,7 @@ import { strings } from "@/lib/constants/strings";
 import { SIGNAL_LABELS, SIGNAL_ORDER } from "@/lib/constants/networkStatuses";
 
 /**
- * The building blocks of the [S4] cluster sheet.
+ * The building blocks of the cluster sheet.
  *
  * The detail page is one document rather than a wall of cards, so the sections
  * inside it are separated by a rule and a small caps heading instead of by a
@@ -51,10 +51,10 @@ export function DetBlock({
 
 /**
  * The signal profile, reduced to what can be read at a glance: the family, a
- * meter, and the number. US50's requirement that the composite is never shown
- * without its breakdown is met by the report, which carries each family's
- * method sentence, underlying counts and weight in full — this is the summary
- * view of the same five numbers, not a replacement for them.
+ * meter, and the number. The composite is never shown without its breakdown —
+ * that requirement is met by the report, which carries each family's method
+ * sentence, underlying counts and weight in full — this is the summary view
+ * of the same five numbers, not a replacement for them.
  */
 export function SignalProfile({ why }: { why: WhyFlagged }) {
   const signals = [...why.signals].sort(

@@ -28,7 +28,7 @@ import {
 const DAY = 86_400_000;
 export const MOCK_NOW = Date.parse("2026-08-30T09:00:00Z");
 
-/** Matches the backend's fresh-database default (US32). */
+/** Matches the backend's fresh-database default. */
 export const DEFAULT_THRESHOLD = 70;
 const daysAgo = (n: number) => new Date(MOCK_NOW - n * DAY).toISOString();
 
@@ -126,7 +126,7 @@ function buildScore(seed: ScoreSeed): ScoreBreakdownDto {
 }
 
 /**
- * US23's tooltip sentence (v1.5).
+ * The score breakdown's tooltip sentence.
  *
  * Generated from the same weight constants the score is computed from, for
  * the reason the backend generates it rather than letting the frontend write
@@ -283,9 +283,9 @@ export interface WatchEntry {
   added_at: string;
   chart_visible: boolean;
   /**
-   * v1.5 (US71). A crossing is a transition between two evaluations, not a
-   * state, so the previous Over/Under status has to be stored: the score alone
-   * says where a claim is now, never that it just moved.
+   * A crossing is a transition between two evaluations, not a state, so the
+   * previous Over/Under status has to be stored: the score alone says where
+   * a claim is now, never that it just moved.
    *
    * A claim added to the watchlist records its current status as a baseline
    * without notifying — a first sighting is not a transition.
@@ -295,7 +295,7 @@ export interface WatchEntry {
   crossed_direction?: "up" | "down" | null;
 }
 
-/** The 27-city catalog US65 selects from, as the backend holds it in code. */
+/** The 27-city catalog, as the backend holds it in code. */
 export interface CityRecord {
   name: string;
   province: string;
@@ -344,11 +344,11 @@ export interface Snapshot {
  * it: the 7-day window's sentiment split, plus each claim's own conversation
  * volume for the RiskLoad weighting.
  *
- * PRD 6.6.1 is explicit that the denominator is *all* climate-related content,
- * independent of the claim repository — so `total` is larger than the sum of
- * the per-claim volumes, and unclustered content is what makes up the
- * difference. Getting this wrong in the mock would make the index look
- * plausible while exercising the wrong arithmetic.
+ * The denominator is *all* climate-related content, independent of the claim
+ * repository — so `total` is larger than the sum of the per-claim volumes,
+ * and unclustered content is what makes up the difference. Getting this
+ * wrong in the mock would make the index look plausible while exercising the
+ * wrong arithmetic.
  */
 export interface ContentVolume {
   total: number;
@@ -376,8 +376,8 @@ export interface Seed {
  *
  * This is deliberately a second store rather than more rows in `snapshots`.
  * The two answer different questions and the product depends on the
- * difference: the backend's watchlist-only snapshots drive the F3 chart and
- * the per-claim Score History Chart, so an unwatched claim must show no
+ * difference: the backend's watchlist-only snapshots drive the alert chart
+ * and the per-claim Score History Chart, so an unwatched claim must show no
  * history there. The AI service's history is what the Overview's topic
  * month-on-month reads, precisely because a MoM figure computed over the
  * watchlist would describe the team's attention rather than the topic.
@@ -447,9 +447,9 @@ export function buildSeed(): Seed {
     const negative = dormant ? 0 : 40 + ((i * 11) % 120);
     /* The spread is chosen so that roughly a third of the seeded claims land
        above the default threshold of 70. Below that, mock mode would show an
-       all-clear Overview, an empty Over-Threshold column on F3 and a treemap
-       whose count half is uniformly zero — and none of those paths would ever
-       be exercised by anyone developing against it. */
+       all-clear Overview, an empty Over-Threshold column on the alert page and
+       a treemap whose count half is uniformly zero — and none of those paths
+       would ever be exercised by anyone developing against it. */
     const score = buildScore({
       reach: dormant ? 8 : 48 + ((i * 13) % 48),
       velocity: dormant ? 4 : 38 + ((i * 29) % 58),
@@ -556,10 +556,10 @@ export function buildSeed(): Seed {
         score !== null && score >= DEFAULT_THRESHOLD
           ? ("over_threshold" as const)
           : ("under_threshold" as const);
-      // The first row is seeded as having *just* crossed, so the US29 row
-      // highlight and the US71 badge are both visible on a fresh mock. Its
-      // stored previous status is the opposite of where it now sits, which is
-      // exactly the shape a real transition leaves behind.
+      // The first row is seeded as having *just* crossed, so the row
+      // highlight and the notification badge are both visible on a fresh
+      // mock. Its stored previous status is the opposite of where it now
+      // sits, which is exactly the shape a real transition leaves behind.
       const justCrossed = i === 0;
       return {
         claim_id: c.id,
@@ -702,7 +702,7 @@ export function historyFor(
 
 let generatedCount = 0;
 
-/** The F4 "Generate Generic Claim" utility's output (US33). */
+/** The "Generate Generic Claim" admin utility's output. */
 export function createGeneratedClaim(topicId?: string): MockClaim {
   generatedCount += 1;
   const i = generatedCount;
@@ -745,8 +745,8 @@ export function createGeneratedClaim(topicId?: string): MockClaim {
       content: debunkDraft(statement),
       generated_at: new Date().toISOString(),
       available: true,
-      // PRD v1.5 §8.2 — the demo claim must exercise both v1.5 changes, so it
-      // always carries at least one segment as well as its harm sub-scores.
+      // The demo claim always carries at least one segment as well as its
+      // harm sub-scores, so both are exercised without relying on chance.
       segments: debunkSegments(statement, 2),
     },
     policies: [],
@@ -788,8 +788,8 @@ export function createPredictedClaim(policyId: string, policyName: string): Mock
 }
 
 /**
- * The audience segments US12 (v1.5) asks the AI to identify, most-exposed
- * first. Deterministic per claim so the mock is stable across reloads.
+ * The audience segments the AI identifies, most-exposed first. Deterministic
+ * per claim so the mock is stable across reloads.
  *
  * Deliberately not generated for every claim: a deployment whose AI service
  * has not shipped segmentation returns an empty array and the page falls back

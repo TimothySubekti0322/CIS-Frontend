@@ -5,7 +5,7 @@ import type {
 } from "@/types/settings";
 
 /**
- * Client-side logic for the F4 dynamic-parameter form.
+ * Client-side logic for the dynamic-parameter form.
  *
  * # What this file may and may not know
  *
@@ -46,9 +46,9 @@ export const PARAM = {
 
 /**
  * Above this, the discount cap lets pushback remove most of a claim's score.
- * PRD 6.4.4 wants a contested claim de-prioritised, never hidden, so the form
- * says so before the operator finds out from the rankings. The server allows
- * it — this only advises.
+ * A contested claim should be de-prioritised, never hidden, so the form says
+ * so before the operator finds out from the rankings. The server allows it —
+ * this only advises.
  */
 export const GAMMA_WARN_ABOVE = 0.7;
 

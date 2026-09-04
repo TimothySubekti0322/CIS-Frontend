@@ -14,7 +14,7 @@ import { Tabs } from "@/components/ui/Tabs";
 import { PolicyCard } from "./PolicyCard";
 
 export interface PolicyListProps {
-  /** Page size. The F2 landing page shows a short list; "See all" paginates. */
+  /** Page size. The landing page shows a short list; "See all" paginates. */
   limit?: number;
   paginated?: boolean;
 }
@@ -26,7 +26,7 @@ const STATUS_TABS: { value: PolicyStatus | "all"; label: string }[] = [
 ];
 
 /**
- * The shared F2 policy list. Year chips come from `GET /policies/years` rather
+ * The shared policy list. Year chips come from `GET /policies/years` rather
  * than being derived from the current page, so a year with no results on this
  * page is still offered.
  *

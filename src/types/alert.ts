@@ -2,14 +2,14 @@ import type { Granularity, ScorePoint, TopicRef } from "./claim";
 import type { PageParams } from "./common";
 
 /**
- * Derived at read time by comparing `finalClaimScore` to the F4 global
+ * Derived at read time by comparing `finalClaimScore` to the global
  * threshold — changing the threshold flips these instantly, no recomputation.
  * A `null` score is `under_threshold`: an unscored claim is never escalated
  * on missing data.
  */
 export type ThresholdStatus = "over_threshold" | "under_threshold";
 
-/** A row of the F3 watchlist table. */
+/** A row of the watchlist table. */
 export interface WatchlistItem {
   /** The claim id — the `:claimId` every other alert endpoint takes. */
   claimId: string;
@@ -17,7 +17,7 @@ export interface WatchlistItem {
   alertId: string | null;
   claimStatement: string;
   topic: TopicRef | null;
-  /** The claim's own creation date — PRD US29's "Claim Created Date" column. */
+  /** The claim's own creation date — shown as the "Claim Created Date" column. */
   claimCreatedAt: string | null;
   /** When the operator started watching it. Not the claim's creation date. */
   addedAt: string;
@@ -29,10 +29,9 @@ export interface WatchlistItem {
   threshold: number | null;
   isDormant: boolean;
   /**
-   * US29/US71, new in v1.5. `true` while this claim's Over/Under status has
-   * flipped **since this reader last opened F3** — it drives the light row
-   * tint, which is distinct from and lighter than the standing
-   * `over_threshold` colour.
+   * `true` while this claim's Over/Under status has flipped **since this
+   * reader last opened the watchlist** — it drives the light row tint, which
+   * is distinct from and lighter than the standing `over_threshold` colour.
    *
    * Per-reader: one operator acknowledging must not clear a colleague's
    * highlight. Only this flag clears on acknowledgment; `crossedAt` and
@@ -48,7 +47,7 @@ export interface WatchlistItem {
 export type CrossingDirection = "up" | "down";
 
 /**
- * One claim behind the sidebar badge (US71). Newest first, capped at 20 by the
+ * One claim behind the sidebar badge. Newest first, capped at 20 by the
  * backend — a watchlist where dozens crossed at once is a threshold problem,
  * not a paging problem.
  */
@@ -63,12 +62,12 @@ export interface ThresholdCrossing {
 }
 
 /**
- * `GET /alerts/notifications` — the counter on the Alert sidebar item (US71).
+ * `GET /alerts/notifications` — the counter on the Alert sidebar item.
  *
- * Acknowledgment is per user, and opening F3 is what acknowledges. The
- * acknowledge call must run **after** the rows have rendered: acknowledging is
- * what makes the *next* render unhighlighted, so calling it first would clear
- * the very highlights the user was just told about.
+ * Acknowledgment is per user, and opening the watchlist is what acknowledges.
+ * The acknowledge call must run **after** the rows have rendered:
+ * acknowledging is what makes the *next* render unhighlighted, so calling it
+ * first would clear the very highlights the user was just told about.
  */
 export interface AlertNotifications {
   unacknowledgedCount: number;

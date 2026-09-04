@@ -8,8 +8,8 @@ import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 
 /**
- * F4 — forces a score snapshot for every watched claim, so the Alert-page
- * chart has history without waiting for the hourly cron. Returns 0 when the
+ * Forces a score snapshot for every watched claim, so the Alert-page chart
+ * has history without waiting for the hourly cron. Returns 0 when the
  * watchlist is empty, which is a valid answer rather than a failure.
  */
 export function SnapshotScoresButton() {

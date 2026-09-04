@@ -15,7 +15,7 @@ export function useSettings() {
 }
 
 /**
- * The F4 dynamic-parameter catalog: every bound, unit, default and grouping
+ * The dynamic-parameter catalog: every bound, unit, default and grouping
  * the form renders from, alongside each parameter's current value.
  */
 export function useParameters() {
@@ -40,7 +40,7 @@ export function useParameterValue(key: string): number | null {
 }
 
 /**
- * US40 — the size above which the Add Public Policy modal warns. A warning,
+ * The size above which the Add Public Policy modal warns. A warning,
  * never a block: the backend enforces no upload limit, and this only flags an
  * unusually large file before the uploader waits on it.
  */
@@ -87,7 +87,7 @@ export function useResetParameter() {
   });
 }
 
-/** US62 — who changed what, when, across the whole F4 surface. */
+/** Who changed what, when, across the whole settings surface. */
 export function useSettingHistory(params: { key?: string; page?: number } = {}) {
   return useQuery({
     queryKey: queryKeys.settings.history(params),
@@ -95,7 +95,7 @@ export function useSettingHistory(params: { key?: string; page?: number } = {}) 
   });
 }
 
-/** The F4 Over/Under cutoff. Defaults to 70 on a fresh database. */
+/** The Over/Under cutoff. Defaults to 70 on a fresh database. */
 export function useAlertThreshold() {
   return useQuery({
     queryKey: queryKeys.settings.alertThreshold,
@@ -120,7 +120,7 @@ export function useUpdateAlertThreshold() {
 }
 
 /**
- * US65 — the F4 city selector's options and current selection.
+ * The city selector's options and current selection.
  *
  * The catalog is a closed set held in backend code, so it changes on a human
  * timescale rather than a request one; it is cached accordingly.
@@ -134,10 +134,10 @@ export function useCities() {
 }
 
 /**
- * Saving a city re-scopes the whole Overview page and moves the timezone F5's
+ * Saving a city re-scopes the whole Overview page and moves the timezone
  * report footers are stamped in, so both are invalidated rather than patched:
- * every F6 figure is recomputed server-side against the new scope, and there
- * is nothing the client could correctly recompute on its own.
+ * every aggregate figure is recomputed server-side against the new scope, and
+ * there is nothing the client could correctly recompute on its own.
  */
 export function useUpdateCity() {
   const qc = useQueryClient();

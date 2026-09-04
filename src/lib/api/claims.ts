@@ -36,12 +36,12 @@ import {
   mapTopAccount,
 } from "./mappers";
 
-/** Fixed page size for both Claim Repository sections (PAGINATION_FOR_FE.md §2). */
+/** Fixed page size for both Claim Repository sections. */
 export const REPOSITORY_PAGE_SIZE = 10;
 
 export const claimsApi = {
   /**
-   * `GET /claims/repository` — the whole F1 page in one call.
+   * `GET /claims/repository` — the whole repository page in one call.
    *
    * Both sections always return regardless of the status tab: the filter
    * narrows claims *within* a section, it never hides one outright. Each
@@ -138,8 +138,8 @@ export const claimsApi = {
 
   /**
    * `GET /claims/:id/policies` — correlated policies. `source` says where the
-   * record came from: `cis` (registered through F2) or `ai` (created by the
-   * AI service, with no F2 upload behind it).
+   * record came from: `cis` (registered manually) or `ai` (created by the
+   * AI service, with no manual upload behind it).
    */
   async policies(id: string): Promise<ClaimPolicyRef[]> {
     const dto = await apiClient.call<ClaimPolicyRefDto[]>(
@@ -151,7 +151,7 @@ export const claimsApi = {
 
   /**
    * `GET /claims/:id/score-history` — history exists only from the moment a
-   * claim joins the F3 watchlist; the snapshot job captures watched claims only.
+   * claim joins the watchlist; the snapshot job captures watched claims only.
    */
   async scoreHistory(
     id: string,
@@ -192,7 +192,7 @@ export const claimsApi = {
 
   /**
    * `PUT /claims/:id/harm/confirm` — an analyst confirms or overrides the four
-   * Harm sub-scores (PRD 6.2.4). Existing claims only.
+   * Harm sub-scores. Existing claims only.
    *
    * The backend cannot apply this itself: `harm_*` and every score derived from
    * them are columns on the AI-owned `claims` table. The request is proxied,

@@ -29,7 +29,7 @@ export function formatDateTime(iso: string | null | undefined): string {
   })}`;
 }
 
-/** Format an ISO date as "Aug 2026" (used on policy cards — PRD US37). */
+/** Format an ISO date as "Aug 2026" (used on policy cards). */
 export function formatMonthYear(iso: string | null | undefined): string {
   if (!iso) return "—";
   const d = new Date(iso);

@@ -51,7 +51,7 @@ import {
   mapTriggerResult,
 } from "./mappers.networks";
 
-/* ------------------------- detection runs (US62) ------------------------ */
+/* ------------------------- detection runs ------------------------ */
 
 /**
  * Run history is deliberately NOT under `/admin`: truncation and unavailable
@@ -157,10 +157,9 @@ export const detectionApi = {
   },
 
   /**
-   * The aggregate (PRD 10.9.3): dismissal rate, precision against the PRD's
-   * target, and which signals over-trigger. Whether dismissals should
-   * auto-adjust the weights is an open question and the current answer is no —
-   * these endpoints report, an admin decides.
+   * Aggregate dismissal stats: dismissal rate, precision against target, and
+   * which signals over-trigger. Dismissals do not auto-adjust the detector's
+   * weights — these endpoints report, an admin decides.
    */
   async dismissalSummary(windowDays = 90): Promise<DismissalSummary> {
     const dto = await apiClient.call<DismissalSummaryDto>(
@@ -170,7 +169,7 @@ export const detectionApi = {
     return mapDismissalSummary(dto ?? {});
   },
 
-  /** `GET /admin/export-audit` — US64. Who exported what, when, and how. */
+  /** `GET /admin/export-audit` — who exported what, when, and how. */
   async exportAudit(params: AuditLogParams = {}): Promise<Paginated<AuditLogEntry>> {
     const { data, meta } = await apiClient.callWithMeta<AuditLogEntryDto[]>(
       ENDPOINTS.admin.exportAudit,
@@ -195,7 +194,7 @@ export const detectionApi = {
 /* --------------------- the declared-coordination allowlist -------------- */
 
 /**
- * Accounts the team has **declared** as legitimately coordinating (US56, US63).
+ * Accounts the team has **declared** as legitimately coordinating.
  *
  * Entries are keyed on `(platform, platform_account_id)`, not on the handle:
  * handles get renamed, the platform-issued id does not, and protection keyed on
@@ -270,7 +269,7 @@ export const allowlistApi = {
   /**
    * The phrase allowlist: slogans and civic boilerplate excluded from
    * duplication scoring, so a shared campaign hashtag is not read as content
-   * duplication (PRD 10.5.2.2).
+   * duplication.
    */
   async phrases(
     params: { q?: string; page?: number; limit?: number } = {},
@@ -308,7 +307,7 @@ export const allowlistApi = {
   },
 };
 
-/* -------------------------- detector settings (US62) -------------------- */
+/* -------------------------- detector settings -------------------- */
 
 /**
  * ~30 governed parameters with two cross-field constraints — the weights must
@@ -338,9 +337,8 @@ export const detectorSettingsApi = {
   },
 
   /**
-   * PRD 10.11's Default Parameter Reference. Serve the form from this rather
-   * than hard-coding bounds, so the client and the server cannot disagree about
-   * what is legal.
+   * Serve the form from this rather than hard-coding bounds, so the client
+   * and the server cannot disagree about what is legal.
    */
   async ranges(): Promise<DetectorParamRange[]> {
     const dto = await apiClient.call<DetectorParamRangeDto[]>(
@@ -358,9 +356,9 @@ export const detectorSettingsApi = {
   },
 
   /**
-   * PRD 10.8 requires every report footer to carry the generation time in UTC
-   * and city-local time, and nothing else in the system knows which city. An
-   * invalid zone is rejected with 422 rather than silently falling back to UTC.
+   * Every report footer carries the generation time in UTC and city-local
+   * time, and nothing else in the system knows which city. An invalid zone
+   * is rejected with 422 rather than silently falling back to UTC.
    */
   async getCityTimezone(): Promise<string> {
     const dto = await apiClient.call<CityTimezoneDto | string>(

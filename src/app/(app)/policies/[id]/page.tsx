@@ -27,7 +27,7 @@ import { EditPolicyModal } from "@/components/policies/EditPolicyModal";
 import { ReplaceFileModal } from "@/components/policies/ReplaceFileModal";
 
 /**
- * F2 — policy detail. Reuses the F1 claim cards verbatim.
+ * Reuses the same claim cards used elsewhere, verbatim.
  *
  * Both claim lists stay empty until `aiPolicyId` arrives: correlations do not
  * exist before the AI service's matchmaking callback supplies it, no matter
@@ -124,7 +124,7 @@ export default function PolicyDetailPage({
                 {strings.claims.created}: {formatDate(policy.createdAt)}
               </span>
             )}
-            {/* The value the F2 list sort is computed on — shown so the
+            {/* The value the policy list sort is computed on — shown so the
                 ordering on the previous page is explainable. */}
             {policy.lastClaimActivityAt && (
               <span className="text-xs text-regal-navy/50">

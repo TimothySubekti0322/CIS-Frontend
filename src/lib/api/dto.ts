@@ -70,9 +70,9 @@ export interface HarmEditPreviousDto {
 }
 
 /**
- * New in v1.5 (US23). **Omitted while the values are the AI's originals** —
- * its presence, not `human_confirmed`, is what marks an edited Harm, because
- * an empty confirmation sets the boolean too.
+ * **Omitted while the values are the AI's originals** — its presence, not
+ * `human_confirmed`, is what marks an edited Harm, because an empty
+ * confirmation sets the boolean too.
  */
 export interface HarmEditDto {
   edited_by?: string | null;
@@ -106,7 +106,7 @@ export interface ScoreBreakdownDto {
   is_dormant?: boolean;
   weights?: ScoreWeightsDto | null;
   note?: string | null;
-  /** New in v1.5 — the ready-made US23 tooltip sentence. */
+  /** The ready-made tooltip sentence explaining the score formula. */
   formula?: string | null;
 }
 
@@ -124,7 +124,7 @@ export interface DebunkBlocksDto {
   reiterated_fact?: string | null;
 }
 
-/** One audience-segment variant (US12, new in v1.5). */
+/** One audience-segment variant of a debunk. */
 export interface DebunkSegmentDto {
   segment?: string;
   rationale?: string | null;
@@ -144,9 +144,9 @@ export interface ClaimActivityDto {
 }
 
 /**
- * The US61 cross-link. **Omitted, not null**, when nothing qualifies: the PRD
- * is explicit that there is no empty state. A backend with no detection
- * pipeline deployed behaves identically, which is correct — in both cases
+ * The coordinated-network cross-link. **Omitted, not null**, when nothing
+ * qualifies — there is no empty state to render. A backend with no detection
+ * pipeline deployed behaves identically, which is correct: in both cases
  * there is nothing to show.
  */
 export interface ClaimNetworkBadgeDto {
@@ -154,7 +154,7 @@ export interface ClaimNetworkBadgeDto {
   label?: string;
   coordination_score?: number;
   confidence_band?: string;
-  /** Displayed, not merely used for filtering — see US61. */
+  /** Displayed, not merely used for filtering. */
   review_status?: string;
   account_count?: number;
   /** How many other networks also qualify; the highest-scoring one is returned. */
@@ -181,8 +181,9 @@ export interface TopAccountDto {
 /**
  * `created_at` and `first_caught_at` are DIFFERENT dates and both are sent for
  * an Existing claim: `first_caught_at` is when the AI first detected the claim
- * in the wild (the F1 card's "First caught"), `created_at` is when the row was
- * written. A Synthetic claim carries only `created_at` — its "Predicted" date.
+ * in the wild (the claim card's "First caught"), `created_at` is when the row
+ * was written. A Synthetic claim carries only `created_at` — its "Predicted"
+ * date.
  */
 export interface ClaimDto {
   id: string;
@@ -197,7 +198,7 @@ export interface ClaimDto {
   negative_statement_count?: number | null;
   created_at?: string | null;
   first_caught_at?: string | null;
-  /** Absent unless a qualifying coordinated network exists (US61). */
+  /** Absent unless a qualifying coordinated network exists. */
   coordinated_network?: ClaimNetworkBadgeDto;
 }
 
@@ -239,7 +240,7 @@ export interface ClaimRepositorySectionDto {
   claim_type?: string;
   sorted_by?: string;
   total_in_pool?: number;
-  /** Pagination window for this section (PAGINATION_FOR_FE.md §2). */
+  /** Pagination window for this section — see PAGINATION_FOR_FE.md. */
   page?: number;
   limit?: number;
   total_pages?: number;
@@ -333,17 +334,17 @@ export interface WatchlistItemDto {
   threshold_status?: string;
   threshold?: number | null;
   is_dormant?: boolean;
-  /** The claim's own creation date — PRD US29's "Claim Created Date" column.
-   *  Not `added_at`, which is when the operator started watching it. */
+  /** The claim's own creation date, for the "Claim Created Date" column —
+   *  not `added_at`, which is when the operator started watching it. */
   claim_created_at?: string | null;
-  /** New in v1.5 (US29/US71). Per-reader; only this flag clears on acknowledge. */
+  /** Per-reader; only this flag clears on acknowledge. */
   just_crossed?: boolean;
   /** `up` = below -> above, `down` = above -> below. Persists after acknowledge. */
   crossed_direction?: string | null;
   crossed_at?: string | null;
 }
 
-/** One entry of `crossings` on `GET /alerts/notifications` (US71). */
+/** One entry of `crossings` on `GET /alerts/notifications`. */
 export interface ThresholdCrossingDto {
   id: string;
   claim_statement?: string;

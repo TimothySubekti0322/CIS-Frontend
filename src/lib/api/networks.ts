@@ -49,19 +49,20 @@ import {
 } from "./mappers.networks";
 
 /**
- * F5 — Coordinated-Network Detector.
+ * Coordinated-Network Detector.
  *
  * Every route here answers `503 SERVICE_UNAVAILABLE` with a display-ready
  * message when the detection pipeline has not been deployed. That is not an
- * error state to hide: the F5 page renders the message and F1–F4 carry on.
+ * error state to hide: this page renders the message and the rest of the app
+ * carries on.
  */
 export const networksApi = {
   /**
-   * `GET /networks` — the F5 main page (US43–US48).
+   * `GET /networks` — the main list page.
    *
-   * Medium and High only unless `showLowConfidence` is set: PRD 10.6.3 rule 2
-   * keeps Low networks behind an explicit toggle, and when revealed they come
-   * back flagged `lowConfidence` rather than silently mixed in.
+   * Medium and High only unless `showLowConfidence` is set: Low networks stay
+   * behind an explicit toggle, and when revealed they come back flagged
+   * `lowConfidence` rather than silently mixed in.
    */
   async list(params: NetworkListParams = {}): Promise<{
     result: NetworkListResult;
@@ -91,8 +92,8 @@ export const networksApi = {
   },
 
   /**
-   * `GET /networks/:id` — US49/US50. The composite is never returned without
-   * `whyFlagged`; that is the F5 counterpart of US23's rule for claim scores.
+   * `GET /networks/:id` — the composite is never returned without
+   * `whyFlagged`, mirroring the same rule for claim scores.
    */
   async get(id: string): Promise<NetworkDetail> {
     const dto = await apiClient.call<NetworkDetailDto>(ENDPOINTS.networks.get, {
@@ -102,7 +103,7 @@ export const networksApi = {
   },
 
   /**
-   * `PUT /networks/:id/status` — records a human assessment (US52).
+   * `PUT /networks/:id/status` — records a human assessment.
    *
    * `reason` is required and at least 20 characters. A network assessment
    * without a stated reason is not recordable: it is the input both the
@@ -128,9 +129,9 @@ export const networksApi = {
   },
 
   /**
-   * `GET /networks/:id/graph` — US51. Coordinates are precomputed server-side
-   * and used verbatim: PRD 10.8 requires the PDF and the screen to render
-   * identically, so the layout is never recomputed in the browser.
+   * `GET /networks/:id/graph` — coordinates are precomputed server-side and
+   * used verbatim, so the PDF and the screen render identically and the
+   * layout is never recomputed in the browser.
    */
   async graph(id: string): Promise<NetworkGraph> {
     const dto = await apiClient.call<NetworkGraphDto>(ENDPOINTS.networks.graph, {
@@ -139,7 +140,7 @@ export const networksApi = {
     return mapNetworkGraph(dto ?? {});
   },
 
-  /** `GET /networks/:id/timeline` — burst bins with z-scores (US53). */
+  /** `GET /networks/:id/timeline` — burst bins with z-scores. */
   async timeline(id: string): Promise<BurstTimeline> {
     const dto = await apiClient.call<BurstTimelineDto>(
       ENDPOINTS.networks.timeline,
@@ -149,7 +150,7 @@ export const networksApi = {
   },
 
   /**
-   * `GET /networks/:id/content` — US54. Rendered from the evidence snapshot and
+   * `GET /networks/:id/content` — rendered from the evidence snapshot and
    * never re-fetched, which is why a post deleted since capture still appears,
    * marked no longer publicly available.
    */
@@ -161,7 +162,7 @@ export const networksApi = {
     return mapRepresentativeContent(dto ?? {});
   },
 
-  /** `GET /networks/:id/accounts` — the US55 annex, sortable and paginated. */
+  /** `GET /networks/:id/accounts` — the account annex, sortable and paginated. */
   async accounts(
     id: string,
     params: AccountAnnexParams = {},
@@ -184,7 +185,7 @@ export const networksApi = {
   },
 
   /**
-   * `GET /networks/:id/accounts/:accountId` — the drawer behind US55's rule
+   * `GET /networks/:id/accounts/:accountId` — the drawer behind the rule
    * that no account may appear in a network without a viewable reason.
    */
   async account(id: string, accountId: string): Promise<AccountDrawer> {
@@ -195,7 +196,7 @@ export const networksApi = {
   },
 
   /**
-   * `GET /networks/:id/accounts.csv` — US57. The export is written to the audit
+   * `GET /networks/:id/accounts.csv` — the export is written to the audit
    * log *before* the bytes are sent, so this is a recorded action, not a read.
    */
   async accountsCsv(id: string): Promise<{ blob: Blob; fileName: string | null }> {
@@ -203,7 +204,7 @@ export const networksApi = {
   },
 
   /**
-   * `POST /networks/:id/reports` — the 10-section PDF (US58, US59).
+   * `POST /networks/:id/reports` — the 10-section PDF.
    *
    * The gate is a fail-closed allowlist: only `under_review`, `confirmed` and
    * `action_taken` may be exported. An unreviewed export is an unreviewed
@@ -232,7 +233,7 @@ export const networksApi = {
   },
 
   /**
-   * `POST /networks/:id/evidence-bundle` — the US60 ZIP: PDF, network.json,
+   * `POST /networks/:id/evidence-bundle` — the evidence ZIP: PDF, network.json,
    * accounts.csv, posts.csv and a manifest whose hashes establish that the
    * bundle was not modified after generation. Same gate, same ordering.
    */
@@ -253,7 +254,7 @@ export const networksApi = {
   },
 
   /**
-   * `POST /networks/:id/allowlist` — US56 at network level.
+   * `POST /networks/:id/allowlist` — allowlists an entire network's membership.
    *
    * Allowlisting is retroactive: it suppresses and relabels the accounts'
    * historical networks. The result names which were affected and which of
@@ -271,7 +272,7 @@ export const networksApi = {
     return mapAllowlistResult(dto ?? {});
   },
 
-  /** `POST /networks/:id/accounts/:accountId/allowlist` — US56, one member. */
+  /** `POST /networks/:id/accounts/:accountId/allowlist` — allowlists one member. */
   async allowlistAccount(
     id: string,
     accountId: string,
@@ -366,7 +367,7 @@ function saveFromUrl(url: string, fileName: string, newTab = true): void {
  * `POST .../evidence-bundle` return the signed link on the artefact they just
  * created, so the first download costs no second round trip. Falls back to
  * resolving the link by id when the field is absent (the list route never
- * carries one — see the revision note, §5).
+ * carries one).
  */
 export async function downloadGeneratedReport(report: ReportView): Promise<void> {
   if (report.fileUrl) {

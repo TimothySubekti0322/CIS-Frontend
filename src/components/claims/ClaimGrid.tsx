@@ -5,8 +5,8 @@ import { ClaimCard } from "./ClaimCard";
 export interface ClaimGridProps {
   claims: ClaimSummary[];
   /**
-   * `auto` — full responsive grid 4 → 3 → 2 → 1 (PRD §5.2), used on F1.
-   * `compact` — for narrow containers (e.g. the two columns on the F2 detail page).
+   * `auto` — full responsive grid 4 → 3 → 2 → 1.
+   * `compact` — for narrow containers (e.g. the two columns on a detail page).
    */
   density?: "auto" | "compact";
 }

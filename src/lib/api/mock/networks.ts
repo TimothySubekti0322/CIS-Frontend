@@ -25,12 +25,12 @@ import type {
 import { MOCK_NOW } from "./data";
 
 /**
- * Deterministic F5 seed data for mock mode.
+ * Deterministic coordinated-network seed data for mock mode.
  *
  * Shaped exactly like `internal/dto/network.go` sends it, so mock mode
  * exercises the same mapping code as live mode. Nothing here asserts that an
- * account is automated or inauthentic — the fixtures obey the same PRD 10.9.1
- * rule the real payloads do, because a fixture that says "is_bot" would end up
+ * account is automated or inauthentic — the fixtures obey the same rule the
+ * real payloads do, because a fixture that says "is_bot" would end up
  * rendered by a component someone then ships.
  */
 
@@ -39,7 +39,7 @@ const DAY = 86_400_000;
 const hoursAgo = (n: number) => new Date(MOCK_NOW - n * HOUR).toISOString();
 const daysAgo = (n: number) => new Date(MOCK_NOW - n * DAY).toISOString();
 
-/** Claim ids from the F1 seed, so the US61 cross-link resolves both ways. */
+/** Claim ids from the claim seed, so the cross-link resolves both ways. */
 const CLAIM_FLOOD = "c0000000-0000-0000-0000-000000000004";
 const CLAIM_CONGESTION = "c0000000-0000-0000-0000-000000000001";
 const CLAIM_REZONING = "c0000000-0000-0000-0000-000000000002";
@@ -158,7 +158,8 @@ export const MOCK_RUNS: DetectionRunDto[] = [
     window_end: daysAgo(7),
     truncated: true,
     candidates_count: 5000,
-    // Two families down, so rule 4 caps every network from this run.
+    // Two signal families are unavailable, which caps every network from
+    // this run at Medium confidence.
     signals_unavailable: ["PR", "AU"],
     confidence_capped_at_medium: true,
     network_count: 1,
@@ -678,9 +679,9 @@ export function graphFor(network: MockNetwork) {
   const comparison = accounts.filter((a) => a.role === "comparison");
 
   // Deterministic pseudo-ForceAtlas2 coordinates: members drawn into a tight
-  // core, comparison accounts scattered on a wide ring. The picture is the
-  // point of US51 — the cluster has to look unusual against the ordinary
-  // conversation, not merely be asserted to be.
+  // core, comparison accounts scattered on a wide ring, so the cluster looks
+  // visibly unusual against the ordinary conversation rather than merely
+  // being asserted to be.
   const nodes: GraphNodeDto[] = [
     ...members.map((account, i) => {
       const angle = (i / Math.max(members.length, 1)) * Math.PI * 2;

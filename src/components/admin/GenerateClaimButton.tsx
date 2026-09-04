@@ -10,7 +10,7 @@ import { useToast } from "@/components/ui/Toast";
 import { Button } from "@/components/ui/Button";
 
 /**
- * F4 — the "Generate Generic Claim" MVP/test utility, styled distinctly as a
+ * The "Generate Generic Claim" MVP/test utility, styled distinctly as a
  * utility action.
  *
  * The backend proxies this to the AI service, which owns the `claims` table,

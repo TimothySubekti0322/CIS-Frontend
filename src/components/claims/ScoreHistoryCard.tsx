@@ -20,7 +20,7 @@ import { GranularitySelect } from "@/components/ui/GranularitySelect";
 /**
  * FinalClaimScore over time for a single claim.
  *
- * History only exists from the moment a claim joins the F3 watchlist — the
+ * History only exists from the moment a claim joins the watchlist — the
  * snapshot job captures watched claims only — so an empty series here is the
  * documented state for an unwatched claim, not an error.
  */

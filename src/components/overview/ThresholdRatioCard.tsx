@@ -13,7 +13,7 @@ const STROKE = 18;
 const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
 /**
- * O1a — the above/below-threshold split (US67).
+ * The above/below-threshold split.
  *
  * The population is every Existing/Generic claim, whatever its review status,
  * and an unscored claim counts as below. Both rules are the backend's, and the

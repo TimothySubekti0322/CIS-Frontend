@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/Button";
 import { PolicyList } from "@/components/policies/PolicyList";
 import { AddPolicyModal } from "@/components/policies/AddPolicyModal";
 
-/** F2 — Public Policy Bank (PRD §7). */
 export default function PoliciesPage() {
   const [addOpen, setAddOpen] = useState(false);
 

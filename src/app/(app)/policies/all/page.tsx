@@ -4,7 +4,7 @@ import { strings } from "@/lib/constants/strings";
 import { BackLink } from "@/components/ui/BackLink";
 import { PolicyList } from "@/components/policies/PolicyList";
 
-/** The F2 "See all" list — server-paginated at 20 rows a page. */
+/** The "See all" list — server-paginated at 20 rows a page. */
 export default function PoliciesSeeAllPage() {
   return (
     <div className="space-y-6">

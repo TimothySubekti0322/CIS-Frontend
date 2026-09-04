@@ -26,12 +26,12 @@ const VIEW = 640;
 const PADDING = 24;
 
 /**
- * US51's force-directed graph.
+ * The force-directed graph.
  *
  * Coordinates come from the stored ForceAtlas2 layout and are only rescaled to
- * the viewport — the layout itself is never recomputed here, because PRD 10.8
- * requires this figure and the PDF to render identically, and a browser-side
- * simulation would produce a different picture on every load.
+ * the viewport — the layout itself is never recomputed here, since this figure
+ * must render identically to the PDF, and a browser-side simulation would
+ * produce a different picture on every load.
  *
  * The comparison nodes are the point of the figure: genuine unclustered
  * accounts active on the same claim, drawn in a distinct style so an analyst
@@ -101,8 +101,8 @@ export function NetworkGraphView({
       )}
 
       {/* The stored square layout is letterboxed rather than rescaled: the
-          coordinates are never recomputed (PRD 10.8), so the figure is fitted
-          to a band the sheet can carry without stretching the geometry. */}
+          coordinates are never recomputed, so the figure is fitted to a band
+          the sheet can carry without stretching the geometry. */}
       <div
         className={cn(
           "overflow-x-auto rounded-xl border border-pale-sky bg-mint-cream",
@@ -144,7 +144,6 @@ export function NetworkGraphView({
             const pos = placed.get(node.accountId);
             if (!pos) return null;
             const isMember = node.role === "member";
-            // Size by centrality, per US51.
             const r = 4 + (node.degreeCentrality / maxCentrality) * 9;
             return (
               <circle
@@ -252,7 +251,7 @@ function NodeSummary({ node }: { node: GraphNode }) {
 
 /**
  * Hovering an edge shows its per-signal decomposition — which is what makes a
- * membership explainable rather than asserted (PRD 10.5.3).
+ * membership explainable rather than asserted.
  */
 function EdgeSummary({ edge }: { edge: GraphEdge }) {
   const parts: [string, number][] = [

@@ -1,13 +1,14 @@
 /**
- * F6 Overview + US65 city settings, served from the same mock state F1–F5 read.
+ * Overview and city-settings handlers, served from the same mock state the
+ * rest of the app reads.
  *
  * Every figure is recomputed on each request from `state.claims`, exactly as
  * the backend does — nothing is cached. That is what makes the mock useful:
- * edit a claim's Harm sub-scores on F1 and the treemap, the leaderboard and
- * the risk half of the sentiment index all move, because they are derived from
+ * edit a claim's Harm sub-scores and the treemap, the leaderboard and the
+ * risk half of the sentiment index all move, because they are derived from
  * the same rows rather than from a parallel fixture.
  *
- * The CSI formulas are transcribed from PRD 6.6 and the backend's
+ * The Climate Sentiment Index formulas are transcribed from the backend's
  * `internal/scoring/csi.go`.
  */
 
@@ -24,9 +25,8 @@ import { getSetting, saveState, setSetting, type MockState } from "./store";
 
 /* ----------------------------- shared constants -------------------------- */
 
-/** PRD 6.6.2's recommended default: claims below this do not load risk. */
+/** Claims below this score do not load into the index's risk half. */
 const RISK_THRESHOLD = 50;
-/** PRD 6.6.3's rolling window. */
 const WINDOW_DAYS = 7;
 /** Below this many content items the index reports `insufficient_data`. */
 const MINIMUM_VOLUME = 100;
@@ -73,8 +73,8 @@ function averageScore(claims: MockClaim[]): number | null {
 }
 
 /**
- * The shared O2/O3 metric, published on every box so the ranking is
- * explainable from the response alone (US69, US70):
+ * The shared ranking metric for topics and policies, published on every box
+ * so the ranking is explainable from the response alone:
  *
  * ```
  * 0.5 × (aboveCount / maxAboveCount × 100) + 0.5 × (avgScore / maxAvgScore × 100)
@@ -95,7 +95,7 @@ function combinedMetric(
   return round(0.5 * countHalf + 0.5 * scoreHalf);
 }
 
-/* ------------------------------- O1b — the CSI --------------------------- */
+/* --------------------------- climate sentiment index ---------------------- */
 
 /**
  * ```
@@ -169,9 +169,9 @@ function computeSentiment(s: MockState): SentimentDto {
 }
 
 /**
- * PRD 6.6.2. Only claims at or above the risk cutoff load the index, so a
- * repository full of low-severity noise does not read as dangerous. Clamped to
- * 100 because the weighted sum can in principle exceed the denominator.
+ * Only claims at or above the risk cutoff load the index, so a repository
+ * full of low-severity noise does not read as dangerous. Clamped to 100
+ * because the weighted sum can in principle exceed the denominator.
  */
 function computeRiskLoad(
   s: MockState,
@@ -230,14 +230,14 @@ function computeMomentum(
   return (laggedRiskLoad - currentRiskLoad) * WEIGHT_RISK_LOAD;
 }
 
-/** Equal thirds — the PRD requires the banding but gives no cut points. */
+/** Equal thirds — banding is required but no specific cut points are given. */
 function bandFor(score: number): "risky" | "watch" | "healthy" {
   if (score < 100 / 3) return "risky";
   if (score < 200 / 3) return "watch";
   return "healthy";
 }
 
-/* ------------------------------ O2 and O3 -------------------------------- */
+/* --------------------------- topics and policies --------------------------- */
 
 function buildTopics(s: MockState, t: number): OverviewTopicDto[] {
   const groups = new Map<string, { name: string; claims: MockClaim[] }>();
@@ -276,7 +276,7 @@ function buildTopics(s: MockState, t: number): OverviewTopicDto[] {
 
 function buildPolicies(s: MockState, t: number, limit: number): OverviewPolicyDto[] {
   const rows = s.policies.map((policy) => {
-    // Only Existing claims count, per US70's "correlated Existing-claims".
+    // Only Existing claims count toward a policy's correlated-claim figures.
     const claims = existingClaims(s).filter((c) => c.policy_ids.includes(policy.id));
     return {
       policy,
@@ -422,7 +422,7 @@ function monthAverage(
   return round(scores.reduce((sum, n) => sum + n, 0) / scores.length);
 }
 
-/* ------------------------------ US65 cities ------------------------------ */
+/* ---------------------------------- cities --------------------------------- */
 
 export function setCity(s: MockState, name: string) {
   const city = CITY_CATALOG.find(
@@ -436,9 +436,9 @@ export function setCity(s: MockState, name: string) {
     );
   }
   setSetting(s, CITY_KEY, city.name);
-  // Selecting a city sets the timezone with it: before v1.5 they were
-  // independent, which let an instance monitor one city and stamp its detector
-  // reports in another's local time.
+  // Selecting a city sets the timezone with it, so an instance can never
+  // monitor one city while stamping its detector reports in another's local
+  // time.
   setSetting(s, CITY_TIMEZONE_KEY, city.timezone);
   saveState();
   return city;

@@ -33,9 +33,9 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 Chart.register(TreemapController, TreemapElement, LinearScale, Tooltip);
 
 /**
- * The sequential shade scale, lightest to darkest — PRD §5.1 palette tokens,
- * read from CSS at draw time so the chart cannot drift from the rest of the
- * page. Colour encodes the same weight the area does; it is reinforcement, not
+ * The sequential shade scale, lightest to darkest, read from CSS at draw time
+ * so the chart cannot drift from the rest of the page. Colour encodes the
+ * same weight the area does; it is reinforcement, not
  * a second variable, so nothing is conveyed by hue alone.
  *
  * **Each shade is paired with the text colour that is legible on it, measured
@@ -130,7 +130,7 @@ function truncate(value: string, max: number): string {
 }
 
 /**
- * O2 — the hot-topics treemap (US69). One rectangle per Existing-claim topic;
+ * The hot-topics treemap. One rectangle per Existing-claim topic;
  * Synthetic-only topics are excluded by the backend so predictions cannot
  * dominate the map.
  *

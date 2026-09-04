@@ -33,15 +33,15 @@ export interface MockState {
   /** The AI service's content stream, for the Climate Sentiment Index. */
   contentVolume: ContentVolume;
   /**
-   * When this reader last acknowledged threshold crossings (US71). The real
-   * backend keys this per user in `cis_alert_acknowledgements`; the mock has
-   * one reader, so one timestamp is the faithful reduction.
+   * When this reader last acknowledged threshold crossings. The real backend
+   * keys this per user in `cis_alert_acknowledgements`; the mock has one
+   * reader, so one timestamp is the faithful reduction.
    */
   acknowledgedAt: string | null;
 }
 
-/* Bumped for v1.5: watchlist entries gained the threshold-crossing state, and
-   a persisted v2 watchlist would carry none of it — the seeded demo crossing
+/* Bumped because watchlist entries gained threshold-crossing state; a
+   persisted v2 watchlist would carry none of it, so the seeded demo crossing
    would silently never appear. */
 const STORAGE_KEY = "cis_mock_state_v3";
 

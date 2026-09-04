@@ -11,12 +11,12 @@ import { InfoTooltip } from "@/components/ui/InfoTooltip";
 /**
  * The full transparent score breakdown. Every component the backend sends is
  * displayed alongside FinalClaimScore — the collapsed number is never shown
- * alone (PRD 6.5).
+ * alone.
  *
  * Weights are read from the payload, not hardcoded, so a backend re-weighting
- * shows up here without a frontend change. The same is true of the v1.5
- * formula sentence: it is generated from the same constants as the arithmetic,
- * so the explanation cannot drift away from the number it explains.
+ * shows up here without a frontend change. The same is true of the formula
+ * sentence: it is generated from the same constants as the arithmetic, so the
+ * explanation cannot drift away from the number it explains.
  *
  * The Harm sub-scores are displayed read-only: R, V, F, H and EI are all
  * AI-owned here, and any prior human override still shows through the audit
@@ -38,8 +38,8 @@ export function ScoreBreakdownPanel({
       <div className="flex items-center justify-between gap-2">
         <div className="flex items-center gap-1.5">
           <h3 className="text-h3">{strings.claims.scoreBreakdown}</h3>
-          {/* US23's info-tooltip. The sentence is served; the hardcoded copy is
-              only reached by a backend that predates v1.5. */}
+          {/* Falls back to hardcoded copy only for a backend that doesn't
+              send a formula string yet. */}
           <InfoTooltip
             content={score.formula ?? strings.claims.scoreFormulaFallback}
             label={strings.claims.scoreFormulaLabel}
@@ -163,9 +163,9 @@ export function ScoreBreakdownPanel({
 }
 
 /**
- * US23's audit trail, rendered under the sub-scores once a human has
- * overridden them. `previous` holds the AI's original classification, so the
- * page — not only the audit table — can answer what the AI itself said.
+ * Audit trail rendered under the sub-scores once a human has overridden
+ * them. `previous` holds the AI's original classification, so the page —
+ * not only the audit table — can answer what the AI itself said.
  */
 function HarmEditTrail({ edit }: { edit: HarmEdit }) {
   const previous = edit.previous;
@@ -206,7 +206,7 @@ function ScoreRow({
   label: string;
   value: number;
   weight?: number;
-  /** Marks the row as human-overridden (US23). */
+  /** Marks the row as human-overridden. */
   edited?: boolean;
   action?: ReactNode;
 }) {

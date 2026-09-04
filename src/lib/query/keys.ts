@@ -26,7 +26,7 @@ export const queryKeys = {
   auth: {
     me: ["auth", "me"] as const,
   },
-  /** F6 — the whole page is one query; the topic modal is a child of it. */
+  /** The whole page is one query; the topic modal is a child of it. */
   overview: {
     all: ["overview"] as const,
     page: (params?: OverviewParams) => ["overview", "page", params ?? {}] as const,
@@ -61,15 +61,15 @@ export const queryKeys = {
     all: ["alerts"] as const,
     list: (params?: WatchlistParams) => ["alerts", "list", params ?? {}] as const,
     chart: (params?: AlertChartParams) => ["alerts", "chart", params ?? {}] as const,
-    /** US71's badge. Deliberately outside `alerts.list`/`chart` so a watchlist
-     *  refetch does not re-read the counter, and vice versa. */
+    /** The notification badge. Deliberately outside `alerts.list`/`chart` so a
+     *  watchlist refetch does not re-read the counter, and vice versa. */
     notifications: ["alerts", "notifications"] as const,
   },
   settings: {
     all: ["settings"] as const,
     list: ["settings", "list"] as const,
     alertThreshold: ["settings", "alert-threshold"] as const,
-    /** The F4 dynamic-parameter catalog. One key: every write returns the
+    /** The dynamic-parameter catalog. One key: every write returns the
      *  whole refreshed catalog, so there is nothing to key per section. */
     parameters: ["settings", "parameters"] as const,
     history: (params?: { key?: string; page?: number }) =>
@@ -80,7 +80,7 @@ export const queryKeys = {
     cityTimezone: ["settings", "city-timezone"] as const,
     cities: ["settings", "cities"] as const,
   },
-  /** F5 — every key under one resource so one mutation can invalidate the lot. */
+  /** Every key under one resource so one mutation can invalidate the lot. */
   networks: {
     all: ["networks"] as const,
     list: (params?: NetworkListParams) =>

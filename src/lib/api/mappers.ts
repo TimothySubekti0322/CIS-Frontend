@@ -208,10 +208,11 @@ function mapHarmBreakdown(
 }
 
 /**
- * US23's audit trail. Returns `null` when the backend omitted the field, which
- * it does for every claim whose Harm sub-scores are still the AI's originals —
- * so `edit !== null` is the "human-overridden" test the UI marks the score
- * badge from. `human_confirmed` cannot serve: an empty confirmation sets it.
+ * The Harm edit audit trail. Returns `null` when the backend omitted the
+ * field, which it does for every claim whose Harm sub-scores are still the
+ * AI's originals — so `edit !== null` is the "human-overridden" test the UI
+ * marks the score badge from. `human_confirmed` cannot serve: an empty
+ * confirmation sets it.
  */
 function mapHarmEdit(dto: HarmEditDto | null | undefined): HarmEdit | null {
   if (!dto) return null;
@@ -293,9 +294,9 @@ function mapActivity(
 }
 
 /**
- * The per-audience variants (US12, v1.5). Always an array so the UI never has
- * to branch on `null`; a variant without a segment name is dropped, because an
- * unlabelled box reads as exactly the generic draft v1.5 exists to remove.
+ * The per-audience debunk variants. Always an array so the UI never has to
+ * branch on `null`; a variant without a segment name is dropped, since an
+ * unlabelled box would just read as an undifferentiated generic draft.
  */
 function mapDebunkSegments(
   dtos: DebunkSegmentDto[] | null | undefined,
@@ -314,9 +315,9 @@ function mapDebunkSegments(
 }
 
 /**
- * US61's badge. Returns `null` when the backend omitted the field — there is
- * no empty state, so "no qualifying network" and "no detector deployed" render
- * identically, which is correct.
+ * The coordinated-network badge. Returns `null` when the backend omitted the
+ * field — there is no empty state, so "no qualifying network" and "no
+ * detector deployed" render identically, which is correct.
  */
 function mapNetworkBadge(
   dto: ClaimNetworkBadgeDto | null | undefined,
@@ -385,8 +386,8 @@ export function mapClaimSummary(dto: ClaimDto): ClaimSummary {
     createdAt: str(dto.created_at),
     // Two different dates: only an Existing claim carries `first_caught_at`.
     firstCaughtAt: isExisting ? str(dto.first_caught_at) : null,
-    // PRD 10.3 puts Synthetic claims out of detection scope, so a badge on one
-    // would be a contradiction rather than a case to render.
+    // Synthetic claims are out of detection scope, so a badge on one would be
+    // a contradiction rather than a case to render.
     coordinatedNetwork: isExisting ? mapNetworkBadge(dto.coordinated_network) : null,
   };
 }
@@ -416,8 +417,8 @@ export function mapClaimDetail(dto: ClaimDetailDto): ClaimDetail {
  * `GET /claims/:id/statements`. The runbook does not reproduce this shape —
  * the canonical table is in the backend's `docs/api/`. Until it has been
  * checked against a live response, this reads across the plausible spellings
- * so an unverified field name degrades to `null` instead of blanking the panel.
- * See MISSING_ENDPOINT.MD §3.
+ * so an unverified field name degrades to `null` instead of blanking the
+ * panel. See MISSING_ENDPOINT.MD.
  */
 export function mapStatement(dto: StatementDto, index: number): Statement {
   const stance = str(dto.stance) ?? str(dto.sentiment);
@@ -578,8 +579,8 @@ export function mapWatchlistItem(dto: WatchlistItemDto): WatchlistItem {
     thresholdStatus: mapThresholdStatus(dto.threshold_status),
     threshold: num(dto.threshold),
     isDormant: bool(dto.is_dormant),
-    // v1.5: `just_crossed` clears on acknowledgment, the other two persist as
-    // the row's "last moved" record.
+    // `just_crossed` clears on acknowledgment; the other two persist as the
+    // row's "last moved" record.
     justCrossed: bool(dto.just_crossed),
     crossedDirection: optionalOneOf<CrossingDirection>(dto.crossed_direction, [
       "up",

@@ -16,8 +16,8 @@ export interface InfoTooltipProps {
 }
 
 /**
- * The info icon used by US23's score-formula hint, the Harm rubric hints and
- * the F6 gauge (PRD §5.5).
+ * The info icon used by the score-formula hint, the Harm rubric hints and the
+ * sentiment gauge.
  *
  * Hover alone is not enough: a keyboard or touch user has no hover, so the
  * bubble opens on focus and on click as well, and closes on Escape or an

@@ -17,9 +17,9 @@ export interface BellButtonProps {
 }
 
 /**
- * Add/remove a claim from the F3 Alert watchlist (PRD US14).
+ * Add/remove a claim from the alert watchlist.
  * Filled bell = on the watchlist, outline bell = not — distinguishable by
- * icon shape, not colour alone (PRD §5.6). Always confirms first.
+ * icon shape, not colour alone. Always confirms first.
  */
 export function BellButton({
   claimId,

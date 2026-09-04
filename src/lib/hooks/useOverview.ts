@@ -6,12 +6,12 @@ import { overviewApi } from "@/lib/api/overview";
 import { queryKeys } from "@/lib/query/keys";
 
 /**
- * F6 in one call — O1a, O1b, O2 and O3 together.
+ * Fetches every overview section in one call.
  *
  * Nothing on this page is stored server-side; every figure is recomputed on
- * read from the same `claims` rows F1 ranks. That makes it cheap to refetch
- * and expensive to cache for long, so the data is treated as short-lived:
- * a stale leadership summary is worse than a slightly slower one.
+ * read from the same `claims` rows the claims list ranks. That makes it cheap
+ * to refetch and expensive to cache for long, so the data is treated as
+ * short-lived: a stale leadership summary is worse than a slightly slower one.
  */
 export function useOverview(params?: OverviewParams) {
   return useQuery({
@@ -22,7 +22,7 @@ export function useOverview(params?: OverviewParams) {
 }
 
 /**
- * The O2 treemap's click-through modal. Only fetched once a box is actually
+ * The treemap's click-through modal. Only fetched once a box is actually
  * clicked — the month-on-month figure behind it reads score snapshots, which
  * is not work worth doing for every box on every page load.
  */

@@ -13,7 +13,7 @@ export interface GeneratedClaim {
   claimId: string | null;
   claimStatement: string | null;
   topicId: string | null;
-  /** The S1 "last fetched" label moves to the moment the button was clicked. */
+  /** The "last fetched" label moves to the moment the button was clicked. */
   lastFetchedAt: string | null;
 }
 
@@ -70,7 +70,7 @@ function nullableN(value: number | null | undefined): number | null {
 
 export const adminApi = {
   /**
-   * `POST /admin/generate-generic-claim` — the F4 test-data utility.
+   * `POST /admin/generate-generic-claim` — admin test-data utility.
    *
    * This is the one AI call the backend awaits inline: `claims` is owned and
    * written exclusively by the AI service, so the backend proxies the request
@@ -92,8 +92,8 @@ export const adminApi = {
 
   /**
    * `POST /admin/snapshot-scores` — captures a score snapshot for every
-   * watched claim immediately, building F3 chart history without waiting for
-   * the hourly job. Returns 0 when the watchlist is empty.
+   * watched claim immediately, building alert chart history without waiting
+   * for the hourly job. Returns 0 when the watchlist is empty.
    *
    * This captures *current* scores; it does not recompute them. The cron job
    * calls `rescore` first, so a manual rescore followed by a manual snapshot
@@ -113,8 +113,8 @@ export const adminApi = {
    * A claim's score moves with wall-clock time even when nothing new is
    * ingested: NPR drifts as opposing posts age out of the rolling window, which
    * changes the discount factor and therefore FinalClaimScore. Without this the
-   * F3 trend chart would plot the same number every hour — a horizontal line by
-   * construction. Long call; 503 without an AI service.
+   * alert trend chart would plot the same number every hour — a horizontal
+   * line by construction. Long call; 503 without an AI service.
    */
   async rescore(): Promise<number> {
     const dto = await apiClient.call<RescoreResultDto>(ENDPOINTS.admin.rescore);

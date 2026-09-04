@@ -22,16 +22,16 @@ import { useToast } from "@/components/ui/Toast";
 import { DetectorUnavailable, isDetectorUnavailable } from "@/components/networks/DetectorUnavailable";
 
 /**
- * US62 — the detector control panel.
+ * The detector control panel.
  *
  * Two properties shape this form:
  *
  *  - **Only changed keys are submitted.** A screen that saves one threshold
  *    must not silently reset the other twenty-nine to whatever its inputs
  *    happened to render.
- *  - **Bounds come from the server.** PRD 10.11's Default Parameter Reference
- *    is served by `/settings/detector/ranges` rather than hardcoded here, so
- *    the form and the validator cannot disagree about what is legal.
+ *  - **Bounds come from the server.** Ranges are served by
+ *    `/settings/detector/ranges` rather than hardcoded here, so the form and
+ *    the validator cannot disagree about what is legal.
  *
  * The two cross-field constraints (weights summing to 1.00, cadence ≤ W/2) are
  * validated server-side on the whole merged row. The weight sum is echoed live
@@ -269,7 +269,7 @@ export function DetectorSettingsForm() {
   );
 }
 
-/** PRD 10.8: report footers need the city's local time, and only this knows it. */
+/** Report footers need the city's local time, and only this knows it. */
 function CityTimezoneCard() {
   const { toast } = useToast();
   const { data, isPending } = useCityTimezone();
@@ -318,7 +318,7 @@ function CityTimezoneCard() {
   );
 }
 
-/** Every change is versioned with its user and timestamp, per US62. */
+/** Every change is versioned with its user and timestamp. */
 function ParameterHistory() {
   const { data, isPending } = useDetectorHistory();
 

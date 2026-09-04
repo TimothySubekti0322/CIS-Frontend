@@ -7,9 +7,9 @@ import { strings } from "@/lib/constants/strings";
 export interface SectionHeaderProps {
   title: string;
   subtitle?: string;
-  /** "last fetched" timestamp, top-left of the section (PRD US9). */
+  /** "last fetched" timestamp, top-left of the section. */
   lastFetchedAt?: string;
-  /** "See all" link target (PRD US8/US17/US36). */
+  /** "See all" link target. */
   seeAllHref?: string;
   seeAllLabel?: string;
   right?: ReactNode;

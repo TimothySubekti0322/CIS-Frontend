@@ -4,8 +4,6 @@ import { strings } from "@/lib/constants/strings";
 import { NetworkListView } from "@/components/networks/NetworkListView";
 
 /**
- * F5 — Coordinated-Network Detector, [S3] network list (PRD §10.7.1).
- *
  * The question this page answers is not what is being said but whether the
  * apparent public reaction to a policy is actually public. Getting that wrong
  * in the other direction — treating genuine grievance as manufactured — is the

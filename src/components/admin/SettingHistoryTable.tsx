@@ -10,8 +10,8 @@ import { Pagination } from "@/components/ui/Pagination";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /**
- * `GET /settings/history` — every governed change across the whole F4 surface,
- * not only the detector.
+ * `GET /settings/history` — every governed change across the settings
+ * surface, not only the detector.
  *
  * No roles exist in this build, so any authenticated user can change any of
  * these values. Attribution is therefore the safety property, not access

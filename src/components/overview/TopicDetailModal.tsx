@@ -11,8 +11,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useTopicOverview } from "@/lib/hooks/useOverview";
 
 /**
- * O2's click-through (US69): topic title, claims above threshold, average
- * score, month-on-month change, and the above/under ratio.
+ * Topic detail: title, claims above threshold, average score, month-on-month
+ * change, and the above/under ratio.
  *
  * Fetched on open rather than with the page — the MoM figure reads the AI
  * service's score snapshots, which is not work worth doing for every box on
@@ -110,9 +110,9 @@ function TopicDetail({
 }
 
 /**
- * ▲ green / ▼ red per US69. `null` is a real state — there is not enough
- * history on both sides of the comparison, or the previous average was zero
- * and the percentage is undefined — and it says so rather than showing 0%.
+ * ▲ green / ▼ red. `null` is a real state — there is not enough history on
+ * both sides of the comparison, or the previous average was zero and the
+ * percentage is undefined — and it says so rather than showing 0%.
  */
 function MonthOnMonth({ detail }: { detail: TopicOverview }) {
   const percent = detail.averageScoreMomPercent;

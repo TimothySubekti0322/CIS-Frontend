@@ -10,15 +10,14 @@ import { Button } from "@/components/ui/Button";
 import { Skeleton } from "@/components/ui/Skeleton";
 
 /**
- * US65 — which single Indonesian city this instance monitors.
+ * Which single Indonesian city this instance monitors.
  *
- * Single-select by design: the new city replaces the old outright, and there
- * is no concurrent multi-city state in this phase (PRD 6.6.4).
+ * Single-select by design: choosing a city replaces the old one outright,
+ * with no concurrent multi-city state.
  *
- * Selecting a city also sets the timezone, which is why the zone is shown
- * beside the choice rather than edited separately here. Before v1.5 the two
- * were independent, and an instance could monitor Makassar while stamping its
- * detector reports in Jakarta time.
+ * Selecting a city also sets its timezone, shown here instead of edited
+ * separately, so the instance can't end up monitoring one city while
+ * stamping detector reports in another city's time zone.
  */
 export function CitySelectorForm() {
   const { data, isPending } = useCities();

@@ -24,13 +24,13 @@ export interface ClaimSectionProps {
 const SECTION_SIZE = 10;
 
 /**
- * One F1 section — [S1] Existing or [S2] Non-Existing. Both always render:
- * the status tab narrows claims *within* a section, it never hides one.
+ * One section — Existing or Non-Existing claims. Both always render: the
+ * status tab narrows claims *within* a section, it never hides one.
  *
- * Each section paginates independently at the bottom (PAGINATION_FOR_FE.md §2)
- * — there is no "See all" link. Status, topics and search are page-level
- * because the repository endpoint takes one set of filters and returns both
- * sections in a single call.
+ * Each section paginates independently at the bottom — there is no "See all"
+ * link. Status, topics and search are page-level because the repository
+ * endpoint takes one set of filters and returns both sections in a single
+ * call.
  */
 export function ClaimSection({
   claimType,

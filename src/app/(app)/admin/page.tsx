@@ -37,9 +37,9 @@ const TABS: { value: AdminTab; label: string }[] = [
 ];
 
 /**
- * F4 — Admin Settings. No roles exist in this build, so any authenticated user
- * can change these; the safety property is attribution, not access control —
- * every change here records who made it and when.
+ * No roles exist in this build, so any authenticated user can change these;
+ * the safety property is attribution, not access control — every change here
+ * records who made it and when.
  *
  * The dynamic parameters split across the first two tabs by *who decides*,
  * because that is the only split that maps onto a screen: it answers the
@@ -48,10 +48,10 @@ const TABS: { value: AdminTab; label: string }[] = [
  * claim repository should not sit next to one that changes how many rows a
  * leaderboard shows.
  *
- * The F5 detector's ~30 parameters are a third surface with their own
- * endpoints, because two of their constraints are cross-field in ways a flat
- * key/value store cannot express (US62–US64). The PRD puts them on this page
- * rather than a page of their own, so they get a tab, not a route.
+ * The detector's ~30 parameters are a third surface with their own endpoints,
+ * because two of their constraints are cross-field in ways a flat key/value
+ * store cannot express. They live on this page as a tab rather than a route
+ * of their own.
  */
 export default function AdminPage() {
   const [tab, setTab] = useState<AdminTab>("operational");

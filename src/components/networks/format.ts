@@ -1,5 +1,5 @@
 /**
- * Formatters for the parts of the F5 payload whose shape the backend owns —
+ * Formatters for the parts of the payload whose shape the backend owns —
  * `raw_counts`, `score_contribution`, `signal_profile`, run `parameters`.
  *
  * These are rendered generically on purpose: fixing a schema for them in the

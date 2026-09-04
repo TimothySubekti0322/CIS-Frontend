@@ -8,8 +8,8 @@ import { AUTH_COOKIE, REFRESH_COOKIE } from "@/lib/config";
  * edge. The refresh token sits beside it in its own cookie: it is single-use
  * and rotated on every `POST /auth/refresh`, so a stale copy is harmless, but
  * both are readable by scripts on this origin — a pure client-side app cannot
- * set httpOnly. See MISSING_ENDPOINT.MD §"Auth" for the cookie-session
- * alternative worth asking the backend for.
+ * set httpOnly. See the "Auth" section of MISSING_ENDPOINT.MD for the
+ * cookie-session alternative worth asking the backend for.
  */
 
 const secure = () =>

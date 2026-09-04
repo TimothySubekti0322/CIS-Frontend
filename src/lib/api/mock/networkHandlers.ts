@@ -26,7 +26,7 @@ import {
 import type { MockContext } from "./handlers";
 
 /**
- * Mock-mode handlers for F5.
+ * Mock-mode handlers for coordinated-network detection.
  *
  * Mock mode is the default, so without these the whole feature would be a dead
  * end when someone runs the app with no backend. They return the same
@@ -131,9 +131,9 @@ function findNetwork(id: string): MockNetwork {
 }
 
 /**
- * The US58 gate, evaluated exactly as the server does it: an allowlist of three
- * statuses, fail-closed. An unreviewed network cannot be exported, because an
- * unreviewed export is an unreviewed accusation.
+ * The export-eligibility gate, evaluated exactly as the server does it: an
+ * allowlist of three statuses, fail-closed. An unreviewed network cannot be
+ * exported, because an unreviewed export is an unreviewed accusation.
  */
 const EXPORTABLE = ["under_review", "confirmed", "action_taken"];
 
@@ -165,7 +165,7 @@ const listNetworks: Handler = async (ctx) => {
   const sort = qs(ctx, "sort") ?? "score";
 
   let rows = f5().networks.filter((network) => {
-    // Low-band networks stay behind the explicit toggle (PRD 10.6.3 rule 2).
+    // Low-band networks stay behind the explicit toggle.
     if (!showLow && network.confidence_band === "low") return false;
     if (status && status !== "all" && network.review_status !== status) return false;
     if (bands.length && !bands.includes(network.confidence_band ?? "")) return false;
@@ -256,7 +256,7 @@ const updateNetworkStatus: Handler = async (ctx) => {
   if (!status || !EXPORTABLE.concat(["unreviewed", "dismissed_false_positive"]).includes(status)) {
     fail("status is not one of the allowed review statuses", 400, "VALIDATION_FAILED");
   }
-  // US52's hard requirement — unlike F1's optional claim review note.
+  // Unlike the optional claim review note elsewhere, this reason is mandatory.
   if (!reason || reason.trim().length < 20) {
     fail("reason must be at least 20 characters", 400, "VALIDATION_FAILED");
   }
@@ -401,7 +401,7 @@ const networkAccount: Handler = async (ctx) => {
   );
 };
 
-/* ------------------------- allowlisting from F5 ------------------------- */
+/* ------------------------------- allowlisting ------------------------------- */
 
 function allowlistAccounts(handles: { handle: string; platform: string; id: string }[], category: string, reason: string) {
   const now = new Date().toISOString();
@@ -956,8 +956,8 @@ const updateDetectorSettings: Handler = async (ctx) => {
 
 const detectorRanges: Handler = async () => {
   await sleep(120);
-  // PRD 10.11's Default Parameter Reference, served rather than hardcoded in
-  // the client so the form and the validator cannot disagree.
+  // Served rather than hardcoded in the client so the form and the validator
+  // cannot disagree.
   return ok(
     [
       { key: "window_days", label: "Detection window", symbol: "W", min: 1, max: 30, default: 7, unit: "days", integer: true },
@@ -1061,7 +1061,7 @@ export const networkMockHandlers: Record<string, Handler> = {
 };
 
 /**
- * The US61 badge, resolved for a claim id.
+ * The coordinated-network badge, resolved for a claim id.
  *
  * Mirrors the backend's fail-closed conjunction: a linked network that passed
  * the relevance gate, banded medium or high, not dismissed as a false positive,

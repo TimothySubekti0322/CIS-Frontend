@@ -127,8 +127,9 @@ function summaryOf(s: MockState, claim: MockClaim): ClaimDto {
     ...base,
     // Only an Existing claim was "caught in the wild".
     first_caught_at: claim.first_caught_at,
-    // US61. Omitted, not null, when nothing qualifies — there is no empty
-    // state, and PRD 10.3 puts Synthetic claims out of detection scope.
+    // Omitted, not null, when nothing qualifies — there is no empty state,
+    // and Synthetic claims are out of detection scope so a badge here would
+    // be misleading.
     coordinated_network: networkBadgeFor(claim.id),
     final_claim_score: claim.score_breakdown?.final_claim_score ?? null,
     is_dormant: claim.is_dormant ?? false,
@@ -400,8 +401,7 @@ const claimRepository: MockHandler = async (ctx) => {
     (a, b) => Date.parse(b.created_at) - Date.parse(a.created_at),
   );
 
-  // Each section paginates independently at a caller-set page size
-  // (PAGINATION_FOR_FE.md §2).
+  // Each section paginates independently at a caller-set page size.
   const pageWindow = (rows: MockClaim[], pageParam: string, limitParam: string) => {
     const limit = Math.min(
       Math.max(Math.trunc(qsNum(ctx, limitParam, 10)), 1),
@@ -899,8 +899,8 @@ function watchlistRow(s: MockState, entry: MockState["watchlist"][number]): Watc
 
 /**
  * A crossing is unacknowledged when it happened after this reader last opened
- * F3. The real backend keys acknowledgments per user; the mock has one reader,
- * so a single timestamp is the faithful reduction.
+ * the alert page. The real backend keys acknowledgments per user; the mock
+ * has one reader, so a single timestamp is the faithful reduction.
  */
 function isUnacknowledged(s: MockState, entry: WatchEntry): boolean {
   if (!entry.crossed_at) return false;
@@ -1077,8 +1077,8 @@ const alertChart: MockHandler = async (ctx) => {
 };
 
 /**
- * `GET /alerts/notifications` — the US71 sidebar badge, plus the claims behind
- * it so the count can be expanded into something readable.
+ * `GET /alerts/notifications` — the sidebar badge count, plus the claims
+ * behind it so the count can be expanded into something readable.
  */
 const alertNotifications: MockHandler = async () => {
   await sleep(120);
@@ -1086,8 +1086,8 @@ const alertNotifications: MockHandler = async () => {
 };
 
 /**
- * `POST /alerts/notifications/acknowledge`. Opening F3 is the acknowledgment
- * (US71). Only the unacknowledged flag clears — `crossed_at` and
+ * `POST /alerts/notifications/acknowledge`. Opening the alert page is the
+ * acknowledgment. Only the unacknowledged flag clears — `crossed_at` and
  * `crossed_direction` stay on the row so the table can still say what last
  * happened to a claim.
  */
@@ -1154,7 +1154,7 @@ const putAlertThreshold: MockHandler = async (ctx) => {
   return ok({ threshold: Math.round(next) }, "alert threshold updated");
 };
 
-/** `GET /settings/cities` (US65) — options plus the current selection. */
+/** `GET /settings/cities` — options plus the current selection. */
 const listCities: MockHandler = async () => {
   await sleep(100);
   const selected = currentCity(getState());
@@ -1179,7 +1179,7 @@ const putCity: MockHandler = async (ctx) => {
 
 /* -------------------------------- overview ------------------------------- */
 
-/** US70's section heading says "Top 10", its detail says 5. The detail wins. */
+/** Two conflicting default values existed for this; the more specific one (5) was kept. */
 const DEFAULT_POLICY_LIMIT = 5;
 
 const overview: MockHandler = async (ctx) => {
@@ -1244,7 +1244,7 @@ const snapshotScores: MockHandler = async () => {
  * `POST /admin/rescore`. NPR drifts as opposing posts age out of the window,
  * so the mock nudges the discount factor rather than returning the same
  * numbers — a rescore that changes nothing would hide the bug it exists to
- * prevent (a flat F3 trend line).
+ * prevent (a flat trend line on the alert chart).
  */
 const rescoreClaims: MockHandler = async () => {
   await sleep(900);
@@ -1429,9 +1429,9 @@ const confirmHarm: MockHandler = async (ctx) => {
   );
   claim.final_claim_score = score.final_claim_score;
 
-  // US23's system flow ends here: recomputing H moves FinalClaimScore, which
-  // can push a watched claim across the threshold. Waiting for the hourly
-  // snapshot job would leave an edit made at 09:05 unnotified until 10:00.
+  // Recomputing H moves FinalClaimScore, which can push a watched claim
+  // across the threshold. Waiting for the hourly snapshot job would leave an
+  // edit made at 09:05 unnotified until 10:00.
   evaluateCrossing(s, claim.id);
   saveState();
 
@@ -1525,10 +1525,10 @@ export const mockHandlers: Record<string, MockHandler> = {
   "GET /health": healthLive,
   "GET /health/ready": healthReady,
 
-  // F5 — Coordinated-Network Detector, in its own module.
+  // Coordinated-Network Detector, in its own module.
   ...networkMockHandlers,
 
-  // F4 — the dynamic-parameter catalog, likewise. In mock mode that module is
+  // The dynamic-parameter catalog, likewise. In mock mode that module is
   // the server: it is the one place a copy of the registry's bounds belongs.
   ...parameterMockHandlers,
 };

@@ -9,15 +9,14 @@ import { ScoreBadge } from "@/components/ui/ScoreBadge";
 import { StatusPill } from "@/components/ui/StatusPill";
 
 /**
- * O3 — the policies attracting the most high-risk claims (US70), ranked by the
- * same combined metric that sizes the O2 treemap.
+ * Table of policies attracting the most high-risk claims, ranked by the same
+ * combined metric that sizes the topic treemap.
  *
  * A policy can reach this list from the AI service without ever being
- * registered in the Public Policy Bank, so `source` decides whether the name
- * is a link: sending a reader to an F2 detail page that does not exist is
- * worse than showing the name plainly and saying why it is not clickable.
+ * registered in the Policy Bank, so `source` decides whether the name is a
+ * link: sending a reader to a detail page that does not exist is worse than
+ * showing the name plainly and saying why it is not clickable.
  */
-/** O3 shows at most five policies (PAGINATION_FOR_FE.md §1). */
 const MAX_ROWS = 5;
 
 export function HotPoliciesTable({ policies }: { policies: OverviewPolicy[] }) {
@@ -94,7 +93,7 @@ export function HotPoliciesTable({ policies }: { policies: OverviewPolicy[] }) {
 function PolicyName({ row }: { row: OverviewPolicy }) {
   const { policy } = row;
 
-  // Only an F2-registered policy has a detail page to open.
+  // Only a registered policy has a detail page to open.
   if (policy.source === "cis" && policy.id) {
     return (
       <Link

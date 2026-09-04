@@ -70,8 +70,9 @@ export const policiesApi = {
 
   /**
    * `GET /policies/:id` — detail plus the two correlated claim lists, in the
-   * same claim-card shape as F1. Both lists are empty while `aiPolicyId` is
-   * null: correlations do not exist until matchmaking reports back.
+   * same claim-card shape as the claim repository. Both lists are empty while
+   * `aiPolicyId` is null: correlations do not exist until matchmaking reports
+   * back.
    */
   async get(id: string): Promise<PolicyDetail> {
     const dto = await apiClient.call<PolicyDetailDto>(ENDPOINTS.policies.get, {

@@ -21,7 +21,7 @@ import { Field } from "@/components/ui/Field";
 import { useToast } from "@/components/ui/Toast";
 
 /**
- * The AI-backed F4 utilities.
+ * The AI-backed admin utilities.
  *
  * All four degrade with a message rather than a crash: with `AI_SERVICE_URL`
  * unset the backend answers `503` with a string written for direct display, so
@@ -61,7 +61,7 @@ function message(err: unknown): string {
 /**
  * A claim's score moves with wall-clock time even when nothing new is
  * ingested: NPR drifts as opposing posts age out of the rolling window. Without
- * a rescore the F3 trend chart plots the same number every hour.
+ * a rescore the trend chart plots the same number every hour.
  */
 export function RescoreButton() {
   const { mutateAsync, isPending } = useRescoreClaims();

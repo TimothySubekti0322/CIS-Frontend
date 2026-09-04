@@ -15,7 +15,7 @@ export interface TabsProps<T extends string> {
   "aria-label"?: string;
 }
 
-/** Horizontal tab bar with a Sea Green active indicator (PRD §5.5). */
+/** Horizontal tab bar with a Sea Green active indicator. */
 export function Tabs<T extends string>({
   options,
   value,

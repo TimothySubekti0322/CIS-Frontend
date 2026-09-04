@@ -1,4 +1,4 @@
-/** Deterministic per-claim line colours drawn from the brand palette (PRD §5.1). */
+/** Deterministic per-claim line colours drawn from the brand palette. */
 const PALETTE = [
   "#229156", // Sea Green
   "#87C5CF", // Frosted Blue

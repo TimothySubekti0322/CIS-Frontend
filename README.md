@@ -1,18 +1,34 @@
-# CIS — Climate Immune System (Frontend)
+# CIS Frontend
 
-Frontend for the Climate Immune System platform (PRD v1.5): a structured
-"immune system" for a city climate team's information environment — a
-leadership Overview (F6), a claim repository with a transparent scoring system
-(F1), a public-policy bank with AI claim matchmaking (F2), an alert watchlist
-(F3), admin settings (F4), and the Coordinated-Network Detector (F5).
+Frontend for CIS, a platform that helps a city climate team monitor its
+information environment: it tracks claims circulating about climate policy,
+scores how urgent each one is, matches them against the city's actual
+policies, watches the ones worth escalating, and flags coordinated or
+inauthentic accounts pushing them.
+
+## What's in the app
+
+- **Overview** — a leadership dashboard: sentiment, a threshold ratio, a
+  topic treemap, and a policy leaderboard.
+- **Claims** — the claim repository, with a transparent, weighted scoring
+  system (reach, velocity, falseness, harm, emotional intensity) and
+  AI-generated debunk content.
+- **Policies** — a bank of the city's policies, with AI matchmaking that
+  links claims to the policies they concern.
+- **Alerts** — a watchlist for claims a reviewer has flagged, with score
+  history charts and notifications.
+- **Coordinated Network Detector** — surfaces clusters of accounts that
+  appear to be coordinating to spread the same claims.
+- **Admin** — thresholds, city configuration, detection parameters, and
+  other tunables for the instance.
 
 ## Stack
 
 - **Next.js 15** (App Router) + **TypeScript**
-- **Tailwind CSS v4** (design tokens in `src/app/globals.css`, PRD §5.1 palette)
+- **Tailwind CSS v4** (design tokens in `src/app/globals.css`)
 - **Lato** via `next/font/google`
 - **TanStack Query** for server state
-- **Recharts** for the F3 alert chart and the F6 topic treemap
+- **Recharts** for the alert chart and the Overview's topic treemap
 - `lucide-react` icons
 
 ## Getting started
@@ -23,8 +39,8 @@ cp .env.example .env      # adjust if needed
 npm run dev               # http://localhost:3000
 ```
 
-Register with an email, name and password on `/register`, then you land on the
-Overview — first in the sidebar since v1.5 (US66).
+Register with an email, name and password on `/register`, then you land on
+the Overview.
 
 ## Environment
 
@@ -51,7 +67,7 @@ component → hook (src/lib/hooks) → resource module (src/lib/api/*.ts)
 
 | file | responsibility |
 |---|---|
-| `src/lib/api/endpoints.ts` | all 38 documented routes, verbs and paths — the single source of truth |
+| `src/lib/api/endpoints.ts` | every documented route, verb and path — the single source of truth |
 | `src/lib/api/dto.ts`, `dto.networks.ts`, `dto.overview.ts` | wire shapes, snake_case, exactly as the backend sends them |
 | `src/lib/api/mappers*.ts` | DTO → domain translation. Nothing else imports a `dto` module |
 | `src/lib/api/primitives.ts` | the defensive `num`/`str`/`oneOf` helpers every mapper shares |
@@ -92,18 +108,19 @@ rejects, re-adding a watched claim is a no-op, a Synthetic claim is rejected 422
 dormant claims return `npr`/`discount_factor` as `null`, and policy matchmaking
 resolves asynchronously a few seconds after upload.
 
-The mock also computes F6 the way the backend does: the threshold ratio, the
-treemap metric, the policy leaderboard and the Climate Sentiment Index are all
-derived from the same `claims` rows F1 ranks, on every request. Edit a claim's
-Harm sub-scores and the Overview moves, because nothing is cached and there is
-no parallel fixture to fall out of step.
+The mock also computes the Overview's numbers the way the backend does: the
+threshold ratio, the treemap metric, the policy leaderboard and the sentiment
+index are all derived from the same claims the repository ranks, on every
+request. Edit a claim's Harm sub-scores and the Overview moves, because
+nothing is cached and there is no parallel fixture to fall out of step.
 
 It keeps two separate score histories on purpose, because the product depends
-on the difference: the backend's watchlist-only snapshots drive the F3 chart
-and the per-claim Score History Chart, so an unwatched claim correctly shows no
-history; the AI service's per-rescore history for *every* claim is what the
-Overview's topic month-on-month reads, since a MoM figure computed over the
-watchlist would describe the team's attention rather than the topic.
+on the difference: the backend's watchlist-only snapshots drive the Alerts
+chart and the per-claim Score History Chart, so an unwatched claim correctly
+shows no history; the AI service's per-rescore history for *every* claim is
+what the Overview's topic month-on-month reads, since a month-on-month figure
+computed over the watchlist would describe the team's attention rather than
+the topic.
 
 Not simulated: file downloads (there are no real bytes) and the AI service.
 `sentiment.status` is always `ok` in mock — the `insufficient_data` and
@@ -126,7 +143,7 @@ Email + password, a short-lived JWT access token and a rotating single-use
 refresh token. The access token lives in the `cis_token` cookie so
 `src/middleware.ts` can gate routes on the edge; the refresh token sits beside it
 in `cis_refresh_token`. There are **no roles** — any authenticated user may call
-every route, including F4 admin settings.
+every route, including admin settings.
 
 `POST /auth/logout` revokes every refresh token for the user, but the access
 token is stateless and stays valid until it expires, so the client drops its own
@@ -148,13 +165,13 @@ npm run typecheck   # tsc --noEmit
 src/
   app/
     (auth)/            login + register
-    (app)/             authenticated pages (F1–F6) under the AppShell
+    (app)/             authenticated pages under the AppShell
   components/
     ui/                design-system primitives (Button, Modal, Tabs, StatusPill,
                        InfoTooltip, CopyButton, GranularitySelect, …)
     layout/            AppShell, Sidebar, TopBar
     overview/          SentimentGauge, ThresholdRatioCard, TopicTreemap, …
-    claims/            ClaimCard (reused across F1 + F2), ScoreBreakdownPanel, …
+    claims/            ClaimCard (reused across the repository and policy views), ScoreBreakdownPanel, …
     policies/          PolicyCard, AddPolicyModal, EditPolicyModal, …
     alerts/            ScoreLineChart, ChartLegend, WatchlistTable
     admin/             ThresholdForm, CitySelectorForm, GenerateClaimButton, …
@@ -170,15 +187,15 @@ src/
 
 | screen | endpoints |
 |---|---|
-| `/overview` (F6) | `GET /overview`, `GET /overview/topics/:id` |
-| `/claims` (F1) | `GET /claims/repository` (status, topics and search in one call), `GET /topics` |
+| `/overview` | `GET /overview`, `GET /overview/topics/:id` |
+| `/claims` | `GET /claims/repository` (status, topics and search in one call), `GET /topics` |
 | `/claims/all` | `GET /claims` |
 | `/claims/[id]`, `/predicted/[id]` | `GET /claims/:id`, `/statements`, `/score-history`, `PUT /claims/:id/status`, `POST|DELETE /alerts` |
-| `/policies` (F2) | `GET /policies`, `GET /policies/years` |
+| `/policies` | `GET /policies`, `GET /policies/years` |
 | `/policies/[id]` | `GET /policies/:id`, `/processing`, `/file`, `POST /policies/:id/rematch`, `PATCH`, `PUT /policies/:id/file`, `DELETE` |
-| `/alerts` (F3) | `GET /alerts`, `GET /alerts/chart`, `PATCH /alerts/:claimId/chart`, `DELETE /alerts/:claimId`, `GET /alerts/notifications`, `POST /alerts/notifications/acknowledge` |
-| `/admin` (F4) | `GET /settings`, `GET|PUT /settings/alert-threshold`, `GET /settings/cities`, `GET|PUT /settings/city`, `POST /admin/generate-generic-claim`, `POST /admin/snapshot-scores` |
-| `/coordinated-network` (F5) | `GET /networks`, `GET /networks/:id` and the rest of the F5 surface |
+| `/alerts` | `GET /alerts`, `GET /alerts/chart`, `PATCH /alerts/:claimId/chart`, `DELETE /alerts/:claimId`, `GET /alerts/notifications`, `POST /alerts/notifications/acknowledge` |
+| `/admin` | `GET /settings`, `GET|PUT /settings/alert-threshold`, `GET /settings/cities`, `GET|PUT /settings/city`, `POST /admin/generate-generic-claim`, `POST /admin/snapshot-scores` |
+| `/coordinated-network` | `GET /networks`, `GET /networks/:id` and the rest of the network-detection surface |
 
 The sidebar badge on **Alert** polls `GET /alerts/notifications` from the app
 shell, so it is visible from every page.

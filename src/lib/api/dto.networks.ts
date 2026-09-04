@@ -1,6 +1,6 @@
 /**
- * F5 wire shapes, snake_case, exactly as the CIS backend sends them
- * (`internal/dto/network.go`).
+ * Coordinated-network wire shapes, snake_case, exactly as the CIS backend
+ * sends them (`internal/dto/network.go`).
  *
  * Same rule as `dto.ts`: nothing outside `mappers.networks.ts` imports from
  * here. Fields the backend marks `omitempty` are optional and may be absent

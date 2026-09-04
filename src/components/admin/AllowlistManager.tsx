@@ -39,14 +39,14 @@ import {
 } from "@/components/networks/DetectorUnavailable";
 
 /**
- * US63 — managing the declared-coordination allowlist.
+ * Managing the declared-coordination allowlist.
  *
  * This screen is product-critical rather than administrative housekeeping.
  * NGOs, newsrooms, unions and grassroots campaigns coordinate openly and by
  * design; without this list the detector systematically flags civil society,
  * which for a government-operated tool is the most serious failure mode there
- * is. US63 asks for it to be seeded during onboarding — before the first
- * detection run, not after the first false positive.
+ * is. It should be seeded during onboarding — before the first detection run,
+ * not after the first false positive.
  */
 export function AllowlistManager() {
   const { toast } = useToast();
@@ -411,9 +411,8 @@ function RemoveEntryModal({
 }
 
 /**
- * PRD 10.5.2.2's phrase list. A shared campaign hashtag is not content
- * duplication, and without this exclusion the duplication signal reads every
- * protest slogan as coordination.
+ * A shared campaign hashtag is not content duplication, and without this
+ * exclusion the duplication signal reads every protest slogan as coordination.
  */
 function CommonPhrasesCard() {
   const { toast } = useToast();

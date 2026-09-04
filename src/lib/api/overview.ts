@@ -6,8 +6,8 @@ import { mapOverview, mapTopicOverview } from "./mappers.overview";
 
 export const overviewApi = {
   /**
-   * `GET /overview` — the whole F6 page: the O1a threshold ratio, the O1b
-   * Climate Sentiment Index, the O2 treemap and the O3 leaderboard.
+   * `GET /overview` — the whole Overview page: the threshold ratio, the
+   * Climate Sentiment Index, the topic treemap and the leaderboard.
    *
    * A non-`ok` `sentiment.status` costs the gauge and nothing else: the other
    * three sections are computed from `claims`, not from the content stream, so

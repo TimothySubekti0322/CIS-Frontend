@@ -8,10 +8,10 @@ import {
 import { strings } from "@/lib/constants/strings";
 
 /**
- * Confidence band and review status are **orthogonal axes** (PRD 10.10) and are
- * rendered as two separate pills for exactly that reason: US61 requires
- * "Unreviewed, Medium" and "Confirmed, High" to read differently to an analyst
- * deciding whether to rebut or refer. They are never collapsed into one label.
+ * Confidence band and review status are **orthogonal axes**, and are rendered
+ * as two separate pills for exactly that reason: "Unreviewed, Medium" and
+ * "Confirmed, High" need to read differently to an analyst deciding whether
+ * to rebut or refer. They are never collapsed into one label.
  */
 
 export function ConfidencePill({
@@ -81,7 +81,7 @@ export function TruncatedRunPill({ note }: { note?: string | null }) {
   );
 }
 
-/** Rule 4: ≥ 2 unavailable signal families cap the run regardless of score. */
+/** ≥ 2 unavailable signal families cap the run regardless of score. */
 export function CappedPill() {
   return (
     <StatusPill
@@ -95,7 +95,7 @@ export function CappedPill() {
   );
 }
 
-/** Revealed only by US43's toggle — labelled, never silently mixed in. */
+/** Revealed only by an explicit toggle — labelled, never silently mixed in. */
 export function LowConfidenceTag() {
   return (
     <StatusPill tone="muted">

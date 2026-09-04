@@ -14,7 +14,7 @@ import { useDownloadPolicyFile, usePolicyProcessing } from "@/lib/hooks/usePolic
 import { PolicyStatusPill } from "./PolicyStatusPill";
 import { ProcessingBadge } from "./ProcessingBadge";
 
-/** Policy card, reused on the F2 list and "See all" pages. */
+/** Policy card, reused on the policy list and "See all" pages. */
 export function PolicyCard({ policy }: { policy: Policy }) {
   const router = useRouter();
   const { toast } = useToast();

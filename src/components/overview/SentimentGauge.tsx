@@ -7,7 +7,7 @@ import { strings } from "@/lib/constants/strings";
 import { cn } from "@/lib/utils";
 import { InfoTooltip } from "@/components/ui/InfoTooltip";
 
-/** Band colours, from the PRD §5.1 palette plus the one reserved warm red. */
+/** Band colours, plus the one reserved warm red. */
 const BAND_STYLE: Record<SentimentBand, { arc: string; text: string; label: string }> = {
   risky: { arc: "var(--color-danger)", text: "text-danger", label: strings.overview.csiBandRisky },
   watch: { arc: "var(--color-gold)", text: "text-regal-navy", label: strings.overview.csiBandWatch },
@@ -40,11 +40,8 @@ const ARC_PATH = (() => {
 })();
 
 /**
- * O1b — the Climate Sentiment Index gauge (US68, PRD 6.6.5).
- *
- * This is the page's visual centrepiece, and §5.6 allows F6 to be bolder than
- * the rest of the product for exactly this reason. Three things it must get
- * right:
+ * The Climate Sentiment Index gauge — the page's visual centrepiece. Three
+ * things it must get right:
  *
  *  - **Only `status: "ok"` gets a dial.** `insufficient_data` and `unavailable`
  *    mean different things and both have `score: null`; the served `reason`
@@ -99,8 +96,8 @@ export function SentimentGauge({ sentiment }: { sentiment: SentimentIndex }) {
             />
           </button>
 
-          {/* US68's click-through: the two halves as separate bars, so the
-              headline number is never shown without its inputs. */}
+          {/* The two halves as separate bars, so the headline number is
+              never shown without its inputs. */}
           {expanded && <Breakdown sentiment={sentiment} />}
         </>
       ) : (

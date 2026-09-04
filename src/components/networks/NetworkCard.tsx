@@ -19,7 +19,7 @@ export interface NetworkCardProps {
 }
 
 /**
- * US46's triage card.
+ * The triage card.
  *
  * Everything on it is either a count or a computed band; the one judgement is
  * the review-status pill, which a person set. A low-confidence card is

@@ -1,7 +1,6 @@
 /**
- * F6 Overview wire shapes (PRD v1.5 §11), snake_case exactly as
- * `docs/api/overview.md` documents them. Nothing outside `mappers.overview.ts`
- * imports this file.
+ * Overview dashboard wire shapes, snake_case exactly as `docs/api/overview.md`
+ * documents them. Nothing outside `mappers.overview.ts` imports this file.
  */
 
 import type { TopicRefDto } from "./dto";

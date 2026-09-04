@@ -29,12 +29,12 @@ const COLUMNS: { key: AccountSort | null; label: string; numeric?: boolean }[] =
 ];
 
 /**
- * US55's account annex.
+ * The account annex.
  *
- * Every column is a measured behaviour or a graph position. None is a verdict:
- * PRD 10.9.1 rule 3 forbids the system labelling an individual account
- * automated, so "circadian coverage 1.00" is reported and "no sleep cycle,
- * therefore a bot" is not. The judgement belongs to the person reading it.
+ * Every column is a measured behaviour or a graph position. None is a
+ * verdict: the system never labels an individual account automated, so
+ * "circadian coverage 1.00" is reported and "no sleep cycle, therefore a
+ * bot" is not. The judgement belongs to the person reading it.
  */
 export function AccountAnnex({
   networkId,

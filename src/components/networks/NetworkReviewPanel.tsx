@@ -20,14 +20,14 @@ import { useToast } from "@/components/ui/Toast";
 import { AllowlistForm, type AllowlistDraft } from "./AllowlistForm";
 
 /**
- * US52 — the assessment control, as one line of the cluster sheet.
+ * The assessment control, as one line of the cluster sheet.
  *
  * Picking a status here does not save it: the select opens the reason dialog
  * pre-set to the chosen status, because a reason of at least 20 characters is
  * mandatory and a one-click status change would have no way to collect it.
- * That minimum is not friction for its own sake — the reason is the input both
- * the allowlist (US56) and the recalibration analysis (PRD 10.9.3) learn from,
- * and a dismissal with no stated reason teaches neither anything.
+ * That minimum is not friction for its own sake — the reason is the input
+ * both the allowlist and the recalibration analysis learn from, and a
+ * dismissal with no stated reason teaches neither anything.
  */
 export function NetworkReviewBar({ network }: { network: NetworkDetail }) {
   const { toast } = useToast();
@@ -164,7 +164,7 @@ export function NetworkReviewBar({ network }: { network: NetworkDetail }) {
 }
 
 /**
- * US56 — declaring the whole cluster legitimate. Kept out of the assessment
+ * Declaring the whole cluster legitimate. Kept out of the assessment
  * select on purpose: "dismissed as a false positive" is a judgement about this
  * one detection, while allowlisting is a standing instruction that suppresses
  * these accounts in every future run and retroactively across history.

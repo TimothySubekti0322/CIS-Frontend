@@ -32,8 +32,8 @@ export function useAlertChart(params?: AlertChartParams) {
 }
 
 /**
- * The F1/F2 bell icon. Adding an already-watched claim is a no-op server-side,
- * so a double-click cannot desynchronise the bell.
+ * Adding an already-watched claim is a no-op server-side, so a double-click
+ * cannot desynchronise the bell icon.
  */
 export function useToggleWatchlist() {
   const qc = useQueryClient();
@@ -52,13 +52,13 @@ export function useToggleWatchlist() {
 }
 
 /**
- * US71's sidebar counter. Crossings are stamped by the backend's hourly score
+ * The sidebar counter. Crossings are stamped by the backend's hourly score
  * refresh (and immediately after a Harm edit), so a one-minute poll is well
  * inside the resolution of the underlying signal — polling faster would cost
  * requests without ever surfacing anything sooner.
  *
  * Mounted in the app shell, so it must never throw a page-level error: a
- * backend without the v1.5 routes simply shows no badge.
+ * backend that doesn't yet support this endpoint simply shows no badge.
  */
 export function useAlertNotifications() {
   return useQuery({
@@ -71,8 +71,8 @@ export function useAlertNotifications() {
 }
 
 /**
- * Acknowledges every crossing for THIS user — opening F3 is the
- * acknowledgment (US71).
+ * Acknowledges every crossing for THIS user — opening the watchlist page is
+ * the acknowledgment.
  *
  * The response is the refreshed counter, so it is written straight into the
  * cache rather than triggering a re-read. The watchlist is invalidated too,

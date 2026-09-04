@@ -10,8 +10,8 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { StatusPill } from "@/components/ui/StatusPill";
 
 /**
- * US54 — the actual content, so an analyst can verify the duplication claim
- * rather than take it on trust.
+ * The actual content, so an analyst can verify the duplication claim rather
+ * than take it on trust.
  *
  * Rendered from the evidence snapshot and never re-fetched. That is why a post
  * deleted since capture is still here, marked: content disappearing is the
@@ -144,8 +144,8 @@ function PlainShell({ children }: { children: React.ReactNode }) {
 }
 
 /**
- * One snapshotted post. The timestamp is shown to the second, per US54 — the
- * whole synchrony argument is about sub-minute alignment, and a minute-level
+ * One snapshotted post. The timestamp is shown to the second — the whole
+ * synchrony argument is about sub-minute alignment, and a minute-level
  * timestamp hides exactly the evidence being claimed.
  */
 export function PostRow({ post }: { post: EvidencePost }) {
@@ -181,7 +181,7 @@ export function PostRow({ post }: { post: EvidencePost }) {
 /**
  * The span this variant shares with the group's canonical text. Offsets are
  * computed server-side so the highlight is byte-identical in the UI and the
- * PDF (PRD 10.8 item 6).
+ * PDF.
  */
 function HighlightedText({
   text,

@@ -23,7 +23,7 @@ import {
 } from "@/components/networks/DetectorUnavailable";
 
 /**
- * US62's read-only governance surfaces plus US64's export audit.
+ * Read-only governance surfaces plus the export audit.
  *
  * All four answer questions an admin cannot answer from the network list:
  * why everything is banded Medium this week (runs), whether the relevance gate
@@ -110,8 +110,7 @@ function DetectionRunsCard() {
                             {strings.detector.runTruncated}
                           </StatusPill>
                         )}
-                        {/* Rule 4's consequence, stated — this is the answer to
-                            "why is everything Medium this week?" */}
+                        {/* This is the answer to "why is everything Medium this week?" */}
                         {run.confidenceCappedAtMedium && (
                           <StatusPill tone="muted">
                             {strings.networks.cappedAtMedium}
@@ -142,9 +141,9 @@ function DetectionRunsCard() {
 }
 
 /**
- * PRD 10.9.3's aggregate. Precision is deliberately the headline and recall is
- * secondary: a missed network costs a missed referral; a false positive costs a
- * government publicly implying that residents are bots.
+ * Precision is deliberately the headline and recall is secondary: a missed
+ * network costs a missed referral; a false positive costs a government
+ * publicly implying that residents are bots.
  */
 function DismissalSummaryCard() {
   const { data, isPending } = useDismissalSummary(90);
@@ -338,7 +337,7 @@ function OfftopicCard() {
   );
 }
 
-/** US64 — who exported what, when, with which sections and redaction. */
+/** Who exported what, when, with which sections and redaction. */
 function ExportAuditCard() {
   const [page, setPage] = useState(1);
   const { data, isPending } = useExportAudit({ page, limit: 10 });

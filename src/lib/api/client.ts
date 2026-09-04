@@ -87,7 +87,7 @@ let refreshInFlight: Promise<boolean> | null = null;
 
 /**
  * Exchange the refresh token for a new pair. Single-flight: a burst of 401s
- * (the F1 page fires several queries at once) triggers exactly one exchange,
+ * (a page firing several queries at once) triggers exactly one exchange,
  * which matters because the presented refresh token is single-use — a second
  * concurrent call would race and lose the session.
  *

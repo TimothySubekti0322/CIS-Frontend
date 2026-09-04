@@ -1,5 +1,5 @@
 /**
- * Wire → domain translation for F5.
+ * Wire → domain translation for the coordinated-network detector.
  *
  * Same strictness as `mappers.ts`: an omitted field becomes `null` rather than
  * `0`, unknown enum values fall back to the documented default instead of
@@ -317,7 +317,7 @@ export function mapGraphNode(dto: GraphNodeDto): GraphNode {
     eigenvectorCentrality: count(dto.eigenvector_centrality),
     postsInCluster: count(dto.posts_in_cluster),
     // Absent coordinates are laid out client-side as a fallback ring; a
-    // present pair is used verbatim so screen and PDF agree (PRD 10.8).
+    // present pair is used verbatim so screen and PDF agree.
     x: num(dto.x),
     y: num(dto.y),
     allowlisted: bool(dto.allowlisted),

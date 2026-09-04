@@ -8,8 +8,8 @@ import { EmptyState } from "@/components/ui/EmptyState";
 
 /**
  * `GET /settings` — the read-only audit view of every global setting, so an
- * operator can see what else the backend is tracking (the "last fetched"
- * timestamp F1 shows, for example) and when it last changed.
+ * operator can see what else the backend is tracking (a "last fetched"
+ * timestamp, for example) and when it last changed.
  */
 export function SettingsTable() {
   const { data, isPending, isError } = useSettings();

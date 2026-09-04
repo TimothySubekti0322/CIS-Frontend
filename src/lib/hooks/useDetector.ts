@@ -21,9 +21,9 @@ export function useDetectorSettings() {
 }
 
 /**
- * PRD 10.11's bounds. These change only on a deploy, so they are cached hard —
- * the form is served from them rather than from hardcoded constants, so the
- * client and the server cannot disagree about what is legal.
+ * These bounds change only on a deploy, so they are cached hard — the form is
+ * served from them rather than from hardcoded constants, so the client and
+ * the server cannot disagree about what is legal.
  */
 export function useDetectorRanges() {
   return useQuery({
@@ -153,7 +153,7 @@ export function useAllowlistCategories() {
 
 /**
  * Adding an entry is retroactive on the detector side, so the network list and
- * F1's badges are invalidated alongside the allowlist itself.
+ * claim badges are invalidated alongside the allowlist itself.
  */
 export function useCreateAllowlistEntry() {
   const qc = useQueryClient();

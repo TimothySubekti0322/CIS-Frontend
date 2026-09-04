@@ -17,9 +17,9 @@ export interface ClaimCardProps {
 }
 
 /**
- * The single claim-card component, reused unmodified on the F1 sections, the
- * "See all" lists and the F2 policy detail page. The variant is derived from
- * `claimType` — there is no policy-specific card.
+ * The single claim-card component, reused unmodified across claim listings
+ * and the policy detail page. The variant is derived from `claimType` —
+ * there is no policy-specific card.
  *
  * A Synthetic claim carries no score, dates, statement counts or bell state:
  * those fields are absent, not zero, so nothing is rendered for them.
@@ -45,8 +45,8 @@ export function ClaimCard({ claim }: ClaimCardProps) {
           {isExisting ? strings.claims.genericTag : strings.claims.syntheticTag}
         </StatusPill>
         <div className="flex items-center gap-1.5">
-          {/* US61 - visible during triage without opening the claim. Part of
-              the shared card, so it appears on F2's policy detail page too. */}
+          {/* Visible during triage without opening the claim. Part of the
+              shared card, so it appears on the policy detail page too. */}
           <CoordinatedNetworkIcon badge={claim.coordinatedNetwork} />
           {claim.finalClaimScore !== null && (
             <ScoreBadge score={claim.finalClaimScore} size="sm" />

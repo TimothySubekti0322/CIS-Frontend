@@ -18,8 +18,8 @@ export interface FilterChipsProps {
 }
 
 /**
- * Multi-select chip row — reused for F1 topic filters (US6/US15) and
- * F2 year filters (US34). An empty selection means "all".
+ * Multi-select chip row, reused for topic and year filters. An empty
+ * selection means "all".
  */
 export function FilterChips({
   options,

@@ -19,10 +19,10 @@ export function Sidebar({
 }) {
   const pathname = usePathname();
 
-  /* US71's counter. It lives here rather than on the Alert page because the
-     point of the badge is to be visible from anywhere else in the product.
-     The query never throws — a backend without the v1.5 route simply yields
-     nothing, and the badge does not render. */
+  /* This counter lives here rather than on the Alert page because the point
+     of the badge is to be visible from anywhere else in the product. The
+     query never throws — a backend without the route simply yields nothing,
+     and the badge does not render. */
   const notifications = useAlertNotifications();
   const counts: Record<NavBadge, number> = {
     alertCrossings: notifications.data?.unacknowledgedCount ?? 0,
@@ -97,8 +97,8 @@ export function Sidebar({
 }
 
 /**
- * The Gold counter §5.5 specifies — the only trailing mark on a nav row, so it
- * is unambiguously the thing the user is meant to notice.
+ * The gold counter — the only trailing mark on a nav row, so it is
+ * unambiguously the thing the user is meant to notice.
  *
  * Capped at 99+ — an exact figure past that is a threshold problem to solve on
  * Admin Settings, not a number to render.

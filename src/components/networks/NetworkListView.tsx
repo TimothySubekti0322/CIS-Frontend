@@ -26,12 +26,12 @@ import { NetworkCard } from "./NetworkCard";
 import { DetectorUnavailable, isDetectorUnavailable } from "./DetectorUnavailable";
 
 /**
- * [S3] — the F5 network list (US43–US48).
+ * The network list.
  *
  * Medium and High are the default set. Low-band networks are revealed only by
  * the explicit toggle and come back flagged by the server, de-emphasised and
- * labelled — never silently mixed in. F1 has no equivalent toggle, which is
- * why a network invisible here is also unreachable through a claim page.
+ * labelled — never silently mixed in. A network invisible here is also
+ * unreachable through a claim page.
  */
 export function NetworkListView() {
   const [status, setStatus] = useState<NetworkStatusFilter>("all");

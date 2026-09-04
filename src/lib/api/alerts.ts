@@ -26,7 +26,7 @@ import {
 export const alertsApi = {
   /**
    * `GET /alerts` — the watchlist table, most recently appended first.
-   * `threshold_status` is derived at read time against the F4 global
+   * `threshold_status` is derived at read time against the global admin
    * threshold, so changing that threshold flips rows with no recomputation.
    */
   async list(params: WatchlistParams = {}): Promise<Paginated<WatchlistItem>> {
@@ -39,7 +39,8 @@ export const alertsApi = {
   },
 
   /**
-   * `POST /alerts` — called after the bell-icon confirmation on an F1/F2 card.
+   * `POST /alerts` — called after the bell-icon confirmation on a claim or
+   * policy card.
    *
    * Adding an already-watched claim is not an error: it returns 201 with the
    * existing `added_at`, so a double-click leaves the bell filled.
@@ -86,7 +87,7 @@ export const alertsApi = {
   },
 
   /**
-   * `GET /alerts/notifications` — the US71 sidebar badge.
+   * `GET /alerts/notifications` — the sidebar notification badge.
    * `unacknowledgedCount` is the number; `crossings` names the claims behind
    * it so the badge can expand into something readable.
    */
@@ -98,8 +99,8 @@ export const alertsApi = {
   },
 
   /**
-   * `POST /alerts/notifications/acknowledge` — opening F3 is the
-   * acknowledgment (US71), so this runs on entering the page, **after** the
+   * `POST /alerts/notifications/acknowledge` — opening the alert watchlist is
+   * the acknowledgment, so this runs on entering the page, **after** the
    * rows have rendered: acknowledging is what makes the next render
    * unhighlighted, and calling it first would clear the highlights the user
    * was just shown. Acknowledgment is per user — one operator clearing their

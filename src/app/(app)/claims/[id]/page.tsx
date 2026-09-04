@@ -3,7 +3,7 @@
 import { use } from "react";
 import { ClaimDetailView } from "@/components/claims/ClaimDetailView";
 
-/** F1 — claim detail. Existing claims land here; the view renders by type. */
+/** Claim detail. Existing claims land here; the view renders by type. */
 export default function ClaimDetailPage({
   params,
 }: {

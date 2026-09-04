@@ -17,7 +17,7 @@ import { strings } from "@/lib/constants/strings";
 import { colorForIndex } from "./chartColors";
 
 /**
- * [C1] FinalClaimScore over time for the ticked claims.
+ * FinalClaimScore over time for the ticked claims.
  *
  * Series buckets are merged on `bucket_start` rather than by array index —
  * a claim watched last week has fewer buckets than one watched last year, and
@@ -90,7 +90,7 @@ export function ScoreLineChart({ chart }: { chart: AlertChart }) {
               }}
               formatter={(value, key) => [value, labels[String(key)] ?? key]}
             />
-            {/* The global F4 threshold, so Over/Under is visible on the chart. */}
+            {/* The global threshold, so Over/Under is visible on the chart. */}
             {chart.threshold !== null && (
               <ReferenceLine
                 y={chart.threshold}
